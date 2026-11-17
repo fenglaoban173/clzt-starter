@@ -721,3 +721,34 @@
 **保留**：`frontend/node_modules/`（205M，dev server 正在使用，删后需 `npm i` 恢复）；`frontend/src/`、`package.json` / `package-lock.json`、`vite.config.js`、`index.html`；根目录 5 份文档 `README.md` / `STATUS.md` / `API差距清单.md` / `ref-cl-batch-fields.md` / `资产模块CRUD对照.md`（后三份为线上调研结论，`STATUS.md` 为进度记录，均非冗余）。
 
 **复验**：清理后 `curl http://localhost:5173/build/create` → HTTP 200，dev server 正常运行。
+
+---
+
+## 四十二、代码托管到 GitHub + 自动部署 GitHub Pages（2026-11-17，需求 R28）
+
+**目标**：新建 GitHub 仓库托管代码 → 打包 → 运行（本地预览 + 线上可访问）。
+
+### ① 仓库
+
+- `git init -b main`，本地身份 `fenglaoban173 <fenglaoban173@users.noreply.github.com>`。
+- 仓库：<https://github.com/fenglaoban173/clzt-starter>（**公开**，已按需求确认为 public）。
+- 首次提交 `45e94de`：45 个文件 / 16936 行（源码 34 + 文档 5 + 配置 4 + 忽略规则等），`node_modules/`、`dist/` 由 `.gitignore` 排除。
+- 新增 `.gitattributes`（统一 LF，避免跨平台换行 diff）、`.gitignore` 补充 `.env*`、`*.local`、`.idea/`、`.vscode/`、`.DS_Store`。
+- 推送凭证：git 初始无凭据导致 401 → 报成「连接失败」，用 `gh auth setup-git` 把 gh 的 token 接入 git credential helper 后推送成功。
+
+### ② 打包
+
+- `npm run build` 通过（产物 `frontend/dist/`，15 个 chunk，仅体积告警）。
+- 本地 `npm run preview` 起在 <http://localhost:4173>：首页 200、`/build/create` 深链 200（history 回退生效）、产物 JS 200。
+- **Playwright 复验生产产物**（4173 端口）：账户弹窗 20 行勾选 3 个 → 规则条只显示「百度极速版词-央广-1」（宽 153px），悬停浮层列出 3 个账户名；「选择已有项目」抽屉首列表头「媒体账户」、3 个账户名各占一格、首列 0 个下拉组件、共 21 条、抽屉内「同步项目」按钮存在、「多账户快速选择」0 个；「同步项目与广告」弹窗标题正确；`pageerror` = 0。
+
+### ③ GitHub Pages 自动部署
+
+- `.github/workflows/deploy.yml`：`push main` → `npm ci` → `npm run build`（注入 `VITE_BASE=/<仓库名>/`）→ 复制 `index.html` 为 `404.html` 做 SPA 深链回退 → `upload-pages-artifact` → `deploy-pages`。
+- 路由 base 前缀适配：`vite.config.js` 新增 `base: process.env.VITE_BASE || '/'`；`router/index.js` 改为 `createWebHistory(import.meta.env.BASE_URL)`（原本写死 `createWebHistory()`）。本地不注入时仍是 `/`，行为不变；已用两种 base 分别构建验证产物路径（`/assets/...` 与 `/clzt-starter/assets/...`）。
+- Pages 站点：`build_type=workflow`，线上地址 <https://fenglaoban173.github.io/clzt-starter/>。
+- 线上复验（Playwright 访问真实域名）：深链 `/build/create` 虽返回 404 状态码（Pages 静态托管 history 路由的固有行为，由 `404.html` 兜底），但页面正常渲染 —— 标题「央广智投 · 批量广告搭建平台」、「媒体账户」出现 4 次、「多账户快速选择」0 个；失败请求 0、`pageerror` = 0。
+
+### ④ 提交记录
+
+- `45e94de` 初始提交 → `b5c6d21` CI + base 前缀适配（本次）。
