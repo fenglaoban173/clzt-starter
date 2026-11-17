@@ -109,7 +109,8 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  // BASE_URL 跟随 vite base，本地为 '/'，GitHub Pages 为 '/<仓库名>/'
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 

@@ -24,6 +24,20 @@ npm run build    # 产出 dist/
 | op_test | operator | 优化师 |
 | viewer | viewer | 只读 |
 
+## 打包与部署
+
+```bash
+cd frontend
+npm run build     # 产出 frontend/dist/
+npm run preview   # 以静态站点方式预览产物，默认 http://localhost:4173
+```
+
+**GitHub**：仓库 <https://github.com/fenglaoban173/clzt-starter>（公开）。`.github/workflows/deploy.yml` 在每次推送 `main` 时自动构建并发布到 GitHub Pages：
+
+- 构建时注入 `VITE_BASE=/<仓库名>/`，`vite.config.js` 的 `base` 与 `router` 的 `createWebHistory(import.meta.env.BASE_URL)` 同步跟随该前缀；本地不注入时保持 `/`，行为不变。
+- GitHub Pages 不支持 history 路由回退，CI 会把 `dist/index.html` 复制为 `dist/404.html` 兜底深链。
+- 线上地址：<https://fenglaoban173.github.io/clzt-starter/>
+
 ## 目录结构
 
 ```

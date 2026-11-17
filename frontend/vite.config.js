@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
+  // 部署到 GitHub Pages 时用 VITE_BASE 指定仓库子路径（如 /clzt-starter/），本地默认 /
+  base: process.env.VITE_BASE || '/',
   plugins: [vue()],
   server: {
     port: 5173,
