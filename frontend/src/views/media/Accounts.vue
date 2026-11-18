@@ -319,7 +319,7 @@
 
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CaretBottom, Delete, Operation, Plus, Search } from '@element-plus/icons-vue';
 import { mediaApi } from '@/api/media';
@@ -333,6 +333,7 @@ import CreativeCleanDialog from './components/CreativeCleanDialog.vue';
 import { DEFAULT_METRICS, METRIC_MAP, loadTemplates, saveTemplates } from './customMetrics';
 
 const route = useRoute();
+const router = useRouter();
 const media = computed(() => route.query.media || 'upgrade');
 const isUpgrade = computed(() => media.value === 'upgrade');
 
@@ -665,8 +666,13 @@ function onCreativeClean() { cleanVisible.value = true; }
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
 function onCustomMetric() { ElMessage.info('原型：自定义展示指标列'); }
 function onDetail(record) { ElMessage.info(`原型：查看账户 ${record.name} 详情`); }
-function onViewProjects(record) { ElMessage.info(`原型：查看账户 ${record.name} 名下项目`); }
-function onViewAds(record) { ElMessage.info(`原型：查看账户 ${record.name} 名下广告`); }
+function onViewProjects(record) { goAccountList('projects', record); }
+function onViewAds(record) { goAccountList('ads', record); }
+// 「查看项目 / 查看广告」：携带账户 ID 跳转到顶部页签对应的项目 / 广告列表
+function goAccountList(name, record) {
+  if (!record?.advertiser_id) { ElMessage.info('原型：该账户缺少 ID，无法跳转'); return; }
+  router.push({ name, query: { media: media.value, account_id: record.advertiser_id } });
+}
 
 onMounted(load);
 </script>

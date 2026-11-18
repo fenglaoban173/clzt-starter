@@ -158,9 +158,12 @@
 
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
-import { buildApi } from '@/api/media';
+import { buildApi, mediaApi } from '@/api/media';
+
+const route = useRoute();
 
 const loading = ref(false);
 const all = ref([]);
@@ -200,9 +203,21 @@ function applyFilter() {
   return rows;
 }
 
+// 「查看广告」跳转过来时：URL 携带 account_id，自动定位到该媒体账户并过滤
+const accountQueryDone = ref(false);
+async function applyAccountQuery() {
+  const id = route.query.account_id;
+  if (!id || accountQueryDone.value) return;
+  accountQueryDone.value = true;
+  const res = await mediaApi.accounts();
+  const acc = (res.data?.list || []).find((a) => String(a.advertiser_id) === String(id));
+  if (acc) filters.account = acc.name;
+}
+
 async function load() {
   loading.value = true;
   try {
+    await applyAccountQuery();
     const res = await buildApi.ads({ status: filters.status });
     all.value = res.data?.list || [];
     const rows = applyFilter();

@@ -1107,3 +1107,31 @@
 - 账户管理页列头：`广告主 ID / 账户名称 / 登录邮箱 / 智投项目 / 产品 / 优化师 / 部门 / 状态 / 授权时间 / 操作`。
 - R37 抽屉回归：drawer `x=920 width=1000`，关闭按钮 `x=884 y=8 36×36`，右边缘 920 与抽屉左边缘完全贴合；`.pd-scroll` 可滚动到底；表格链接颜色集合仅 `rgb(37,99,235)`。
 - `pageerror` = 0；生产构建 `npm run build` 通过（10.00s，仅 chunk 体积告警）。
+
+---
+
+## 五十三、账户列表「查看项目 / 查看广告」携带账户 ID 跳转顶部页签（2026-11-18，需求 R38）
+
+**需求**（附线上截图 78.png：巨量广告·标准 → 账户页签，账户行「百度极速版-央广-1 / ID：1869584151302635」，操作列有「查看项目」「查看广告」）：
+
+> 查看项目 查看广告点击 携带 id 跳转至对应的 顶部 项目 和广告列表页面。
+
+### ① 实现方式
+
+- **跳转方**（`frontend/src/views/media/Accounts.vue`）：`onViewProjects` / `onViewAds` 由弹 toast 改为**带参路由跳转**，携带账户 ID 与媒体：
+  `router.push({ name: 'projects' | 'ads', query: { media, account_id: record.advertiser_id } })`。
+  顶部页签高亮由 `route.name` 驱动，故落到「项目 / 广告」页签时页签自动选中。
+- **接收方**（`frontend/src/views/build/Projects.vue`、`frontend/src/views/build/Ads.vue`）：新增 `applyAccountQuery()`——读取 `route.query.account_id`，通过 `mediaApi.accounts()` 用 **advertiser_id 反查账户名**，写入各自的**「媒体账户」筛选框**后再过滤列表。
+  - 以**账户列表**反查（而不是在目标列表里反查），可保证「该账户名下没有项目/广告」时列表正确显示为空，而不是退回全量。
+  - 只在首次加载时生效一次（`accountQueryDone` 标记），用户随后手动改筛选或「清空」不会被 URL 参数覆盖。
+  - `Projects.vue` 的账户筛选按 `account_name` 匹配（`FILTER_DEFS` 中 `account` 项 `source: 'account_name'`），`Ads.vue` 的 `applyFilter` 同样按 `account_name` 过滤——两页的 `account_name` 均取自 mock 账户名，故以账户名过滤即可命中该账户的行。
+
+### ② 验证（Playwright，生产预览 `http://localhost:4173`）
+
+- 账户页首行：`百度极速版词-央广-1` / `ID：1869584151302635`。
+- 点「查看项目」→ URL `http://localhost:4173/build/projects?media=upgrade&account_id=1869584151302635`；顶部页签选中「**项目**」；「媒体账户」筛选框显示 `百度极速版词-央广-1`；列表 **共 5 条**（合计行 + 5 行，项目名为 漫剧竖版起量-0112 / 百度极速版词-央广-1-APP内付费-01 / -小程序付费-01 / -小游戏变现-01 / -表单留资-01，均属该账户）。
+- 点「查询」后仍为 **共 5 条**（过滤保持）；点「清空」恢复 **共 84 条**（全量）。
+- 点「查看广告」→ URL `http://localhost:4173/build/ads?media=upgrade&account_id=1869584151302635`；顶部页签选中「**广告**」；「媒体账户」筛选框显示 `百度极速版词-央广-1`；列表 **2 行**（1112_153012_01_漫剧开场-竖版-01、1112_153012_02_漫剧冲突点-竖版-02，均属该账户；该账户名下的广告总数为 4）。
+- 深链直接访问 `?account_id=1878623959614544` → 生效（**共 4 条**，另一账户），证明按 ID 生效而非固定值。
+- 从项目页点顶部「账户」页签 → URL 变为 `/media/accounts?media=upgrade`（query 被替换）→ 恢复 **21 行**全量账户，符合预期。
+- `pageerror` = 0；生产构建 `npm run build` 通过（10.63s，仅 chunk 体积告警）。

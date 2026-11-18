@@ -226,7 +226,7 @@ import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CaretBottom, Close, Delete, Operation, Search } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
-import { buildApi } from '@/api/media';
+import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
@@ -402,9 +402,21 @@ function buildTotal(list) {
 }
 
 // ---------- 数据 ----------
+// 「查看项目」跳转过来时：URL 携带 account_id，自动定位到该媒体账户并过滤
+const accountQueryDone = ref(false);
+async function applyAccountQuery() {
+  const id = route.query.account_id;
+  if (!id || accountQueryDone.value) return;
+  accountQueryDone.value = true;
+  const res = await mediaApi.accounts();
+  const acc = (res.data?.list || []).find((a) => String(a.advertiser_id) === String(id));
+  if (acc) filters.account = acc.name;
+}
+
 async function load() {
   loading.value = true;
   try {
+    await applyAccountQuery();
     const res = await buildApi.projects({ media: media.value });
     all.value = (res.data?.list || []).map((p) => ({ ...p, enabled: p.status === 'enabled' }));
     const filtered = applyFilter();
