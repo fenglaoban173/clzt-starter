@@ -331,6 +331,8 @@ const allPromoTabs = [
   { name: 'accounts', title: '账户' },
   { name: 'projects', title: '项目' },
   { name: 'ads', title: '广告' },
+  { name: 'auto-plans', title: '托管方案' },
+  { name: 'play-assistant', title: '铺剧助手' },
 ];
 const promoTabs = computed(() => {
   if (media.value === 'uni' || media.value === 'oc') {

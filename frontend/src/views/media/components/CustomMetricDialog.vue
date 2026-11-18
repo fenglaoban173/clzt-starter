@@ -95,6 +95,8 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   media: { type: String, default: 'upgrade' },
   modelKeys: { type: Array, default: () => [] },
+  // 可选：自定义指标目录（{ fixed, groups, map }）。不传时使用账户页目录
+  catalog: { type: Object, default: null },
 });
 const emit = defineEmits(['update:modelValue', 'apply', 'save-template']);
 
@@ -108,8 +110,12 @@ const overIndex = ref(null);
 const groupRefs = ref({});
 const middleRef = ref(null);
 
-// 指标目录：按当前媒体过滤（部分指标仅在特定媒体可用）
-const groups = computed(() => METRIC_GROUPS
+// 指标目录：优先取外部传入的目录，否则按当前媒体过滤账户页目录
+const metricGroups = computed(() => props.catalog?.groups || METRIC_GROUPS);
+const metricMap = computed(() => props.catalog?.map || METRIC_MAP);
+const fixedMetrics = computed(() => props.catalog?.fixed || FIXED_METRICS);
+
+const groups = computed(() => metricGroups.value
   .map((g) => ({ ...g, items: g.items.filter((i) => !i.media || i.media.includes(props.media)) }))
   .filter((g) => g.items.length));
 
@@ -122,7 +128,7 @@ const visibleGroups = computed(() => {
     .filter((g) => g.items.length);
 });
 
-const selectedList = computed(() => selectedKeys.value.map((k) => METRIC_MAP[k]).filter(Boolean));
+const selectedList = computed(() => selectedKeys.value.map((k) => metricMap.value[k]).filter(Boolean));
 
 function isLastFixed(i) {
   const item = selectedList.value[i];
@@ -132,13 +138,13 @@ function isLastFixed(i) {
 
 function init() {
   search.value = '';
-  activeCat.value = 'base';
+  activeCat.value = groups.value[0]?.key || 'base';
   saveAs.value = false;
   tplName.value = '';
   dragIndex.value = null;
   overIndex.value = null;
-  const fixedKeys = FIXED_METRICS.map((f) => f.key);
-  const rest = (props.modelKeys || []).filter((k) => !fixedKeys.includes(k) && METRIC_MAP[k]);
+  const fixedKeys = fixedMetrics.value.map((f) => f.key);
+  const rest = (props.modelKeys || []).filter((k) => !fixedKeys.includes(k) && metricMap.value[k]);
   selectedKeys.value = [...fixedKeys, ...rest];
 }
 

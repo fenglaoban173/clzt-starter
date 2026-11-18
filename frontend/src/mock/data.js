@@ -310,6 +310,82 @@ const projects = [
   },
 ];
 
+// ---------- 项目：补充模拟行 ----------
+// 线上项目列表为千级数据，本地按账户批量铺开模拟行，便于演示分页、排序与合计行。
+const PROJECT_SUFFIX_POOL = ['-APP内付费-01', '-小程序付费-01', '-小游戏变现-01', '-表单留资-01'];
+const PROJECT_OPT_GOALS = ['付费', '激活', '注册', '表单提交', '下单'];
+const PROJECT_DEEP_GOALS = ['付费', '激活', '注册', '下单'];
+const PROJECT_DEEP_MODES = ['深度出价', '付费ROI', '转化出价'];
+const PROJECT_PLATFORMS = ['抖音', '穿山甲', '西瓜视频', '今日头条'];
+const PROJECT_AD_TYPES = ['信息流', '搜索广告'];
+const PROJECT_MATERIALS = ['视频素材', '图片素材'];
+const PROJECT_GOODS = ['全部商品', '短剧商品包-01', '短剧商品包-02', '会员商品包-01'];
+const PROJECT_PURPOSES = ['APP推广', '小程序推广', '小游戏推广', '网页推广'];
+
+// 伪随机（固定公式，保证每次刷新数据一致）
+const pseudo = (seed) => {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+const upgradeAccounts = accounts.filter((a) => (a.media || 'upgrade') === 'upgrade');
+const generatedProjects = [];
+upgradeAccounts.forEach((acc, ai) => {
+  PROJECT_SUFFIX_POOL.forEach((sfx, si) => {
+    const seed = ai * 97 + si * 13 + 7;
+    const n = generatedProjects.length;
+    const stat_cost = +(pseudo(seed) * 5200 + 120).toFixed(2);
+    const show_cnt = Math.round(pseudo(seed + 1) * 230000 + 8000);
+    const click_cnt = Math.round(show_cnt * (pseudo(seed + 2) * 0.09 + 0.008));
+    const ctr = show_cnt ? +((click_cnt / show_cnt) * 100).toFixed(2) : 0;
+    const cpm = show_cnt ? +((stat_cost / show_cnt) * 1000).toFixed(2) : 0;
+    const cpc = click_cnt ? +(stat_cost / click_cnt).toFixed(2) : 0;
+    const convert_cnt = Math.round(click_cnt * (pseudo(seed + 3) * 0.06 + 0.004));
+    const convert_cost = convert_cnt ? +(stat_cost / convert_cnt).toFixed(2) : 0;
+    const convert_rate = click_cnt ? +((convert_cnt / click_cnt) * 100).toFixed(2) : 0;
+    const deep_cnt = Math.round(convert_cnt * (pseudo(seed + 4) * 0.6 + 0.05));
+    const deep_cost = deep_cnt ? +(stat_cost / deep_cnt).toFixed(2) : 0;
+    const deep_rate = click_cnt ? +((deep_cnt / click_cnt) * 100).toFixed(2) : 0;
+    generatedProjects.push({
+      id: 750 + n,
+      name: `${acc.name}${sfx}`,
+      account_name: acc.name,
+      advertiser_id: acc.advertiser_id,
+      campaign_id: `1879000${String(200 + n)}`,
+      status: pseudo(seed + 5) > 0.72 ? 'disabled' : 'enabled',
+      stat_cost, pay_roi: +(pseudo(seed + 6) * 3).toFixed(2), game_roi: +(pseudo(seed + 7) * 2).toFixed(2),
+      cpm, cpc, deep_bid: +(pseudo(seed + 8) * 60).toFixed(1), budget: Math.round(pseudo(seed + 9) * 4000 + 500),
+      bid: +(pseudo(seed + 10) * 50 + 5).toFixed(1),
+      show_cnt, click_cnt, ctr, convert_cnt, convert_cost, convert_rate, deep_cnt, deep_cost, deep_rate,
+      created_at: fmt(now - 86400000 * (0.2 + n * 0.06)),
+    });
+  });
+});
+projects.push(...generatedProjects);
+
+// 项目行补齐账户维度字段（创量项目 / 创量产品 / 优化师 / 账户主体 / 推广目的 …）
+const accByName = {};
+accounts.forEach((a) => { accByName[a.name] = a; });
+projects.forEach((p) => {
+  if (p.media) return;
+  const acc = accByName[p.account_name] || {};
+  const seed = p.id * 31;
+  p.advertiser_id = acc.advertiser_id || p.advertiser_id || '';
+  p.project = acc.project || '未分组';
+  p.product = acc.product || '通用产品';
+  p.optimizer = acc.optimizer || '未分配';
+  p.subject = acc.subject || SUBJECTS[0];
+  p.purpose = PROJECT_PURPOSES[Math.floor(pseudo(seed) * PROJECT_PURPOSES.length)];
+  p.opt_goal = PROJECT_OPT_GOALS[Math.floor(pseudo(seed + 1) * PROJECT_OPT_GOALS.length)];
+  p.deep_goal = PROJECT_DEEP_GOALS[Math.floor(pseudo(seed + 2) * PROJECT_DEEP_GOALS.length)];
+  p.deep_mode = PROJECT_DEEP_MODES[Math.floor(pseudo(seed + 3) * PROJECT_DEEP_MODES.length)];
+  p.platform = PROJECT_PLATFORMS[Math.floor(pseudo(seed + 4) * PROJECT_PLATFORMS.length)];
+  p.ad_type = PROJECT_AD_TYPES[Math.floor(pseudo(seed + 5) * PROJECT_AD_TYPES.length)];
+  p.material = PROJECT_MATERIALS[Math.floor(pseudo(seed + 6) * PROJECT_MATERIALS.length)];
+  p.goods = PROJECT_GOODS[Math.floor(pseudo(seed + 7) * PROJECT_GOODS.length)];
+  p.delivery_mode = pseudo(seed + 8) > 0.5 ? '程序化投放' : '手动投放';
+});
+
 // ---------- 广告（营销/计划层级，对齐创量广告报表列头） ----------
 const ads = [
   {
