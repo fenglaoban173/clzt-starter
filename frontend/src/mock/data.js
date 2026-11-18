@@ -1,5 +1,9 @@
 // 原型模式本地模拟数据：不连接后端，所有列表 / 提交 / 详情均在前端内存中生成。
 // 字段口径对齐巨量广告升级版创建项目 / 创建营销（单元）官方文档。
+import {
+  CL_PROJECTS, CL_PRODUCTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
+  ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_AD_TYPES, PLATFORMS,
+} from './projectFilters';
 
 const now = Date.now();
 const pad = (n) => String(n).padStart(2, '0');
@@ -313,14 +317,9 @@ const projects = [
 // ---------- 项目：补充模拟行 ----------
 // 线上项目列表为千级数据，本地按账户批量铺开模拟行，便于演示分页、排序与合计行。
 const PROJECT_SUFFIX_POOL = ['-APP内付费-01', '-小程序付费-01', '-小游戏变现-01', '-表单留资-01'];
-const PROJECT_OPT_GOALS = ['付费', '激活', '注册', '表单提交', '下单'];
-const PROJECT_DEEP_GOALS = ['付费', '激活', '注册', '下单'];
-const PROJECT_DEEP_MODES = ['深度出价', '付费ROI', '转化出价'];
-const PROJECT_PLATFORMS = ['抖音', '穿山甲', '西瓜视频', '今日头条'];
-const PROJECT_AD_TYPES = ['信息流', '搜索广告'];
-const PROJECT_MATERIALS = ['视频素材', '图片素材'];
-const PROJECT_GOODS = ['全部商品', '短剧商品包-01', '短剧商品包-02', '会员商品包-01'];
-const PROJECT_PURPOSES = ['APP推广', '小程序推广', '小游戏推广', '网页推广'];
+// 创意素材 / 关联商品：线上为弹窗选择器，本地以列表项模拟
+const PROJECT_MATERIALS = ['漫剧开场-竖版-01', '漫剧冲突点-竖版-02', '产品演示-横版-03', '口播引流-竖版-04'];
+const PROJECT_GOODS = ['爆款短剧周边礼盒', '会员月卡'];
 
 // 伪随机（固定公式，保证每次刷新数据一致）
 const pseudo = (seed) => {
@@ -371,19 +370,21 @@ projects.forEach((p) => {
   const acc = accByName[p.account_name] || {};
   const seed = p.id * 31;
   p.advertiser_id = acc.advertiser_id || p.advertiser_id || '';
-  p.project = acc.project || '未分组';
-  p.product = acc.product || '通用产品';
-  p.optimizer = acc.optimizer || '未分配';
-  p.subject = acc.subject || SUBJECTS[0];
-  p.purpose = PROJECT_PURPOSES[Math.floor(pseudo(seed) * PROJECT_PURPOSES.length)];
-  p.opt_goal = PROJECT_OPT_GOALS[Math.floor(pseudo(seed + 1) * PROJECT_OPT_GOALS.length)];
-  p.deep_goal = PROJECT_DEEP_GOALS[Math.floor(pseudo(seed + 2) * PROJECT_DEEP_GOALS.length)];
-  p.deep_mode = PROJECT_DEEP_MODES[Math.floor(pseudo(seed + 3) * PROJECT_DEEP_MODES.length)];
-  p.platform = PROJECT_PLATFORMS[Math.floor(pseudo(seed + 4) * PROJECT_PLATFORMS.length)];
+  // 维度取值对齐线上项目列表「查询条件」候选项（见 mock/projectFilters.js）
+  p.project = CL_PROJECTS[Math.floor(pseudo(seed + 10) * CL_PROJECTS.length)];
+  p.product = CL_PRODUCTS[Math.floor(pseudo(seed + 11) * CL_PRODUCTS.length)];
+  p.optimizer = OPTIMIZERS[Math.floor(pseudo(seed + 12) * OPTIMIZERS.length)];
+  p.subject = ACCOUNT_SUBJECTS[Math.floor(pseudo(seed + 13) * ACCOUNT_SUBJECTS.length)];
+  p.purpose = PURPOSES[Math.floor(pseudo(seed) * PURPOSES.length)];
+  p.opt_goal = OPT_GOALS[Math.floor(pseudo(seed + 1) * OPT_GOALS.length)];
+  p.deep_goal = DEEP_OPT_GOALS[Math.floor(pseudo(seed + 2) * DEEP_OPT_GOALS.length)];
+  p.deep_mode = DEEP_OPT_MODES[Math.floor(pseudo(seed + 3) * DEEP_OPT_MODES.length)];
+  p.platform = PLATFORMS[Math.floor(pseudo(seed + 4) * PLATFORMS.length)];
   p.ad_type = PROJECT_AD_TYPES[Math.floor(pseudo(seed + 5) * PROJECT_AD_TYPES.length)];
   p.material = PROJECT_MATERIALS[Math.floor(pseudo(seed + 6) * PROJECT_MATERIALS.length)];
   p.goods = PROJECT_GOODS[Math.floor(pseudo(seed + 7) * PROJECT_GOODS.length)];
-  p.delivery_mode = pseudo(seed + 8) > 0.5 ? '程序化投放' : '手动投放';
+  p.delivery_mode = PROJECT_DELIVERY_MODES[Math.floor(pseudo(seed + 8) * PROJECT_DELIVERY_MODES.length)];
+  p.star = pseudo(seed + 14) > 0.5 ? 'yes' : 'no';
 });
 
 // ---------- 广告（营销/计划层级，对齐创量广告报表列头） ----------

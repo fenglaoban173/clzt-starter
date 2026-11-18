@@ -458,16 +458,16 @@ async function onUserMenu(command) {
   align-items: center;
   justify-content: space-between;
   gap: 28px;
-  height: 44px;
+  height: 56px;
   padding: 0 20px;
   background: #fff;
   border-bottom: 1px solid #e5e6eb;
 }
-.sub-tab-list { display: flex; align-items: center; gap: 28px; height: 44px; }
+.sub-tab-list { display: flex; align-items: center; gap: 28px; height: 56px; }
 .sub-tab {
   position: relative;
-  height: 44px;
-  line-height: 44px;
+  height: 56px;
+  line-height: 56px;
   font-size: 16px;
   color: #4e5969;
   cursor: pointer;
