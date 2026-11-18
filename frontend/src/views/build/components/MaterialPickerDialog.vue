@@ -20,7 +20,6 @@
             @click="switchTab(t.key)"
           >{{ t.label }}</div>
         </div>
-        <a class="mp-upload" @click="onUpload">上传素材</a>
       </div>
     </template>
 
@@ -33,14 +32,14 @@
             <el-select v-model="f.nameField" class="mp-f-select mp-f-name">
               <el-option v-for="o in OPTS.nameField" :key="o" :label="o" :value="o" />
             </el-select>
-            <el-input v-model="f.keyword" class="mp-f-input" placeholder="支持两个关键词查询（空格分隔）">
+            <el-input v-model="f.keyword" class="mp-f-input mp-f-input-kw" placeholder="支持两个关键词查询（空格分隔）">
               <template #suffix><el-icon class="mp-suffix-icon"><Search /></el-icon></template>
             </el-input>
             <el-button class="mp-f-btn" @click="onSearch"><el-icon><Search /></el-icon></el-button>
           </div>
           <span class="mp-chip">排除素材名</span>
-          <div class="mp-search-group">
-            <el-input v-model="f.exclude" class="mp-f-input" placeholder="多个以空格分隔，结果取并集">
+          <div class="mp-search-group mp-search-exclude">
+            <el-input v-model="f.exclude" class="mp-f-input mp-f-input-ex" placeholder="多个以空格分隔，结果取并集">
               <template #suffix><el-icon class="mp-suffix-icon"><Search /></el-icon></template>
             </el-input>
             <el-button class="mp-f-btn" @click="onSearch"><el-icon><Search /></el-icon></el-button>
@@ -48,14 +47,14 @@
           <el-select
             v-if="tab === 'media'"
             v-model="f.account"
-            class="mp-f-select mp-f-account"
+            class="mp-f-select mp-f-short"
             placeholder="全部"
             clearable
           >
             <template #prefix><span class="mp-pre">账户：</span></template>
             <el-option v-for="a in accounts" :key="a.id" :label="accountLabel(a)" :value="a.name" />
           </el-select>
-          <el-select v-else v-model="f.type" class="mp-f-select mp-f-type">
+          <el-select v-else v-model="f.type" class="mp-f-select mp-f-short">
             <template #prefix><span class="mp-pre">类型：</span></template>
             <el-option v-for="o in OPTS.type" :key="o" :label="o" :value="o" />
           </el-select>
@@ -69,7 +68,7 @@
           <!-- 素材库 -->
           <template v-if="tab === 'library'">
             <div class="mp-frow">
-              <el-select v-model="f.getType" class="mp-f-select mp-f-mid" placeholder="获取方式" clearable>
+              <el-select v-model="f.getType" class="mp-f-select mp-f-short" placeholder="获取方式" clearable>
                 <template #prefix><span class="mp-pre">获取方式：</span></template>
                 <el-option v-for="o in OPTS.getType" :key="o" :label="o" :value="o" />
               </el-select>
@@ -81,7 +80,7 @@
                 v-model="f.directory"
                 :options="OPTS.directory"
                 :props="DIRECTORY_PROPS"
-                class="mp-f-select mp-f-mid"
+                class="mp-f-select mp-f-dir"
                 placeholder="全部"
                 clearable
               >
@@ -119,24 +118,27 @@
                 <template #prefix><span class="mp-pre">使用情况：</span></template>
                 <el-option v-for="o in OPTS.useStatus" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.layout" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.layout" class="mp-f-select mp-f-short" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">版式：</span></template>
                 <el-option v-for="o in OPTS.layout" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
             <div class="mp-frow">
               <div class="mp-dur" :class="{ empty: durEmpty }">
-                <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
-                <span class="mp-dur-txt">{{ durText }}</span>
-                <el-icon v-if="!durEmpty" class="mp-dur-clear" @click="f.duration = [0, 600]">
-                  <CircleClose />
-                </el-icon>
+                <span class="mp-pre mp-dur-label">视频时长：</span>
+                <div class="mp-dur-track">
+                  <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
+                  <span class="mp-dur-txt">{{ durText }}</span>
+                  <el-icon v-if="!durEmpty" class="mp-dur-clear" @click="f.duration = [0, 600]">
+                    <CircleClose />
+                  </el-icon>
+                </div>
               </div>
-              <el-select v-model="f.number" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.number" class="mp-f-select mp-f-wide" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">编号：</span></template>
                 <el-option v-for="o in OPTS.member" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.clip" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.clip" class="mp-f-select mp-f-wide" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">剪辑：</span></template>
                 <el-option v-for="o in OPTS.member" :key="o" :label="o" :value="o" />
               </el-select>
@@ -146,7 +148,7 @@
                 collapse-tags
                 collapse-tags-tooltip
                 :max-collapse-tags="1"
-                class="mp-f-select mp-f-rule"
+                class="mp-f-select mp-f-wide"
                 placeholder="全部"
                 clearable
               >
@@ -155,60 +157,71 @@
               </el-select>
             </div>
             <div class="mp-frow">
-              <el-select v-model="f.attr" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.attr" class="mp-f-select mp-f-wide" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">素材属性：</span></template>
                 <el-option v-for="o in OPTS.attr" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.status" class="mp-f-select mp-f-mid" placeholder="不限" clearable>
+              <el-select v-model="f.status" class="mp-f-select mp-f-short" placeholder="不限" clearable>
                 <template #prefix><span class="mp-pre">启停状态：</span></template>
                 <el-option v-for="o in OPTS.status" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-date-picker
-                v-model="f.uploadRange"
-                type="datetimerange"
-                unlink-panels
-                range-separator="至"
-                start-placeholder="开始时间"
-                end-placeholder="结束时间"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                class="mp-f-date"
-              />
+              <div class="mp-datefield mp-datefield-lib">
+                <span class="mp-pre">上传时间：</span>
+                <el-date-picker
+                  v-model="f.uploadRange"
+                  type="datetimerange"
+                  unlink-panels
+                  range-separator="至"
+                  start-placeholder="开始时间"
+                  end-placeholder="结束时间"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  class="mp-f-date"
+                />
+              </div>
             </div>
           </template>
 
           <!-- 媒体素材 -->
           <template v-else>
             <div class="mp-frow">
-              <el-select v-model="f.source" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.source" class="mp-f-select mp-f-short" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">来源：</span></template>
                 <el-option v-for="o in OPTS.source" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-date-picker
-                v-model="f.uploadRange"
-                type="daterange"
-                unlink-panels
-                range-separator="至"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
-                value-format="YYYY-MM-DD"
-                class="mp-f-date"
-              />
-              <el-select v-model="f.type" class="mp-f-select mp-f-mid">
+              <div class="mp-datefield mp-datefield-media">
+                <span class="mp-pre">上传时间：</span>
+                <!-- 线上媒体素材的上传时间使用彩色日历图标，这里用 emoji 还原 -->
+                <span class="mp-dateico">📅</span>
+                <el-date-picker
+                  v-model="f.uploadRange"
+                  type="daterange"
+                  unlink-panels
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="YYYY-MM-DD"
+                  class="mp-f-date"
+                />
+              </div>
+              <el-select v-model="f.type" class="mp-f-select mp-f-short">
                 <template #prefix><span class="mp-pre">类型：</span></template>
                 <el-option v-for="o in OPTS.type" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.layout" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.layout" class="mp-f-select mp-f-short" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">版式：</span></template>
                 <el-option v-for="o in OPTS.layout" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
             <div class="mp-frow">
               <div class="mp-dur" :class="{ empty: durEmpty }">
-                <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
-                <span class="mp-dur-txt">{{ durText }}</span>
-                <el-icon v-if="!durEmpty" class="mp-dur-clear" @click="f.duration = [0, 600]">
-                  <CircleClose />
-                </el-icon>
+                <span class="mp-pre mp-dur-label">视频时长：</span>
+                <div class="mp-dur-track">
+                  <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
+                  <span class="mp-dur-txt">{{ durText }}</span>
+                  <el-icon v-if="!durEmpty" class="mp-dur-clear" @click="f.duration = [0, 600]">
+                    <CircleClose />
+                  </el-icon>
+                </div>
               </div>
               <el-select
                 v-model="f.filterRule"
@@ -216,14 +229,14 @@
                 collapse-tags
                 collapse-tags-tooltip
                 :max-collapse-tags="1"
-                class="mp-f-select mp-f-rule"
+                class="mp-f-select mp-f-wide"
                 placeholder="全部"
                 clearable
               >
                 <template #prefix><span class="mp-pre">素材过滤：</span></template>
                 <el-option v-for="o in OPTS.mediaFilterRule" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.attr" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+              <el-select v-model="f.attr" class="mp-f-select mp-f-wide" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">素材属性：</span></template>
                 <el-option v-for="o in OPTS.attr" :key="o" :label="o" :value="o" />
               </el-select>
@@ -234,14 +247,6 @@
             </div>
           </template>
         </template>
-      </div>
-
-      <!-- 指标数据口径 -->
-      <div class="mp-caliber">
-        <span class="mp-caliber-label">指标数据口径：</span>
-        <el-radio-group v-model="f.caliber" size="small">
-          <el-radio v-for="o in OPTS.caliber" :key="o" :label="o" :value="o" />
-        </el-radio-group>
       </div>
 
       <!-- 工具条 -->
@@ -359,7 +364,6 @@
         <div class="mp-foot-left">
           <span>已选素材: {{ selected.length }}/100</span>
           <el-icon class="mp-help"><QuestionFilled /></el-icon>
-          <span class="mp-missing">找不到素材？<a class="mp-link">点这里</a></span>
         </div>
         <div class="mp-foot-right">
           <el-button link type="primary" @click="clearSelection">清空选择</el-button>
@@ -444,7 +448,6 @@ function createFilterState(kind) {
     status: '',
     uploadRange: defaultRange(kind !== 'media'),
     duration: [0, 600],
-    caliber: '标准版',
   };
 }
 
@@ -536,7 +539,6 @@ function resetFilters() {
 
 function onSearch() { page.value = 1; ElMessage.info('原型：按条件筛选素材'); }
 function onRefresh() { page.value = 1; ElMessage.info('原型：已刷新素材列表'); }
-function onUpload() { ElMessage.info('原型：上传素材'); }
 function onCustomMetric() { ElMessage.info('原型：自定义指标与排序'); }
 function onSyncMedia() { ElMessage.warning('请选择账户'); }
 function onDetail(m) { ElMessage.info(`原型：查看素材「${m.name}」详情`); }
@@ -562,7 +564,7 @@ function submit() {
   overflow: hidden;
 }
 
-/* 顶部：页签 + 上传素材 */
+/* 顶部：页签 */
 .mp-head { display: flex; align-items: center; justify-content: space-between; }
 .mp-tabs { display: flex; align-items: center; gap: 34px; }
 .mp-tab {
@@ -573,20 +575,29 @@ function submit() {
   border-bottom: 2px solid transparent;
 }
 .mp-tab.active { color: #165dff; border-bottom-color: #165dff; }
-.mp-upload { color: #165dff; font-size: 14px; cursor: pointer; }
 
-/* 筛选区 */
+/* 筛选区（尺寸对齐线上：短 183 / 中 219 / 目录 199 / 宽 239 / 时长 199 / 上传时间 379·299） */
 .mp-filters { border-bottom: 1px solid #f2f3f5; padding-bottom: 10px; }
-.mp-frow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+.mp-frow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px; }
 .mp-frow:last-child { margin-bottom: 0; }
 .mp-search-group { display: flex; align-items: center; }
+.mp-search-exclude { margin-left: -12px; }
 .mp-f-select { flex: none; }
-.mp-f-name { width: 130px; }
-.mp-f-type { width: 130px; }
-.mp-f-account { width: 250px; }
-.mp-f-mid { width: 190px; }
-.mp-f-rule { width: 240px; }
-.mp-f-input { width: 210px; }
+.mp-f-name { width: 101px; }
+.mp-f-short { width: 183px; }
+.mp-f-mid { width: 219px; }
+.mp-f-dir { width: 199px; }
+.mp-f-wide { width: 239px; }
+.mp-f-input { width: 198px; }
+.mp-f-input-kw { width: 237px; }
+/* 素材过滤：已选项与线上一致显示为纯文本（无标签底色 / 关闭按钮） */
+.mp-f-wide :deep(.el-select__selected-item .el-tag) {
+  background: transparent;
+  border-color: transparent;
+  color: #1d2129;
+  padding-left: 0;
+}
+.mp-f-wide :deep(.el-select__selected-item .el-tag__close) { display: none; }
 .mp-f-input :deep(.el-input__wrapper) { border-radius: 4px 0 0 4px; }
 .mp-f-btn {
   width: 40px;
@@ -597,14 +608,15 @@ function submit() {
   color: #4e5969;
 }
 .mp-suffix-icon { color: #86909c; cursor: pointer; }
-.mp-pre { color: #4e5969; }
+/* 线上筛选区标签统一为 13px */
+.mp-pre { color: #4e5969; font-size: 13px; }
 /* 「排除素材名」标签 */
 .mp-chip {
   display: inline-flex;
   align-items: center;
   height: 32px;
-  padding: 0 12px;
-  margin: 0 10px;
+  padding: 0 8px;
+  margin: 0;
   border: 1px solid #c9cdd4;
   border-radius: 4px;
   background: #fff;
@@ -614,20 +626,55 @@ function submit() {
 }
 .mp-f-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .mp-link { color: #165dff; cursor: pointer; font-size: 14px; }
-.mp-f-date { width: 340px !important; }
+/* 上传时间：标签 + 日期区间（线上为同一输入框内，13px 字号、左对齐） */
+.mp-datefield {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 10px 0 12px;
+  border: 1px solid #c9cdd4;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+}
+.mp-datefield-lib { width: 379px; }
+.mp-datefield-media { width: 299px; }
+.mp-datefield .mp-pre { flex: none; white-space: nowrap; font-size: 13px; margin-right: 10px; }
+/* 线上：图标与日期文本之间留有空隙；媒体素材用彩色日历 emoji，故隐藏默认的灰色日历图标 */
+.mp-dateico { flex: none; font-size: 13px; line-height: 1; margin-right: 10px; }
+.mp-datefield :deep(.el-range__icon) { margin-right: 8px; }
+.mp-datefield-media :deep(.el-range__icon) { display: none; }
+.mp-datefield :deep(.el-range__close-icon) { display: none; }
+.mp-datefield :deep(.mp-f-date) { width: 100% !important; min-width: 0; }
+.mp-datefield :deep(.el-input__wrapper) { box-shadow: none !important; padding: 0; background: transparent; }
+/* 区间编辑器内部改为左对齐，图标与日期文本的间距与线上保持一致 */
+.mp-datefield :deep(.el-range-editor) { justify-content: flex-start; }
+.mp-datefield :deep(.el-range-input) { flex: none; font-size: 13px; color: #1d2129; }
+.mp-datefield-lib :deep(.el-range-input) { width: 121px; }
+.mp-datefield-media :deep(.el-range-input) { width: 68px; }
+.mp-datefield :deep(.el-range-separator) { flex: none; font-size: 13px; color: #1d2129; padding: 0 4px; }
 .mp-warn { display: inline-flex; align-items: center; gap: 4px; color: #86909c; font-size: 13px; }
 .mp-warn .el-icon { color: #ff7d00; }
 
-/* 视频时长：区间滑块 */
+/* 视频时长：区间滑块（标签 + 滑块同框，与线上一致） */
 .mp-dur {
   position: relative;
   flex: none;
-  width: 190px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  width: 199px;
   height: 32px;
+  box-sizing: border-box;
+  padding: 0 10px;
   border: 1px solid #c9cdd4;
   border-radius: 4px;
   background: #fff;
 }
+.mp-dur-label { flex: none; white-space: nowrap; }
+.mp-dur-track { position: relative; flex: 1; min-width: 0; height: 30px; }
 .mp-dur :deep(.el-slider) {
   position: absolute;
   left: 0;
@@ -657,17 +704,13 @@ function submit() {
 }
 .mp-dur-clear {
   position: absolute;
-  right: 6px;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   color: #c9cdd4;
   cursor: pointer;
 }
 .mp-dur-clear:hover { color: #86909c; }
-
-/* 指标数据口径 */
-.mp-caliber { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 10px 0; }
-.mp-caliber-label { color: #4e5969; font-size: 14px; }
 
 /* 工具条 */
 .mp-toolbar { display: flex; align-items: center; gap: 14px; padding-bottom: 12px; flex-wrap: wrap; }
@@ -746,9 +789,7 @@ function submit() {
 /* 底部操作 */
 .mp-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .mp-foot-left { display: flex; align-items: center; gap: 8px; color: #4e5969; font-size: 14px; }
-.mp-missing { color: #86909c; }
-.mp-foot-right { display: flex; align-items: center; gap: 12px; }
-</style>
+.mp-foot-right { display: flex; align-items: center; gap: 12px; }</style>
 
 <style>
 /* 弹窗外壳：与线上一致（无内边距头部、body 自行排版） */
@@ -756,6 +797,11 @@ function submit() {
 .mp-dialog .el-dialog__body { padding: 12px 20px 0; }
 .mp-dialog .el-dialog__footer { padding: 12px 20px 16px; }
 .mp-dialog .el-input__wrapper { box-shadow: 0 0 0 1px #c9cdd4 inset; }
+/* 级联选择器：根节点不继承 scoped 属性，宽度在此统一控制（对齐线上） */
+.mp-dialog .el-cascader.mp-f-select { flex: none; }
+.mp-dialog .el-cascader.mp-f-short { width: 183px; }
+.mp-dialog .el-cascader.mp-f-dir { width: 199px; }
+.mp-dialog .el-cascader.mp-f-mid { width: 219px; }
 /* 级联面板与线上保持一致的高度 */
 .mp-dialog .el-cascader__dropdown { max-height: 320px; }
 </style>
