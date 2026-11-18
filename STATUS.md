@@ -752,3 +752,57 @@
 ### ④ 提交记录
 
 - `45e94de` 初始提交 → `b5c6d21` CI + base 前缀适配（本次）。
+
+---
+
+## 四十三、项目列表页一比一还原线上创量广告项目页（2026-11-18，需求 R29）
+
+**需求**：接管鼠标键盘查看当前浏览器打开的项目列表页（创量广告 `cl.mobgi.com/promotion/ad/toutiaoupgrade/project`），把线上项目列表 1:1 还原到本地 `build/projects` 页（`frontend/src/views/build/Projects.vue`，路由名 `projects`）。
+
+### ① 线上页面的抓取方式
+
+- 用 Windows 桌面自动化脚本直接接管用户 Chrome：`C:/tmp/ol.py`（鼠标/键盘事件，屏幕坐标偏移 `OFF_X=430 / OFF_Y=1440`）、`C:/tmp/vc.py`（`vc.focus(hwnd)` 聚焦窗口、`vc.click`、`vc.scroll`、`vc.key`）、`C:/tmp/crop.py`（截图裁剪）。
+- 逐块滚动 + 截图 + 读 DOM，把线上项目页完整结构摸清：**标签页 / 头部行 / 三行筛选 / 全部筛选浮层 / 操作行 / 表头 / 合计行 / 分页 / 自定义指标弹窗**。
+
+**线上结构清单（还原依据）**
+
+| 区块 | 内容 |
+| --- | --- |
+| 标签页 | 账户 / 项目 / 广告（+ 本地扩展的 托管方案 / 铺剧助手） |
+| 头部行（右对齐） | 「近15天一键过审已为45条广告产出73个修复方案。立即查看 自动采纳」+「批量新建」+「使用已有策略新建」+ 日期区间 `2026-11-18 至 2026-11-18` |
+| 筛选行 | 全部筛选 → 项目名称/项目ID（select+关键词 input+放大镜按钮）→ 创量项目 → 创量产品 → 优化目标 → 深度优化目标 → 深度优化方式 → 账户主体 → 媒体账户 → 推广目的 → 投放模式 → 状态 → 创建时间（daterange）→ 广告类型 → 星广联任务ID → 平台 → 创意素材 → 关联商品 → 查询 / 添加筛选 / 清空 |
+| 全部筛选浮层 | 18 项复选清单，**优化师**与**星广联投**默认不勾选（即默认隐藏对应筛选框） |
+| 操作行 | 组合筛选 / 批量操作 / 手动同步 / 导出数据 / 自定义指标 |
+| 表头 | 选择框(+全选下拉：当前页/前50页/全选) / 启停开关 / 项目(名称+ID) / 操作(详情) / 18 个可排序指标列 |
+| 合计行 | `合计(缓存时间：09:58:17)`，位于表格首行，无勾选框 |
+| 分页 | 共 N 条 / 每页条数 / 页码 / 前往 __ 页，**左对齐** |
+| 自定义指标弹窗 | 左分类（12 类）+ 中勾选 + 右已选（可拖拽排序、固定项置底）+ 底部「保存为常用自定义指标」+ 取消/应用 |
+
+### ② 代码改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/Projects.vue` | **整体重写**（693 行）：头部行、18 项筛选（由 `FILTER_DEFS` 表驱动顺序/文案/宽度/默认值）、每项筛选右侧独立「×」清除按钮、全部筛选 popover（勾选后动态显示对应筛选框）、操作行、合计行、18 个可排序列、左对齐分页 |
+| `frontend/src/views/build/projectMetrics.js` | **新增**（196 行）：项目页「自定义指标」指标目录（12 个分类：基本信息/展现数据/转化数据/转化数据（计费时间）/应用推广/电商行业/游戏行业/小程序·小游戏/APP下载数据/视频数据/落地页及门店/附加创意）、`PROJECT_DEFAULT_METRICS`（线上默认 18 列）、本地模板存取（`clzt.project-metric.templates`） |
+| `frontend/src/views/media/components/CustomMetricDialog.vue` | 新增可选 `catalog` prop，账户页与项目页共用同一弹窗组件（不传时回落到账户页目录） |
+| `frontend/src/mock/data.js` | 项目数据由 4 条扩到 **84 条**（21 账户 × 4 后缀 + 4 手写），用确定性 `pseudo(seed)` 生成器补齐全部投放/指标字段，并回填 创量项目/产品/优化师/主体/推广目的/优化目标/深度目标/深度方式/平台/广告类型/素材/关联商品/投放模式 |
+| `frontend/src/layout/AppLayout.vue` | 推广页签由 3 个扩为 5 个：账户 / 项目 / 广告 / **托管方案** / **铺剧助手** |
+
+### ③ 踩坑与解法
+
+1. **Element Plus 2.14.8 的 `el-select` 没有 `suffix` 插槽**（读 `node_modules/element-plus/es/components/select/src/select2.mjs` 确认：suffix 区只渲染 caret/clear）→ 改为紧邻的兄弟节点 `<button class="f-x">`，自行画出小方框「×」。
+2. **固定列遮罩导致列序错乱**：非 fixed 列渲染在表体、fixed 列覆盖其上 → 启停开关列必须加 `fixed="left"`，才能停在勾选框与「项目」之间（与线上一致）。
+3. **全局样式覆盖 scoped 样式**：`App.vue` 里 `.filter-card .el-select { width: 220px !important }`、`.filter-row { gap: 16px !important }` 会压过组件内 scoped 规则 → scoped 选择器改名为 `.filter-card .f-box/.f-date/.f-name-type/.f-keyword` 并加 `!important`。
+4. **合计行出现灰色禁用勾选框** → `row-class-name` 返回 `'total-row'`，配 `.page :deep(.total-row .el-checkbox) { visibility: hidden; }` 隐藏。
+
+### ④ 验证
+
+- **Playwright 交互实测**（dev server `http://localhost:5173/build/projects`）：初始「共 84 条」→ 关键词搜「漫剧」→「共 6 条」→ 清空 → 恢复「共 84 条」→ 状态=已暂停 → 「共 25 条」→ 在全部筛选里勾上「优化师」→ 筛选框数量 14 → 15（该框即时出现）。
+- **自定义指标弹窗**：勾选/取消勾选 → 应用 → 表格列同步增减（取消「展示数」后表头该列消失），`pageerror` = 0。
+- **截图复验**：筛选行、合计行、开关列位置、分页文案（左对齐）、横向滚动时「项目/操作/启停」保持固定、全部筛选浮层 18 项、自定义指标弹窗三栏，均与线上一致。
+- **生产构建**：`npm run build` 通过（7.24s，仅 chunk 体积告警）；`npm run preview`(4173) 复验 20 个表头单元格、共 84 条、5 个标签页，`pageerror` = 0。
+- **上线**：提交 `93ef15f`（rebase 到远端 `3deb418` 之上）→ 推送 `main` → GitHub Pages 工作流重新部署。
+
+### ⑤ 提交记录
+
+- `93ef15f` feat(projects): 一比一还原线上创量项目列表页（本次）。
