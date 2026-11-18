@@ -181,26 +181,24 @@ const sideMenuConfig = {
   ],
   asset: [
     {
+      // 顺序与创量标准版「巨量广告·标准 → 资产」侧栏一致
       title: '巨量资产-标准', children: [
-        { title: '事件管理', name: 'asset-list', query: { kind: 'event' } },
-        { title: '定向包', name: 'asset-list', query: { kind: 'orientation' } },
-        { title: '自定义人群包', name: 'asset-list', query: { kind: 'audience' } },
-        { title: '落地页', name: 'asset-list', query: { kind: 'landing_page' } },
-        { title: '直达链接', name: 'asset-list', query: { kind: 'deep_link' } },
-        { title: '动态链接', name: 'asset-list', query: { kind: 'deep_link' } },
-        { title: '监测活动', name: 'asset-list', query: { kind: 'monitor' } },
-        { title: '文案库', name: 'asset-list', query: { kind: 'copywrite' } },
         { title: '资产组', name: 'asset-list', query: { kind: 'asset_group' } },
         { title: '巨量商品库', name: 'asset-list', query: { kind: 'product' } },
         { title: '巨量应用', name: 'asset-list', query: { kind: 'app' } },
         { title: '小程序/小游戏', name: 'asset-list', query: { kind: 'mini_game' } },
         { title: '短剧推广链接', name: 'asset-list', query: { kind: 'drama_link' } },
+        { title: '监测活动', name: 'asset-list', query: { kind: 'monitor' } },
+        { title: '事件管理', name: 'asset-list', query: { kind: 'event' } },
+        { title: '自定义人群包', name: 'asset-list', query: { kind: 'audience' } },
         { title: '穿山甲媒体包', name: 'asset-list', query: { kind: 'csj_package' } },
+        { title: '定向包', name: 'asset-list', query: { kind: 'orientation' } },
+        { title: '落地页', name: 'asset-list', query: { kind: 'landing_page' } },
         { title: '试玩/直玩素材', name: 'asset-list', query: { kind: 'interactive' } },
+        { title: '直达链接', name: 'asset-list', query: { kind: 'deep_link' } },
         { title: '创意组件', name: 'asset-list', query: { kind: 'component' } },
         { title: '原生锚点模板', name: 'asset-list', query: { kind: 'anchor' } },
         { title: '评论管理', name: 'asset-list', query: { kind: 'comment' } },
-        { title: '专辑链接', name: 'asset-list', query: { kind: 'album' } },
       ],
     },
   ],
@@ -318,8 +316,14 @@ const sideActive = computed(() => {
     return map[route.query.tab] || '账户报表';
   }
   if (route.name === 'asset-list') {
-    const map = { event: '事件管理', orientation: '定向包', audience: '自定义人群包', landing_page: '落地页', deep_link: '直达链接', monitor: '监测活动' };
-    return map[route.query.kind] || '事件管理';
+    const map = {
+      asset_group: '资产组', product: '巨量商品库', app: '巨量应用', mini_game: '小程序/小游戏',
+      drama_link: '短剧推广链接', monitor: '监测活动', event: '事件管理', audience: '自定义人群包',
+      csj_package: '穿山甲媒体包', orientation: '定向包', landing_page: '落地页', interactive: '试玩/直玩素材',
+      deep_link: '直达链接', component: '创意组件', anchor: '原生锚点模板', comment: '评论管理',
+      copywrite: '文案库', album: '专辑链接',
+    };
+    return map[route.query.kind] || '资产组';
   }
   return flat[route.name] || '';
 });

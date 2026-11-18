@@ -1,188 +1,214 @@
 <template>
-  <div v-loading="loading">
-    <el-card>
-      <div class="toolbar">
-        <div class="crumb">{{ kindText }}</div>
-        <el-space>
-          <el-button v-if="config.canCreate" type="primary" @click="onCreate">新建</el-button>
-          <el-button @click="onSync">手动同步</el-button>
-          <el-button @click="onExport">导出数据</el-button>
-        </el-space>
+  <div class="asset-page" v-loading="loading">
+    <!-- 页面标题 -->
+    <div class="asset-title-bar">
+      <span class="asset-title">{{ page.title }}</span>
+    </div>
+
+    <!-- 二级页签（部分资产页有，如「商品库-通用版 / 商品-通用版 / 商品-升级版」） -->
+    <div v-if="page.subTabs && page.subTabs.length" class="asset-sub-tabs">
+      <div
+        v-for="t in page.subTabs"
+        :key="t"
+        class="asset-sub-tab"
+        :class="{ active: t === page.activeSubTab }"
+        @click="onSubTab(t)"
+      >{{ t }}</div>
+    </div>
+
+    <!-- ① 查询条件（对齐创量标准版 form.filter-search-input） -->
+    <div v-if="page.filters && page.filters.length" class="filter-row">
+      <div class="filter-left">
+        <div v-for="(f, fi) in page.filters" :key="fi" class="filter-cell">
+          <template v-if="f.type === 'select'">
+            <label class="filter-label">{{ f.label }}</label>
+            <el-select
+              v-model="query[f.key]"
+              class="filter-select"
+              size="small"
+              :multiple="!!f.multiple"
+              :placeholder="f.placeholder"
+              :collapse-tags="!!f.multiple"
+              collapse-tags-tooltip
+              clearable
+              @change="onFilterChange"
+            >
+              <el-option v-for="o in optionsOf(f)" :key="o" :label="o" :value="o" />
+            </el-select>
+          </template>
+
+          <template v-else-if="f.type === 'search'">
+            <div class="cl-search" :style="{ width: (f.width || 280) + 'px' }">
+              <el-select v-model="searchField" class="search-field" size="small" placeholder="请选择">
+                <el-option v-for="o in f.fields" :key="o" :label="o" :value="o" />
+              </el-select>
+              <el-input
+                v-model="searchKeyword"
+                class="search-input"
+                size="small"
+                :placeholder="f.placeholder"
+                @keyup.enter="onSearch"
+              >
+                <template #append>
+                  <el-button :icon="Search" @click="onSearch" />
+                </template>
+              </el-input>
+              <el-popover placement="bottom-end" :width="280" trigger="click" popper-class="batch-search-popper">
+                <template #reference>
+                  <el-button class="search-more-btn" :icon="MoreFilled" />
+                </template>
+                <div class="batch-search">
+                  <el-input v-model="searchKeyword" size="small" placeholder="请输入关键词" />
+                  <div class="batch-search-ops">
+                    <el-button size="small" @click="onClearSearch">清空</el-button>
+                    <el-button size="small" type="primary" @click="onSearch">搜索</el-button>
+                  </div>
+                </div>
+              </el-popover>
+            </div>
+          </template>
+        </div>
+        <a class="filter-clear" @click="onClearFilters">清空</a>
       </div>
 
-      <el-table :data="list" row-key="id" border stripe style="margin-top: 16px">
-        <template v-if="kind === 'event'">
-          <el-table-column label="事件名称" prop="name" :width="260" />
-          <el-table-column label="事件标识" prop="key" :width="180" />
-        </template>
-        <template v-else-if="kind === 'orientation'">
-          <el-table-column label="定向包名称" prop="name" :width="220" />
-          <el-table-column label="地域" prop="regions" :width="120" />
-          <el-table-column label="性别" prop="gender" :width="80" />
-          <el-table-column label="年龄" prop="age" :width="90" />
-          <el-table-column label="兴趣行为" prop="interests" :width="160" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.platform_status || row.status)">{{ statusText(row.platform_status || row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'audience'">
-          <el-table-column label="人群包名称" prop="name" :width="220" />
-          <el-table-column label="包类型" prop="package_type" :width="120" />
-          <el-table-column label="覆盖量" prop="size" :width="120" align="right" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.platform_status || row.status)">{{ statusText(row.platform_status || row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'landing_page'">
-          <el-table-column label="落地页名称" prop="title" :width="220" />
-          <el-table-column label="URL" prop="url" :min-width="220" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.platform_status || row.status)">{{ statusText(row.platform_status || row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'deep_link'">
-          <el-table-column label="直达链接名称" prop="title" :width="220" />
-          <el-table-column label="Scheme / URL" prop="url" :min-width="220" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.platform_status || row.status)">{{ statusText(row.platform_status || row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'monitor'">
-          <el-table-column label="监测活动名称" prop="name" :width="220" />
-          <el-table-column label="监测链接" prop="monitor_url" :min-width="220" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.platform_status || row.status)">{{ statusText(row.platform_status || row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'copywrite'">
-          <el-table-column label="文案标题" prop="title" :width="220" />
-          <el-table-column label="文案内容" prop="content" :min-width="260" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'component'">
-          <el-table-column label="组件标题" prop="title" :width="220" />
-          <el-table-column label="组件类型" prop="comp_type" :width="120" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'comment'">
-          <el-table-column label="视频标题" prop="video_title" :width="200" />
-          <el-table-column label="评论内容" prop="comment" :min-width="220" />
-          <el-table-column label="处理动作" prop="action" :width="120" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="row.status === 'handled' ? 'success' : row.status === 'hidden' ? 'info' : 'warning'">{{ row.status === 'handled' ? '已处理' : row.status === 'hidden' ? '已隐藏' : '待回复' }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'asset_group'">
-          <el-table-column label="资产组名称" prop="name" :width="220" />
-          <el-table-column label="组类型" prop="group_type" :width="120" />
-          <el-table-column label="素材数量" prop="count" :width="100" align="right" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'product'">
-          <el-table-column label="商品名称" prop="name" :width="220" />
-          <el-table-column label="商品ID" prop="product_id" :width="140" />
-          <el-table-column label="商品类型" prop="product_type" :width="120" />
-          <el-table-column label="价格（元）" prop="price" :width="100" align="right" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'app'">
-          <el-table-column label="应用名称" prop="name" :width="200" />
-          <el-table-column label="应用ID" prop="app_id" :width="140" />
-          <el-table-column label="投放端" prop="platform" :width="100" />
-          <el-table-column label="版本" prop="version" :width="100" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'mini_game'">
-          <el-table-column label="名称" prop="title" :width="220" />
-          <el-table-column label="AppID" prop="appid" :width="160" />
-          <el-table-column label="类型" prop="mini_type" :width="120" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'drama_link'">
-          <el-table-column label="短剧标题" prop="title" :width="220" />
-          <el-table-column label="短剧ID" prop="drama_id" :width="120" />
-          <el-table-column label="推广链接" prop="url" :min-width="220" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'csj_package'">
-          <el-table-column label="媒体包名称" prop="name" :width="220" />
-          <el-table-column label="媒体类型" prop="slot_type" :width="120" />
-          <el-table-column label="覆盖量" prop="size" :width="120" align="right" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'interactive'">
-          <el-table-column label="素材标题" prop="title" :width="220" />
-          <el-table-column label="素材类型" prop="material_type" :width="120" />
-          <el-table-column label="大小" prop="size" :width="100" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'anchor'">
-          <el-table-column label="锚点标题" prop="title" :width="220" />
-          <el-table-column label="锚点类型" prop="anchor_type" :width="120" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" :width="180" />
-        </template>
-        <template v-else-if="kind === 'album'">
-          <el-table-column label="专辑名称" prop="title" :width="220" />
-          <el-table-column label="专辑ID" prop="album_id" :width="140" />
-          <el-table-column label="作者" prop="author" :width="160" />
-          <el-table-column label="状态" :width="100">
-            <template #default="{ row }"><el-tag :type="statusColor(row.status)">{{ statusText(row.status) }}</el-tag></template>
-          </el-table-column>
-          <el-table-column label="更新时间" prop="updated_at" :width="180" />
-        </template>
+      <!-- 筛选区右侧按钮（如「同步资产」） -->
+      <div v-if="page.filterActions && page.filterActions.length" class="filter-right">
+        <el-button
+          v-for="(a, ai) in page.filterActions"
+          :key="ai"
+          :type="a.type || undefined"
+          size="small"
+          class="tool-btn"
+          @click="onButton(a)"
+        >{{ a.text }}</el-button>
+      </div>
+    </div>
 
-        <el-table-column label="操作" :width="actionWidth" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="onDetail(row)">查看</el-button>
-            <el-button v-if="config.canEdit" size="small" @click="onEdit(row)">编辑</el-button>
-            <el-button v-if="config.canDelete" size="small" type="danger" plain @click="onRemove(row)">删除</el-button>
-            <el-button v-if="kind === 'comment'" size="small" @click="onReply(row)">回复</el-button>
-            <el-button v-if="kind === 'comment' && row.status !== 'hidden'" size="small" type="danger" plain @click="onHide(row)">隐藏</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <!-- ② 功能按钮（对齐创量标准版 .table-toolbar / .toolbar-operate） -->
+    <div class="table-toolbar">
+      <el-button
+        v-for="(b, bi) in page.buttons"
+        :key="bi"
+        :type="b.type || undefined"
+        :plain="!!b.plain"
+        size="small"
+        class="tool-btn"
+        @click="onButton(b)"
+      >{{ b.text }}</el-button>
 
-    <!-- 新建 / 编辑通用弹窗 -->
+      <!-- 批量操作：下拉按钮式（选中行后显示数量，如「批量操作(1)」） -->
+      <el-dropdown v-if="page.batch && page.batch.style === 'dropdown'" @command="onBatchOp">
+        <el-button
+          :type="page.batch.type || 'primary'"
+          :plain="page.batch.plain !== false"
+          size="small"
+          class="tool-btn"
+          :disabled="!selectedRows.length"
+        >
+          {{ page.batch.label }}<span v-if="selectedRows.length"> ({{ selectedRows.length }})</span>
+          <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-for="o in page.batch.options" :key="o" :command="o">{{ o }}</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+
+      <!-- 批量操作：下拉选择式（未选中行时置灰，如资产组页） -->
+      <el-select
+        v-else-if="page.batch"
+        v-model="batchOp"
+        class="batch-select"
+        size="small"
+        :placeholder="page.batch.label"
+        :disabled="!selectedRows.length"
+        @change="onBatchOp"
+      >
+        <el-option v-for="o in page.batch.options" :key="o" :label="o" :value="o" />
+      </el-select>
+    </div>
+
+    <!-- ③ 列表（对齐创量标准版 table.el-table__header 的列序 / 固定列） -->
+    <el-table
+      :data="pagedList"
+      row-key="id"
+      border
+      class="asset-table"
+      @selection-change="onSelectionChange"
+    >
+      <el-table-column type="selection" width="48" fixed="left" />
+      <el-table-column
+        v-for="c in page.columns"
+        :key="c.label + (c.prop || '')"
+        :label="c.label"
+        :prop="c.prop"
+        :width="c.width"
+        :fixed="c.fixed ? 'left' : undefined"
+        :show-overflow-tooltip="!c.action"
+      >
+        <template v-if="c.action" #default="{ row }">
+          <el-button
+            v-for="a in page.rowActions"
+            :key="a.text"
+            link
+            type="primary"
+            size="small"
+            @click="onRowAction(a, row)"
+          >{{ a.text }}</el-button>
+        </template>
+        <template v-else-if="c.descProp" #default="{ row }">
+          <div class="desc-cell">
+            <div class="desc-cell__title" :title="row[c.prop]">{{ row[c.prop] || '-' }}</div>
+            <div class="desc-cell__desc" :title="row[c.descProp]">{{ row[c.descProp] || '' }}</div>
+          </div>
+        </template>
+        <template v-else-if="c.type === 'status'" #default="{ row }">
+          <el-tag size="small" :type="statusType(row[c.prop])">{{ row[c.prop] || '-' }}</el-tag>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <!-- 分页 -->
+    <div class="pager-card">
+      <el-pagination
+        v-model:current-page="pageNo"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        background
+      />
+    </div>
+
+    <!-- 新建 / 编辑抽屉（线上「新建资产组」右侧抽屉，分区 + 字段联动） -->
+    <AssetGroupDrawer
+      v-if="page.drawer === 'assetGroup'"
+      v-model="drawerVisible"
+      :form="drawerForm"
+      :title="drawerTitle"
+      :readonly="drawerReadonly"
+      :accounts="accounts"
+      :templates="siteTemplates"
+      :products="productLibraries"
+      :links="miniLinks"
+      :picker-source="miniComponents"
+      @submit="onDrawerSubmit"
+    />
+
+    <!-- 批量导入弹窗（线上「批量导入资产组」） -->
+    <AssetImportModal
+      v-if="page.importModal"
+      v-model="importVisible"
+      :title="page.importModal.title"
+      :task-options="importTasks"
+      @confirm="onImportConfirm"
+    />
+
+    <!-- 新建 / 编辑弹窗（其余资产页的通用表单） -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px" destroy-on-close>
       <el-form ref="formRef" :model="form" label-width="110px" label-position="top">
-        <el-form-item v-for="f in config.fields" :key="f.key" :label="f.label" :required="f.required">
+        <el-form-item v-for="f in page.fields || []" :key="f.key" :label="f.label" :required="f.required">
           <el-select v-if="f.type === 'select'" v-model="form[f.key]" :placeholder="`请选择${f.label}`" style="width: 100%">
             <el-option v-for="opt in f.options" :key="opt" :label="opt" :value="opt" />
           </el-select>
@@ -211,189 +237,48 @@
 import { onMounted, ref, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Search, MoreFilled, ArrowDown } from '@element-plus/icons-vue';
 import { assetApi } from '@/api/media';
+import { assetExtApi } from '@/api/openapi';
 import {
-  targetApi, siteApi, eventApi, productApi, toolApi, appApi,
-  assetExtApi,
-} from '@/api/openapi';
+  ASSET_KINDS, getAssetPage, loadAccountOptions, loadAccounts, KIND_CONFIG,
+} from './assetPages';
+import AssetGroupDrawer from './components/AssetGroupDrawer.vue';
+import AssetImportModal from './components/AssetImportModal.vue';
+import {
+  emptyAssetGroupForm, toAssetGroupRow, MICRO_LABEL,
+} from './assetGroupForm';
 
 const route = useRoute();
-const ASSET_KINDS = [
-  'event', 'orientation', 'audience', 'landing_page', 'deep_link', 'monitor',
-  'copywrite', 'component', 'comment', 'asset_group', 'product', 'app',
-  'mini_game', 'drama_link', 'csj_package', 'interactive', 'anchor', 'album',
-];
-const KIND_TEXT = {
-  event: '事件管理', orientation: '定向包', audience: '自定义人群包', landing_page: '落地页',
-  deep_link: '直达链接', monitor: '监测活动', copywrite: '文案库', component: '创意组件',
-  comment: '评论管理', asset_group: '资产组', product: '巨量商品库', app: '巨量应用',
-  mini_game: '小程序/小游戏', drama_link: '短剧推广链接', csj_package: '穿山甲媒体包',
-  interactive: '试玩/直玩素材', anchor: '原生锚点模板', album: '专辑链接',
-};
-
-// 各资产类能力与表单字段；未配置的类（直达/动态链接、文案库、资产组、事件、应用）只读
-const KIND_CONFIG = {
-  orientation: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => targetApi.audiencePackageList(),
-    create: (p) => targetApi.audiencePackageCreate(p),
-    update: (p) => targetApi.audiencePackageUpdate(p),
-    remove: (id) => targetApi.audiencePackageRemove(id),
-    fields: [
-      { key: 'name', label: '定向包名称', type: 'text', required: true },
-      { key: 'regions', label: '地域', type: 'text' },
-      { key: 'gender', label: '性别', type: 'select', options: ['不限', '男', '女'] },
-      { key: 'age', label: '年龄', type: 'text' },
-      { key: 'interests', label: '兴趣行为', type: 'text' },
-    ],
-  },
-  audience: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => targetApi.customAudienceList(),
-    create: (p) => targetApi.customAudienceCreate(p),
-    update: (p) => targetApi.customAudienceUpdate(p),
-    remove: (id) => targetApi.customAudienceRemove(id),
-    fields: [
-      { key: 'name', label: '人群包名称', type: 'text', required: true },
-      { key: 'package_type', label: '包类型', type: 'select', options: ['行为兴趣', '排除人群', '规则包'] },
-      { key: 'size', label: '覆盖量', type: 'text' },
-    ],
-  },
-  landing_page: {
-    canCreate: true, canEdit: true, canDelete: false,
-    list: () => siteApi.siteList(),
-    create: (p) => siteApi.siteCreate(p),
-    update: (p) => siteApi.siteUpdate(p),
-    fields: [
-      { key: 'title', label: '落地页名称', type: 'text', required: true },
-      { key: 'url', label: '页面 URL', type: 'text', required: true },
-      { key: 'page_type', label: '落地页类型', type: 'select', options: ['橙子建站', '第三方', '字节小程序', '微信小程序'] },
-    ],
-  },
-  monitor: {
-    canCreate: true, canEdit: true, canDelete: false,
-    list: () => eventApi.trackUrlList(),
-    create: (p) => eventApi.trackUrlCreate(p),
-    update: (p) => eventApi.trackUrlUpdate(p),
-    fields: [
-      { key: 'name', label: '监测活动名称', type: 'text', required: true },
-      { key: 'monitor_url', label: '监测链接', type: 'text', required: true },
-    ],
-  },
-  product: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => productApi.dpaList(),
-    create: (p) => productApi.dpaCreate(p),
-    update: (p) => productApi.dpaUpdate(p),
-    remove: (id) => productApi.dpaDelete([id]),
-    fields: [
-      { key: 'name', label: '商品名称', type: 'text', required: true },
-      { key: 'product_id', label: '商品ID', type: 'text' },
-      { key: 'product_type', label: '商品类型', type: 'select', options: ['商品', '虚拟商品'] },
-      { key: 'price', label: '价格（元）', type: 'text' },
-    ],
-  },
-  mini_game: {
-    canCreate: true, canEdit: false, canDelete: false,
-    list: () => assetApi.byKind('mini_game'),
-    create: (p) => assetExtApi.miniCreate(p),
-    fields: [
-      { key: 'title', label: '名称', type: 'text', required: true },
-      { key: 'appid', label: 'AppID', type: 'text' },
-      { key: 'mini_type', label: '类型', type: 'select', options: ['字节小游戏', '微信小游戏', '微信小程序'] },
-    ],
-  },
-  drama_link: {
-    canCreate: true, canEdit: false, canDelete: false,
-    list: () => productApi.dramaAuth(),
-    create: (p) => assetExtApi.dramaLinkCreate(p),
-    fields: [
-      { key: 'title', label: '短剧标题', type: 'text', required: true },
-      { key: 'drama_id', label: '短剧ID', type: 'text' },
-      { key: 'url', label: '推广链接', type: 'text', required: true },
-    ],
-  },
-  csj_package: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => toolApi.unionPackageList(),
-    create: (p) => toolApi.unionPackageCreate(p),
-    update: (p) => toolApi.unionPackageUpdate(p),
-    remove: (id) => toolApi.unionPackageRemove(id),
-    fields: [
-      { key: 'name', label: '媒体包名称', type: 'text', required: true },
-      { key: 'slot_type', label: '媒体类型', type: 'select', options: ['游戏类', '阅读类', '工具类'] },
-      { key: 'size', label: '覆盖量', type: 'text' },
-    ],
-  },
-  interactive: {
-    canCreate: true, canEdit: false, canDelete: false,
-    list: () => assetExtApi.playableList(),
-    create: (p) => assetExtApi.playableUpload(p),
-    fields: [
-      { key: 'title', label: '素材标题', type: 'text', required: true },
-      { key: 'material_type', label: '素材类型', type: 'select', options: ['试玩素材', '直玩素材'] },
-      { key: 'size', label: '大小', type: 'text' },
-    ],
-  },
-  component: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => assetExtApi.componentList(),
-    create: (p) => assetExtApi.componentCreate(p),
-    update: (p) => assetExtApi.componentUpdate(p),
-    remove: (id) => assetExtApi.componentRemove(id),
-    fields: [
-      { key: 'title', label: '组件标题', type: 'text', required: true },
-      { key: 'comp_type', label: '组件类型', type: 'select', options: ['表单', '客服', '锚点', '卡券'] },
-    ],
-  },
-  anchor: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => assetExtApi.anchorList(),
-    create: (p) => assetExtApi.anchorCreate(p),
-    update: (p) => assetExtApi.anchorUpdate(p),
-    remove: (id) => assetExtApi.anchorRemove(id),
-    fields: [
-      { key: 'title', label: '锚点标题', type: 'text', required: true },
-      { key: 'anchor_type', label: '锚点类型', type: 'select', options: ['门店锚点', '商品锚点', '私信锚点'] },
-    ],
-  },
-  album: {
-    canCreate: true, canEdit: true, canDelete: true,
-    list: () => assetExtApi.albumList(),
-    create: (p) => assetExtApi.albumCreate(p),
-    update: (p) => assetExtApi.albumUpdate(p),
-    remove: (id) => assetExtApi.albumRemove(id),
-    fields: [
-      { key: 'title', label: '专辑名称', type: 'text', required: true },
-      { key: 'album_id', label: '专辑ID', type: 'text' },
-      { key: 'author', label: '作者', type: 'text' },
-    ],
-  },
-  comment: {
-    canCreate: false, canEdit: false, canDelete: false,
-    list: () => assetExtApi.commentList(),
-  },
-  event: {
-    canCreate: false, canEdit: false, canDelete: false,
-    list: () => eventApi.assetList(),
-  },
-  app: {
-    canCreate: false, canEdit: false, canDelete: false,
-    list: () => appApi.androidList(),
-  },
-};
+const kind = ref(ASSET_KINDS.includes(route.query.kind) ? route.query.kind : 'asset_group');
+const page = computed(() => getAssetPage(kind.value));
+const apiCfg = computed(() => KIND_CONFIG[kind.value] || {});
 
 const loading = ref(false);
 const list = ref([]);
-const kind = ref(ASSET_KINDS.includes(route.query.kind) ? route.query.kind : 'event');
-const kindText = computed(() => KIND_TEXT[kind.value] || '事件管理');
-const config = computed(() => KIND_CONFIG[kind.value] || {});
-const actionWidth = computed(() => {
-  const extra = (config.value.canEdit ? 1 : 0) + (config.value.canDelete ? 1 : 0) + (kind.value === 'comment' ? 2 : 0);
-  return 100 + extra * 70;
-});
+const accountOptions = ref([]);
+const accounts = ref([]);
+const query = ref({});
+const searchField = ref('');
+const searchKeyword = ref('');
+const batchOp = ref('');
+const selectedRows = ref([]);
+const pageNo = ref(1);
+const pageSize = ref(10);
 
-// 弹窗状态
+// 抽屉 / 弹窗状态
+const drawerVisible = ref(false);
+const drawerTitle = ref('新建资产组');
+const drawerReadonly = ref(false);
+const drawerForm = ref(emptyAssetGroupForm());
+const drawerEditingId = ref(null);
+const importVisible = ref(false);
+const importTasks = ref([]);
+const miniComponents = ref([]);
+const productLibraries = ref([]);
+const miniLinks = ref([]);
+const siteTemplates = ref([]);
+
 const dialogVisible = ref(false);
 const dialogTitle = ref('');
 const editingId = ref(null);
@@ -405,87 +290,238 @@ const replyTarget = ref(null);
 const replyText = ref('');
 
 watch(() => route.query.kind, (k) => {
-  if (ASSET_KINDS.includes(k)) { kind.value = k; load(); }
+  if (ASSET_KINDS.includes(k)) { kind.value = k; resetQuery(); load(); }
 });
 
-function statusColor(s) {
-  return { available: 'success', active: 'success', reviewing: 'warning', failed: 'danger', hidden: 'info' }[s] || 'info';
-}
-function statusText(s) {
-  return { available: '可用', active: '生效中', reviewing: '审核中', failed: '失败', hidden: '已隐藏' }[s] || s || '-';
-}
-function now() {
-  return new Date().toISOString().slice(0, 16).replace('T', ' ');
+watch(page, (p) => {
+  searchField.value = (p.filters || []).find((f) => f.type === 'search')?.fields?.[0] || '';
+});
+
+function resetQuery() {
+  const q = {};
+  (page.value.filters || []).forEach((f) => { if (f.type === 'select') q[f.key] = f.multiple ? [] : ''; });
+  query.value = q;
+  searchField.value = (page.value.filters || []).find((f) => f.type === 'search')?.fields?.[0] || '';
+  searchKeyword.value = '';
+  batchOp.value = '';
+  selectedRows.value = [];
+  pageNo.value = 1;
 }
 
-// 官方口径集合 → 视图展示口径归一化（字段名 / 枚举 / 状态）
-const AUDIENCE_PT = { BEHAVIOR_INTEREST: '行为兴趣', EXCLUDE: '排除人群', RULE: '规则包' };
-const LANDING_PT = { ORANGE: '橙子建站', THIRD_PARTY: '第三方', MICRO_APP: '字节小程序', WECHAT_APPLET: '微信小程序' };
-const NORMALIZE = {
-  audience(row) {
-    const size = typeof row.size === 'number' ? row.size.toLocaleString('en-US') : row.size;
-    return { ...row, package_type: AUDIENCE_PT[row.package_type] || row.package_type, size, updated_at: row.update_time || row.updated_at, status: row.status === 'PUBLISHED' ? 'available' : row.status };
-  },
-  landing_page(row) {
-    return { ...row, title: row.title || row.name, page_type: LANDING_PT[row.page_type] || row.page_type, status: row.status === 'ENABLED' ? 'available' : row.status };
-  },
-  monitor(row) {
-    return { ...row, monitor_url: row.monitor_url || row.url, status: row.status === 'ACTIVE' ? 'active' : row.status };
-  },
-  product(row) {
-    return { ...row, name: row.name || row.title, product_type: row.product_type || row.category_name, status: row.status === 'ON_SHELF' ? 'available' : row.status };
-  },
+function optionsOf(f) {
+  if (f.source === 'accounts') return accountOptions.value;
+  return f.options || [];
+}
+
+// ---------------- 查询条件与列表联动 ----------------
+const FILTER_PROP = {
+  group_type: 'group_type',
+  delivery_content: 'delivery_content',
+  use_status: 'use_status',
 };
 
+const filteredList = computed(() => {
+  let rows = list.value;
+  const q = query.value;
+  Object.keys(q).forEach((k) => {
+    const v = q[k];
+    if (v === '' || v === null || v === undefined) return;
+    if (Array.isArray(v)) {
+      if (!v.length) return;
+      rows = rows.filter((r) => v.some((x) => String(r.account_name || '').indexOf(x) === 0 || r[k] === x));
+      return;
+    }
+    const prop = FILTER_PROP[k] || k;
+    rows = rows.filter((r) => r[prop] === v);
+  });
+  // 关键词搜索：按搜索字段类型匹配对应列
+  const kw = searchKeyword.value.trim();
+  if (kw) {
+    const field = searchField.value;
+    const propMap = {
+      资产组名称: 'name', 资产组别名: 'alias', 组件名称: 'component_name', 组件资产ID: 'component_id',
+      名称: 'name', 别名: 'alias', ID: 'id',
+    };
+    const prop = propMap[field] || 'name';
+    rows = rows.filter((r) => String(r[prop] || '').includes(kw));
+  }
+  return rows;
+});
+
+const total = computed(() => filteredList.value.length);
+const pagedList = computed(() => {
+  const start = (pageNo.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+
+function onFilterChange() { pageNo.value = 1; }
+function onSearch() { pageNo.value = 1; }
+function onClearSearch() { searchKeyword.value = ''; pageNo.value = 1; }
+function onClearFilters() {
+  resetQuery();
+  pageNo.value = 1;
+}
+function onSelectionChange(rows) { selectedRows.value = rows; }
+function onSubTab(t) {
+  ElMessage.info(`原型：切换到「${t}」`);
+}
+
+// ---------------- 数据加载 ----------------
 async function load() {
   loading.value = true;
   try {
-    const cfg = KIND_CONFIG[kind.value];
-    const res = cfg?.list ? await cfg.list() : await assetApi.byKind(kind.value);
-    const norm = NORMALIZE[kind.value] || ((x) => x);
-    list.value = (res.data?.list || []).map(norm);
+    const src = page.value.list || apiCfg.list || (() => assetApi.byKind(kind.value));
+    const res = await src();
+    list.value = res.data?.list || [];
   } finally {
     loading.value = false;
   }
 }
 
+// ---------------- 功能按钮 ----------------
+function onButton(b) {
+  if (b.action === 'create') { onCreate(); return; }
+  if (b.action === 'import') {
+    if (page.value.importModal) { importVisible.value = true; return; }
+    ElMessage.info(`原型：批量导入${page.value.title}（下载模板 → 上传文件）`);
+    return;
+  }
+  if (b.action === 'sync') { ElMessage.info('原型：手动同步巨量资产'); return; }
+  if (b.action === 'export') { ElMessage.info('原型：导出资产清单'); return; }
+  ElMessage.info(`原型：${b.text}`);
+}
+
+function onImportConfirm(payload) {
+  ElMessage.success(`导入任务已提交（${payload.task_source === 'HISTORY' ? '引用历史任务' : '新建商品'}）`);
+  load();
+}
+
+async function onBatchOp(op) {
+  const rows = selectedRows.value;
+  if (!rows.length) { ElMessage.warning('请先选择数据'); return; }
+  if (op === '删除') {
+    await ElMessageBox.confirm(`确认删除选中的 ${rows.length} 条数据吗？删除后不可恢复。`, '删除确认', { type: 'warning' });
+    const ids = rows.map((r) => r.id);
+    list.value = list.value.filter((x) => !ids.includes(x.id));
+    ElMessage.success('已删除');
+  } else {
+    ElMessage.info(`原型：对 ${rows.length} 条数据执行「${op}」`);
+  }
+  batchOp.value = '';
+  selectedRows.value = [];
+}
+
+// ---------------- 行内操作 ----------------
+function onRowAction(a, row) {
+  if (a.action === 'view') { onDetail(row); return; }
+  if (a.action === 'edit') { onEdit(row); return; }
+  if (a.action === 'remove') { onRemove(row); return; }
+  if (a.action === 'reply') { onReply(row); return; }
+  if (a.action === 'hide') { onHide(row); return; }
+  ElMessage.info(`原型：${a.text}`);
+}
+
 function blankForm() {
   const f = {};
-  (config.value.fields || []).forEach((field) => { f[field.key] = field.type === 'select' ? '' : ''; });
+  (page.value.fields || []).forEach((field) => { f[field.key] = ''; });
   return f;
 }
 
 function onCreate() {
+  if (page.value.drawer === 'assetGroup') {
+    drawerEditingId.value = null;
+    drawerForm.value = emptyAssetGroupForm();
+    drawerTitle.value = '新建资产组';
+    drawerReadonly.value = false;
+    drawerVisible.value = true;
+    return;
+  }
   editingId.value = null;
   form.value = blankForm();
-  dialogTitle.value = `新建${kindText.value}`;
+  dialogTitle.value = `新建${page.value.title}`;
   dialogVisible.value = true;
 }
 
 function onEdit(row) {
+  if (page.value.drawer === 'assetGroup') {
+    drawerEditingId.value = row.id;
+    drawerForm.value = rowToDrawerForm(row);
+    drawerTitle.value = '编辑资产组';
+    drawerReadonly.value = false;
+    drawerVisible.value = true;
+    return;
+  }
   editingId.value = row.id;
   form.value = { ...row };
-  dialogTitle.value = `编辑${kindText.value}`;
+  dialogTitle.value = `编辑${page.value.title}`;
   dialogVisible.value = true;
 }
 
+/** 列表行 → 抽屉表单（编辑 / 查看回填） */
+function rowToDrawerForm(row) {
+  const f = emptyAssetGroupForm();
+  f.name = row.name || '';
+  f.alias = row.alias || '';
+  const acc = String(row.account_name || '').match(/\((\d+)\)\s*$/);
+  if (acc) f.advertiser_id = acc[1];
+  const isEcom = ['自研落地页', '橙子落地页'].includes(row.delivery_content);
+  f.asset_group_type = isEcom ? '2' : '1';
+  if (isEcom) {
+    f.delivery_content_type = row.delivery_content === '橙子落地页' ? 'ORANGE' : 'THIRDPARTY';
+  } else {
+    const microKey = Object.keys(MICRO_LABEL).find((k) => MICRO_LABEL[k] === row.mini_type);
+    if (microKey) f.micro_promotion_type = microKey;
+  }
+  f.product_id = row.product_id || '';
+  f.track_url = row.monitor_link || '';
+  f.action_track_url = row.valid_link || '';
+  f.micro_app_name = row.mini_name || '';
+  f.micro_app_link = row.path_link || '';
+  f.site_url = row.landing_link || '';
+  f.cl_site_template_id = row.cl_template || '';
+  f.playlet_series_url = row.native_link || '';
+  const lt = row.link_type || '不启用';
+  f.open_url_type = lt.includes('Ulink') && lt.includes('Deeplink')
+    ? 'DEEP_LINK_AND_ULINK'
+    : lt.includes('Deeplink') ? 'DEEP_LINK' : lt.includes('Ulink') ? 'ULINK' : 'OFF';
+  f.open_url = row.deeplink ? String(row.deeplink).split(' , ').filter(Boolean) : [];
+  f.ulink = row.ulink ? String(row.ulink).split(' , ').filter(Boolean) : [];
+  return f;
+}
+
+/** 抽屉提交 → 写回本地列表 */
+function onDrawerSubmit(payload) {
+  const acc = accounts.value.find((a) => String(a.advertiser_id) === String(payload.advertiser_id));
+  const row = toAssetGroupRow(payload, {
+    account_name: acc ? `${acc.name}  (${acc.advertiser_id})` : '',
+    creator: '当前用户',
+  });
+  if (drawerEditingId.value == null) {
+    list.value.unshift({ id: Date.now(), ...row, created_at: now(), updated_at: now() });
+    ElMessage.success('新建成功');
+  } else {
+    const idx = list.value.findIndex((x) => x.id === drawerEditingId.value);
+    if (idx > -1) list.value[idx] = { ...list.value[idx], ...row, updated_at: now() };
+    ElMessage.success('保存成功');
+  }
+  drawerVisible.value = false;
+}
+
 async function onSubmit() {
-  // 必填校验
-  for (const field of config.value.fields || []) {
+  for (const field of page.value.fields || []) {
     if (field.required && !String(form.value[field.key] || '').trim()) {
       ElMessage.warning(`请填写${field.label}`);
       return;
     }
   }
-  const cfg = config.value;
   const payload = { ...form.value };
   try {
     if (editingId.value == null) {
-      await cfg.create?.(payload);
+      await apiCfg.create?.(payload);
       list.value.unshift({ id: Date.now(), status: 'available', created_at: now(), ...payload });
       ElMessage.success('新建成功');
     } else {
-      await cfg.update?.(payload);
+      await apiCfg.update?.(payload);
       const idx = list.value.findIndex((x) => x.id === editingId.value);
       if (idx > -1) list.value[idx] = { ...list.value[idx], ...payload, updated_at: now() };
       ElMessage.success('保存成功');
@@ -498,12 +534,20 @@ async function onSubmit() {
 
 async function onRemove(row) {
   await ElMessageBox.confirm(`确认删除「${row.name || row.title}」吗？删除后不可恢复。`, '删除确认', { type: 'warning' });
-  await config.value.remove?.(row.id);
+  await apiCfg.remove?.(row.id);
   list.value = list.value.filter((x) => x.id !== row.id);
   ElMessage.success('已删除');
 }
 
 function onDetail(row) {
+  if (page.value.drawer === 'assetGroup') {
+    drawerEditingId.value = row.id;
+    drawerForm.value = rowToDrawerForm(row);
+    drawerTitle.value = '查看资产组';
+    drawerReadonly.value = true;
+    drawerVisible.value = true;
+    return;
+  }
   ElMessage.info(`原型：查看 ${row.name || row.title || row.video_title}`);
 }
 
@@ -530,13 +574,81 @@ async function onHide(row) {
   ElMessage.success('已隐藏');
 }
 
-function onSync() { ElMessage.info('原型：手动同步巨量资产'); }
-function onExport() { ElMessage.info('原型：导出资产清单'); }
+function statusType(s) {
+  return {
+    已使用: 'success', 未使用: 'info', 可用: 'success', 生效中: 'success', 审核中: 'warning',
+    失败: 'danger', 已隐藏: 'info', 待回复: 'warning', 已处理: 'success', 正常: 'success',
+    异常: 'danger', 已发布: 'success', 待发布: 'warning',
+  }[s] || 'info';
+}
+function now() {
+  return new Date().toISOString().slice(0, 19).replace('T', ' ');
+}
 
-onMounted(load);
+onMounted(async () => {
+  resetQuery();
+  accountOptions.value = await loadAccountOptions();
+  accounts.value = await loadAccounts();
+  const [mc, pl, ml, st, it] = await Promise.all([
+    assetApi.miniComponents(), assetApi.productLibraries(), assetApi.miniLinks(),
+    assetApi.siteTemplates(), assetApi.importTasks(),
+  ]);
+  miniComponents.value = mc.data?.list || [];
+  productLibraries.value = pl.data?.list || [];
+  miniLinks.value = ml.data?.list || [];
+  siteTemplates.value = st.data?.list || [];
+  importTasks.value = it.data?.list || [];
+  await load();
+});
 </script>
 
 <style scoped>
-.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.crumb { font-size: 15px; font-weight: 600; color: #1d2129; }
+.asset-page { padding: 16px; min-height: 100%; box-sizing: border-box; background: #fff; }
+.asset-title-bar { padding: 0 0 12px; }
+.asset-title { font-size: 16px; font-weight: 600; color: #1d2129; }
+
+/* 查询条件：与创量标准版一致（白底细边框、28px 高、12px 字号） */
+.filter-row { display: flex; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+.filter-left { display: flex; align-items: center; flex-wrap: wrap; }
+.filter-cell {
+  display: flex; align-items: center; height: 28px; margin: 0 8px 8px 0; padding: 0 5px 0 8px;
+  background: #fff; border: 1px solid #e8eaec; border-radius: 3px;
+}
+.filter-label { font-size: 12px; color: #666; margin-right: 4px; white-space: nowrap; }
+.filter-select { width: 169px; }
+.filter-select :deep(.el-input__inner) { height: 28px; font-size: 12px; color: #666; }
+.filter-clear { font-size: 12px; color: #197afb; cursor: pointer; margin: 6px 0 0 4px; }
+
+.cl-search { display: flex; align-items: center; height: 28px; }
+.search-field { width: 100px; flex: none; }
+.search-field :deep(.el-input__inner) { height: 28px; font-size: 12px; }
+.search-input { width: 200px; }
+.search-input :deep(.el-input__inner) { height: 28px; font-size: 12px; }
+.search-input :deep(.el-input-group__append) { padding: 0; background: #fff; }
+.search-more-btn { height: 28px; padding: 0 6px; border-radius: 0 3px 3px 0; }
+
+.batch-search-ops { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+/* 功能按钮条 */
+.table-toolbar {
+  display: flex; align-items: center; gap: 12px; height: 50px; padding: 8px 16px;
+  background: #fff; border: 1px solid #e8eaec; border-radius: 3px; margin-bottom: 8px;
+}
+.tool-btn { font-size: 12px; height: 32px; padding: 9px 15px; border-radius: 3px; }
+.batch-select { width: 120px; margin-left: 4px; }
+.batch-select :deep(.el-input__inner) { height: 32px; font-size: 12px; }
+
+/* 列表：与创量标准版一致（边框表格、表头 #fafafa、12px 字号） */
+.asset-table { font-size: 12px; }
+.asset-table :deep(.el-table__header th) { background: #fafafa; color: #909399; font-size: 12px; height: 56px; padding: 0; }
+.asset-table :deep(.el-table__cell) { font-size: 12px; color: #606266; padding: 8px 0; }
+.asset-table :deep(.el-button) { font-size: 12px; }
+.asset-table :deep(.el-button.is-link) { margin-left: 10px; padding: 0; }
+.asset-table :deep(.el-button.is-link:first-child) { margin-left: 0; }
+
+/* 分页 */
+.pager-card {
+  display: flex; align-items: center; height: 64px; margin-top: 16px; padding: 2px 5px 2px 24px;
+  background: #fff; border: 1px solid #e8eaec; border-radius: 3px;
+}
 </style>

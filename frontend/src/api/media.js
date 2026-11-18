@@ -67,6 +67,22 @@ export const assetApi = {
     };
     return mockOk({ list: clone(map[kind] || []) });
   },
+  // 资产组抽屉用到的辅助清单
+  async miniComponents() {
+    return mockOk({ list: clone(mockDb.miniComponents) });
+  },
+  async productLibraries() {
+    return mockOk({ list: clone(mockDb.productLibraries) });
+  },
+  async miniLinks() {
+    return mockOk({ list: clone(mockDb.miniLinks) });
+  },
+  async siteTemplates() {
+    return mockOk({ list: clone(mockDb.siteTemplates) });
+  },
+  async importTasks() {
+    return mockOk({ list: clone(mockDb.importTasks) });
+  },
 };
 
 // 批量搭建域

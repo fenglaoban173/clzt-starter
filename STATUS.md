@@ -1334,3 +1334,70 @@
 - 请求体预览可用：「批量修改预算」输出 `{"advertiser_id":"{advertiser_id}","data":[{"promotion_id":902,"budget_mode":"BUDGET_MODE_DAY","budget":500}]}`；「批量删除广告」输出 `{"advertiser_id":"{advertiser_id}","promotion_ids":[902,903]}`；数值型字段（budget / bid / deepbid / cpa_bid / roi_goal / raise_budget / search_bid_ratio 等）统一按 number 输出，空值不传。
 - 线上「仅提示不弹窗」的 6 项（修改深度出价 / 修改ROI系数 / 修改多直达链接 / 修改来源 / 修改字节小程序·小游戏链接 / 修改短剧专辑链接）本地已补齐表单，并在弹窗内以「线上提示：…」保留原线上文案。
 - 注册表自检脚本：广告 24/24、项目 18/18 均有接口定义，**缺失 0 项**。
+
+---
+
+## 五十八、资产菜单「资产组」页：线上整页复刻（查询条件 / 功能按钮 / 列表布局 / 新建抽屉 / 字段联动 / 批量导入）（2026-11-18，需求 R43）
+
+> 任务：参考创量标准版「资产」菜单下每一个页面的**功能按钮 + 查询条件 + 列表布局样式**改造本地对应资产页；
+> 执行顺序：**一个页面一个页面学习，学会一个就立刻更新本地一个**，直到全部做完。
+> 本轮完成第 1 个页面：**资产组**（按线上 cl.mobgi.com `/property/toutiao/asset-group` 实测采集，含按钮功能逻辑与抽屉表单联动）。
+
+### ① 线上采集结论（资产组）
+
+**查询条件**（`form.el-form.filter-search-input`，28px 高、12px 字号、白底 1px #e8eaec 圆角 3px）：
+媒体账户（多选，占位「所有账户」，下拉末尾「搜索更多(290)…」）/ 资产组类型（全部）/ 投放内容（全部）/ 使用状态（全部）/ 搜索组件（280px，前置字段类型下拉：资产组名称 / 资产组别名 / 组件名称 / 组件资产ID，后置关键词输入 + 🔍 + 批量搜索）/「清空」。
+
+**功能按钮**（`div.table-toolbar`，h50、bg #fff、padding 8px 16px）：`新建资产组`(primary) `批量导入资产组`(primary) `批量操作`(下拉选择式，**未选中行时置灰**，选项仅「删除」)。
+
+**列表**：固定左列 = [勾选 48 / 资产组名称 180 / 资产组别名 180 / 操作 120]；其后使用状态 80、媒体账户 180、巨量商品ID 120、小程序/小游戏类型 180、投放内容 120、直达链接类型 160、Deeplink 180、Ulink 180、小程序/小游戏名称 180、备注 180、路径参数/链接 180、有效触点链接 180、展示监测链接 180、落地页链接 180、端原生链接 180、创量落地页落地页模板 180、创建人 120、创建时间 180、更新时间 180；表头 bg #fafafa、12px #909399、h56；分页「共 N 条 / 10条每页 / 前后 / 前往 __ 页」。
+
+**新建资产组 = 右侧抽屉**（`div.cl-drawer`，宽 **1016px**，bg #f0f2f5）：
+`.drawer-header`(h49, bg #fff, `.header-title` 16px #333) → `.drawer-content.mr0`(可滚动, padding 0 16px, 内含多个 `.module-container` 白底块，块首 `.cl-form-block-title` 48px / bg #fbfcfd / 16px #333) → `.drawer-footer`(h70, bg #fff, padding 12px 16px 24px, `.dialog-footer.flex > .operate-button` 右对齐 [取 消 default-plain-small / 确 定 primary-small])。
+表单：`el-form-item--small`，label 宽 **144px**、14px #666，content 左margin 144px；输入框 **360×32**、13px，右侧 `.input-suffix` 字数统计（#dcdee6）；单选用 `el-radio-button`（选中底色 #d6eaff、字色 #197afb、12px、padding 9px 12px）。
+
+**抽屉分区与字段（API 字段名来自线上 label 的 `htmlFor`）**
+
+| 分区 | 字段（线上 API 名） |
+| --- | --- |
+| 资产组基础设置 | 资产组名称 `name`、资产组别名 `alias`、资产组类型 `asset_group_type`（**必填**，1=小程序/小游戏 / 2=电商）、媒体账户 `advertiser_id` |
+| 投放内容 | 小程序/小游戏：`micro_promotion_type`（**必填**，WECHAT_GAME / WECHAT_APP / BYTE_GAME / BYTE_APP / AWEME）+ `micro_app.micro_app_instance_id`（选择XX小游戏）+ `micro_app_link`；电商：`delivery_content_type`（**必填**，THIRDPARTY / ORANGE） |
+| 巨量商品 | 电商多出 `product_lib_version`（NEW / OLD）；`product_platform_id`(+选择已有商品ID)、`product_id`（电商必填、小程序选填） |
+| 监测链接 | `track_url`、`action_track_url`、`video_play_track_url`、`video_play_done_track_url`、`video_play_effective_track_url`（均选填） |
+| 直达链接（仅电商） | `open_url_type`（OFF / DEEP_LINK / DEEP_LINK_AND_ULINK / ULINK）+ `open_url`（Deeplink 输入组，可「+ 添加直达链接」多条，每条「删除」） |
+| 落地页 | 微信系：`cl_site_template_id`(+刷新)；字节系：`landing_source`(URL / TEMPLATE) → `site_url` 或 `cl_site_template_id`；抖音号：`playlet_series_url`；电商：自研→`site_url`(第三方落地页URL) / 橙子→`site_url`(橙子落地页URL) |
+
+**字段联动（线上实测，非推测）**
+1. 资产组类型 小程序/小游戏 ⇄ 电商 → **「投放内容」整段字段集互换**（类型 radio / 投放内容 radio），电商额外出现「直达链接」段。
+2. **媒体账户未选时，「选择微信小游戏」「选择已有商品ID」按钮为 `is-disabled`；选定媒体账户后立即解除置灰**（线上 DOM `disabled` 属性实测）。
+3. 类型=字节小游戏/字节小程序 → 落地页段出现「落地页方式」radio（直填 URL / 选择创量落地页模板），切换决定 `site_url` 还是 `cl_site_template_id`。
+4. 类型=抖音号 → 投放内容段只剩类型单选，落地页段变为「端原生链接」。
+5. 电商 → 巨量商品段多出「商品库版本」，且商品库ID/商品ID 去掉「（选填）」并转为必填。
+6. 直达链接类型 → 决定是否出现 Deeplink / Ulink 输入组；「+ 添加直达链接」新增一条输入行（每行带「删除」）。
+
+**其它按钮逻辑**
+- `批量导入资产组` → 弹窗：资产组类型(小程序/小游戏|电商) / 引用历史任务(常读推广链接|新建商品)+任务搜索下拉+刷新 / 获取模板文件(点击下载) / 导入文件(上传文件，目前仅支持xlsx文件格式)，底部 取消 / 确定。
+- `选择XX小游戏` → 弹窗（970×765）：数据源(同步数据|实时数据) / 左侧账户列表 / 工具条(多账户刷新、清空所有资产、多账户快速选择、复制到其他账户[置灰]) / 过滤(名称 + 请输入关键词 + 🔍) / 表格(XX小游戏名称 | 关联项目数 | 已选(0/1) 清空) / 勾选(仅查看未使用资产、仅看升级版资产) / 空态「没找到想要的组件？可尝试同步哦」/ 底部 取消 / 确定。
+
+### ② 代码改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/asset/assetPages.js`（新增，313 行） | **资产页注册表**：`loadAccountOptions()`（线上「名称  (广告主ID)」格式）、`loadAccounts()`、`ACCOUNT_FILTER`；`ASSET_PAGES` 逐页登记线上采集结果（当前已登记 `asset_group`：filters / buttons / batch / columns / rowActions / list / drawer / importModal）；`LEGACY_COLUMNS` + `KIND_CONFIG` 作为未采集页的兜底；`getAssetPage(kind)` 统一出口 |
+| `frontend/src/views/asset/assetGroupForm.js`（新增，271 行） | **抽屉表单规格**：线上枚举常量、`emptyAssetGroupForm()` 初值、`assetGroupSections(form)` 按当前状态生成「分区 + 字段」并承载全部联动规则、`validateAssetGroup()` 校验、`toAssetGroupRow()` 表单转列表行 |
+| `frontend/src/views/asset/components/AssetGroupDrawer.vue`（新增，398 行） | **线上同款 1016px 右侧抽屉**：分区白块 + 144px label + 360×32 输入 + `.input-suffix` 字数统计 + 蓝色 radio-button + 底部 取 消/确 定；内含「选择已有商品ID」「选择已有链接」两个子弹窗；支持 `readonly`（查看态只留「关 闭」） |
+| `frontend/src/views/asset/components/ComponentPickerModal.vue`（新增，198 行） | **选择XX小游戏弹窗**（数据源切换 / 账户列表 / 多账户工具条 / 关键词过滤 / 仅未使用·仅升级版 / 已选计数 / 空态 / 取消·确定） |
+| `frontend/src/views/asset/components/AssetImportModal.vue`（新增，90 行） | **批量导入弹窗**（资产组类型 / 引用历史任务 / 获取模板文件 / 导入文件 xlsx） |
+| `frontend/src/views/asset/AssetList.vue`（改写，654 行） | 改为**注册表驱动**的通用资产页渲染器：查询条件行（inline 横向）、工具条（主按钮 + 两种批量操作形态：下拉式「批量操作(N)」/ 选择式「批量操作」置灰）、el-table 固定左列 + 两行单元格 + 状态标签、分页卡片；资产组页接入抽屉、批量导入弹窗、查看(只读抽屉)/编辑/删除/批量删除 |
+| `frontend/src/mock/data.js` | `assetGroups` 改为线上列口径；新增 `miniComponents`、`productLibraries`、`miniLinks`、`siteTemplates`、`importTasks` |
+| `frontend/src/api/media.js` | `assetApi` 新增 `miniComponents() / productLibraries() / miniLinks() / siteTemplates() / importTasks()` |
+| `frontend/src/layout/AppLayout.vue` | 巨量资产-标准子菜单按线上标准版顺序重排为 16 项（资产组 → 巨量商品库 → 巨量应用 → 小程序/小游戏 → 短剧推广链接 → 监测活动 → 事件管理 → 自定义人群包 → 穿山甲媒体包 → 定向包 → 落地页 → 试玩/直玩素材 → 直达链接 → 创意组件 → 原生锚点模板 → 评论管理），动态链接/文案库/专辑链接移至通用资产·全域 |
+
+### ③ 验证（`npm run build` 通过 7.9s；本地预览 `http://localhost:4173/asset/list?kind=asset_group`）
+
+- 列表页：查询条件横向一行、工具条三按钮、批量操作未选中时置灰、固定左列顺序与列宽、行内「查看 编辑 删除」、分页卡片 —— 与线上截图逐项核对一致。
+- 抽屉（小程序/小游戏 · 微信小游戏）：五个分区、字段顺序、label 144px、输入 360×32、字数统计、单选高亮色、底部按钮 —— 与线上截图一致。
+- 抽屉切「电商」：投放内容段换成 自研落地页/橙子落地页，巨量商品段新增「商品库版本」且商品ID转必填，**「直达链接」段出现**，落地页段出现 —— 与线上电商态一致。
+- **联动实测**：未选媒体账户时「选择微信小游戏」`disabled=true`；选中账户后 `disabled=false`（与线上行为一致）。
+- 「选择微信小游戏」弹窗打开正常（数据源 / 账户列表 / 工具条 / 关键词 / 仅未使用·仅升级版 / 已选(0/1) / 空态 / 取消·确定）。
+- 「批量导入资产组」弹窗：四个表单项 + 取消/确定，与线上一致。

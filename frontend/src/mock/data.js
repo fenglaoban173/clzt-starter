@@ -633,14 +633,78 @@ const monitorActivities = [
 ];
 
 // ---------- 巨量资产补充类型（对照资产菜单清单） ----------
+// 资产组：列口径对齐创量标准版「资产组」页（固定列：资产组名称/资产组别名/操作）
 const assetGroups = [
-  { id: 1, name: '漫剧素材组-01', group_type: '视频素材', count: 24, status: 'available', updated_at: fmt(now - 86400000 * 3) },
-  { id: 2, name: '线索留资素材组-02', group_type: '图文素材', count: 12, status: 'available', updated_at: fmt(now - 86400000 * 1) },
+  {
+    id: 1, name: '漫剧小游戏资产组-01', alias: '漫剧01组', use_status: '已使用',
+    account_name: '央广-智者天下二分-知乎-APP内付费  (1879831220974955)',
+    product_id: '8801001', mini_type: '微信小游戏', delivery_content: '微信小游戏',
+    link_type: 'Deeplink直达链接', deeplink: 'weixin://dl/business/?t=aBcDeF01', ulink: '',
+    mini_name: '漫剧大作战小游戏', mini_note: '短剧小游戏-主推',
+    path_link: 'pages/index/index?scene=1007',
+    valid_link: 'https://valid.example.com/touch/8821001',
+    monitor_link: 'https://monitor.example.com/act/8821001',
+    landing_link: 'https://lp.example.com/8821001',
+    native_link: 'snssdk1128://aweme/miniapp?appid=tt8821001',
+    cl_template: '橙子模板-短剧落地页-01',
+    creator: '杨浩蒙', created_at: fmt(now - 86400000 * 12), updated_at: fmt(now - 86400000 * 2),
+  },
+  {
+    id: 2, name: '线索留资电商资产组-02', alias: '线索02组', use_status: '未使用',
+    account_name: 'UG-端原生IAA-漫剧-免费roi-24020  (1878623959614544)',
+    product_id: '8801002', mini_type: '自研落地页', delivery_content: '自研落地页',
+    link_type: 'Ulink直达链接', deeplink: '', ulink: 'https://ulink.example.com/g/8821002',
+    mini_name: '线索表单页', mini_note: '表单留资-测试',
+    path_link: 'https://lp.example.com/form/8821002?cid=88',
+    valid_link: 'https://valid.example.com/touch/8821002',
+    monitor_link: 'https://monitor.example.com/act/8821002',
+    landing_link: 'https://lp.example.com/8821002',
+    native_link: 'snssdk1128://aweme/miniapp?appid=tt8821002',
+    cl_template: '橙子模板-线索表单-02',
+    creator: '申旭阳', created_at: fmt(now - 86400000 * 6), updated_at: fmt(now - 86400000 * 1),
+  },
 ];
 
 const products = [
   { id: 1, name: '爆款短剧周边礼盒', product_id: 'P8801001', product_type: '商品', price: '59.00', status: 'available', updated_at: fmt(now - 86400000 * 4) },
   { id: 2, name: '会员月卡', product_id: 'P8801002', product_type: '虚拟商品', price: '25.00', status: 'reviewing', updated_at: fmt(now - 86400000 * 2) },
+];
+
+// 小程序/小游戏组件（新建资产组抽屉「选择XX小游戏」弹窗的数据源）
+const miniComponents = [
+  { id: 'wx_g_8821001', name: '漫剧大作战小游戏', type: '微信小游戏', project_count: 12, used: false, upgrade: true, url: 'weixin://dl/business/?t=aBcDeF01', note: '短剧小游戏-主推' },
+  { id: 'wx_g_8821002', name: '甜宠短剧小游戏', type: '微信小游戏', project_count: 5, used: true, upgrade: false, url: 'weixin://dl/business/?t=aBcDeF02', note: '甜宠剧-副推' },
+  { id: 'wx_a_8821003', name: '预约领券小程序', type: '微信小程序', project_count: 3, used: false, upgrade: false, url: 'weixin://dl/business/?t=aBcDeF03', note: '私域承接' },
+  { id: 'by_g_8821004', name: '答题闯关小游戏', type: '字节小游戏', project_count: 8, used: false, upgrade: true, url: 'snssdk1128://dl/business/?t=tt8821004', note: 'IAA-小游戏' },
+  { id: 'by_a_8821005', name: '线索留资小程序', type: '字节小程序', project_count: 6, used: true, upgrade: false, url: 'snssdk1128://dl/business/?t=tt8821005', note: '表单-主推' },
+];
+
+// 巨量商品库（新建资产组抽屉「选择已有商品ID」弹窗的数据源）
+const productLibraries = [
+  { platform_id: '8801001', name: '爆款短剧周边礼盒', type: '新版商品库' },
+  { platform_id: '8801002', name: '会员月卡', type: '新版商品库' },
+  { platform_id: '8801003', name: '线索留资-家居清洁套装', type: '旧版商品库' },
+];
+
+// 已有落地链接（新建资产组抽屉「选择已有链接」弹窗的数据源）
+const miniLinks = [
+  { url: 'weixin://dl/business/?t=aBcDeF01', name: '漫剧大作战-主链' },
+  { url: 'weixin://dl/business/?t=aBcDeF02', name: '甜宠短剧-副链' },
+  { url: 'snssdk1128://dl/business/?t=tt8821004', name: '答题闯关-字节' },
+];
+
+// 创量落地页模板（抽屉「创量落地页模板」下拉）
+const siteTemplates = [
+  { id: 'TPL001', name: '橙子模板-短剧落地页-01' },
+  { id: 'TPL002', name: '橙子模板-线索表单-02' },
+  { id: 'TPL003', name: '橙子模板-品牌官网-03' },
+];
+
+// 批量导入可引用的历史任务
+const importTasks = [
+  { id: 1, name: '2024-09-短剧推广链接-常读' },
+  { id: 2, name: '2024-09-线索留资-常读' },
+  { id: 3, name: '2024-08-电商商品-常读' },
 ];
 
 const apps = [
@@ -802,6 +866,7 @@ export const mockDb = {
   audiencePackages, orientationPackages, monitorActivities,
   assetGroups, products, apps, miniGames, dramaLinks, csjPackages,
   interactiveMaterials, anchors, albums,
+  miniComponents, productLibraries, miniLinks, siteTemplates, importTasks,
   projectReportRows, adReportRows, materialReportRows, componentReportRows,
   dashboard,
 };
