@@ -223,7 +223,7 @@ import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue'
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import {
-  CL_PROJECTS, CL_PRODUCTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
+  CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
   STAR_FLAGS, PLATFORMS, BATCH_OPS,
 } from '@/mock/projectFilters';
@@ -254,8 +254,7 @@ const cacheTime = ref(dayjs().format('HH:mm:ss'));
 // def：未选择时的默认展示文案（与线上一致，如「所有产品」「不限」）
 // options：候选项（与创量项目列表页下拉内容一致）；缺省时从当前列表数据中去重取值
 const FILTER_DEFS = [
-  { key: 'clProject', label: '创量项目', kind: 'select', def: '全部', width: 200, source: 'project', options: CL_PROJECTS },
-  { key: 'clProduct', label: '创量产品', kind: 'select', def: '所有产品', width: 200, source: 'product', options: CL_PRODUCTS },
+  { key: 'clProject', label: '智投项目', kind: 'select', def: '全部', width: 200, source: 'project', options: CL_PROJECTS },
   { key: 'optimizer', label: '优化师', kind: 'select', def: '所有', width: 180, source: 'optimizer', options: OPTIMIZERS },
   { key: 'optGoal', label: '优化目标', kind: 'select', def: '所有', width: 200, source: 'opt_goal', options: OPT_GOALS },
   { key: 'deepGoal', label: '深度优化目标', kind: 'select', def: '所有', width: 220, source: 'deep_goal', options: DEEP_OPT_GOALS },
@@ -276,7 +275,7 @@ const FILTER_DEFS = [
 
 const filters = reactive({
   nameType: 'name', keyword: '',
-  clProject: '全部', clProduct: '所有产品', optimizer: '所有',
+  clProject: '全部', optimizer: '所有',
   optGoal: '所有', deepGoal: '所有', deepMode: '所有',
   subject: '所有主体', account: '所有账户', purpose: '所有推广目的',
   deliveryMode: '全部', status: '不限', createTime: [], adType: '不限',

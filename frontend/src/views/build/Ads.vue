@@ -5,11 +5,8 @@
         <el-input v-model="filters.keyword" style="width: 260px" placeholder="广告名称关键词" clearable @keyup.enter="load">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
-        <el-select v-model="filters.project" style="width: 200px" clearable placeholder="创量项目">
+        <el-select v-model="filters.project" style="width: 200px" clearable placeholder="智投项目">
           <el-option v-for="p in projectOptions" :key="p" :value="p">{{ p }}</el-option>
-        </el-select>
-        <el-select v-model="filters.product" style="width: 200px" clearable placeholder="创量产品">
-          <el-option v-for="p in productOptions" :key="p" :value="p">{{ p }}</el-option>
         </el-select>
       </div>
       <div class="filter-row">
@@ -175,7 +172,7 @@ const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
 const subject = '北京央广时代文化传播有限公司';
 
 const filters = reactive({
-  keyword: '', project: '', product: '', optimizer: '', account: '', subject: '', purpose: '',
+  keyword: '', project: '', optimizer: '', account: '', subject: '', purpose: '',
   deliveryMode: '', campaign: '', status: '', diagnosis: '', strategy: '',
   adType: '', learn: '', star: '', starTaskId: '', platform: '', optGoal: '', deepGoal: '',
   deepMode: '', material: '',
@@ -188,7 +185,6 @@ const purposes = ['APP推广', '网页推广', '小程序推广', '小游戏推�
 const platforms = ['抖音', '穿山甲', '西瓜视频', '今日头条'];
 
 const projectOptions = computed(() => [...new Set(all.value.map((a) => a.project || '未分组'))]);
-const productOptions = computed(() => [...new Set(all.value.map((a) => a.product || '全部产品'))]);
 const optimizerOptions = computed(() => [...new Set(all.value.map((a) => a.optimizer || '全部'))]);
 const accountOptions = computed(() => [...new Set(all.value.map((a) => a.account_name))]);
 const campaignOptions = computed(() => [...new Set(all.value.map((a) => a.campaign_id))]);
