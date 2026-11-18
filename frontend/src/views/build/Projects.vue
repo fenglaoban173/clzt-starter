@@ -209,6 +209,14 @@
 
     <!-- 手动同步：同步项目与广告 -->
     <SyncProjectDialog v-model="syncVisible" @confirm="onSyncConfirm" />
+
+    <!-- 项目详情（点击项目名称 / 「详情」打开，与线上一致） -->
+    <ProjectDetailDrawer
+      v-model="detailVisible"
+      :row="detailRow"
+      @toggle="onDetailToggle"
+      @view-ads="onViewAds"
+    />
   </div>
 </template>
 
@@ -222,6 +230,7 @@ import { buildApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
+import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -531,7 +540,23 @@ function onSyncConfirm({ accounts, range }) {
 }
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
 function onBatchOp(op) { ElMessage.info(`原型：已对 ${selected.value.length} 条项目执行「${op}」（不提交真实接口）`); }
-function onDetail(record) { ElMessage.info(`原型：查看项目 ${record.name} 详情`); }
+
+// ---------- 项目详情 ----------
+const detailVisible = ref(false);
+const detailRow = ref({});
+function onDetail(record) {
+  detailRow.value = record;
+  detailVisible.value = true;
+}
+function onDetailToggle(record, enabled) {
+  if (!record) return;
+  record.status = enabled ? 'enabled' : 'disabled';
+  record.enabled = enabled;
+  ElMessage.info(`原型：${enabled ? '启用' : '暂停'}项目（不提交真实接口）`);
+}
+function onViewAds(record) {
+  ElMessage.info(`原型：查看项目「${record?.name || ''}」下广告`);
+}
 function onToggle(record) {
   record.status = record.enabled ? 'enabled' : 'disabled';
   ElMessage.info(`原型：${record.enabled ? '启用' : '暂停'}项目（不提交真实接口）`);
