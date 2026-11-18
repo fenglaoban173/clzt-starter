@@ -643,6 +643,8 @@ onMounted(load);
 
 /* 表格 */
 .sel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+/* 表头字段不换行：排序箭头（.caret-wrapper）与字段名同行，列宽已按实测宽度加宽 */
+.table-card :deep(.el-table__header-wrapper th .cell) { white-space: nowrap; }
 .scope-caret { color: #86909c; cursor: pointer; }
 .scope-caret:hover { color: #4e5969; }
 /* 表格内链接：项目名称与「详情」统一为蓝色 */
