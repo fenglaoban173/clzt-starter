@@ -1,5 +1,9 @@
 <template>
   <div class="asset-page" v-loading="loading">
+    <!-- 逐页独立实现的资产页（pages/<kind>.vue），存在时整页替换通用渲染器 -->
+    <component :is="customPage" v-if="customPage" :kind="kind" />
+
+    <template v-else>
     <!-- 页面标题 -->
     <div class="asset-title-bar">
       <span class="asset-title">{{ page.title }}</span>
@@ -230,11 +234,12 @@
         <el-button type="primary" @click="onSubmitReply">回复</el-button>
       </template>
     </el-dialog>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, watch, computed } from 'vue';
+import { onMounted, ref, watch, computed, defineAsyncComponent } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, MoreFilled, ArrowDown } from '@element-plus/icons-vue';
@@ -253,6 +258,17 @@ const route = useRoute();
 const kind = ref(ASSET_KINDS.includes(route.query.kind) ? route.query.kind : 'asset_group');
 const page = computed(() => getAssetPage(kind.value));
 const apiCfg = computed(() => KIND_CONFIG[kind.value] || {});
+
+// 逐页独立实现的资产页：pages/<kind>.vue 存在时整页替换通用渲染器
+// 懒加载（async），每个资产菜单一个独立 chunk，避免通用渲染器把 15 个页面全打进一个包
+const pageComponents = import.meta.glob('./pages/*.vue');
+const asyncPageCache = new Map();
+const customPage = computed(() => {
+  const loader = pageComponents[`./pages/${kind.value}.vue`];
+  if (!loader) return null;
+  if (!asyncPageCache.has(loader)) asyncPageCache.set(loader, defineAsyncComponent(loader));
+  return asyncPageCache.get(loader);
+});
 
 const loading = ref(false);
 const list = ref([]);
@@ -586,6 +602,7 @@ function now() {
 }
 
 onMounted(async () => {
+  if (customPage.value) return;   // 逐页独立实现的页面自带数据与交互
   resetQuery();
   accountOptions.value = await loadAccountOptions();
   accounts.value = await loadAccounts();

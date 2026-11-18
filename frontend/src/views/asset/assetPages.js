@@ -26,7 +26,8 @@ export async function loadAccounts() {
   return res.data?.list || [];
 }
 
-/** 所有资产页共享的「媒体账户」查询条件（线上首个筛选项，多选 + 清空图标） */
+/** 资产组页的「媒体账户」查询条件（线上首个筛选项，多选 + 清空图标）
+ *  线上该下拉是多选，占位文案为「所有账户」。 */
 export const ACCOUNT_FILTER = {
   key: 'advertiser_ids', type: 'select', label: '媒体账户：', multiple: true,
   placeholder: '所有账户', source: 'accounts',
@@ -273,6 +274,17 @@ export const KIND_CONFIG = {
     ],
   },
 };
+
+// =========================================================================
+// 三、逐页独立模块（每个资产菜单一个文件 pages/<kind>.js，避免并行开发冲突）
+// =========================================================================
+const pageModules = import.meta.glob('./pages/*.js', { eager: true });
+Object.entries(pageModules).forEach(([path, mod]) => {
+  const cfg = mod.default || mod.page || mod;
+  if (!cfg || typeof cfg !== 'object') return;
+  const kind = cfg.kind || path.replace(/^\.\/pages\//, '').replace(/\.js$/, '');
+  ASSET_PAGES[kind] = { ...(ASSET_PAGES[kind] || {}), ...cfg };
+});
 
 /** 取某个 kind 的页面配置：优先线上采集结果，否则用兜底配置 */
 export function getAssetPage(kind) {

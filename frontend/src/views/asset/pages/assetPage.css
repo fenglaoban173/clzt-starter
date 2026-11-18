@@ -1,0 +1,115 @@
+/* 资产页通用样式 —— 与创量标准版「巨量广告·标准 → 资产」各页一致
+ * 全局引入（main.js），供 pages/<kind>.vue 各资产页直接使用，
+ * 保证并行开发的各页面视觉统一。
+ * 采集依据：创量线上 DOM + computed style（表头 #fafafa / 12px #909399、工具栏 50px、
+ * 筛选格 28px、抽屉 1016px、抽屉表单 label 144px、输入 360×32 等）。
+ */
+
+/* ---------- 页面骨架 ---------- */
+.asset-page { padding: 16px; min-height: 100%; box-sizing: border-box; background: #fff; }
+.asset-title-bar { padding: 0 0 12px; }
+.asset-title { font-size: 16px; font-weight: 600; color: #1d2129; }
+
+/* 二级页签（商品库-通用版 / 商品-通用版 / 商品-升级版 等） */
+.asset-sub-tabs { display: flex; align-items: center; gap: 24px; margin-bottom: 12px; border-bottom: 1px solid #e8eaec; }
+.asset-sub-tab { position: relative; height: 36px; line-height: 36px; font-size: 14px; color: #666; cursor: pointer; }
+.asset-sub-tab.active { color: #197afb; }
+.asset-sub-tab.active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: #197afb;
+}
+
+/* ---------- 查询条件（线上 form.filter-search-input） ---------- */
+.filter-row { display: flex; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+.filter-left { display: flex; align-items: center; flex-wrap: wrap; }
+.filter-cell {
+  display: flex; align-items: center; height: 28px; margin: 0 8px 8px 0; padding: 0 5px 0 8px;
+  background: #fff; border: 1px solid #e8eaec; border-radius: 3px;
+}
+.filter-label { font-size: 12px; color: #666; margin-right: 4px; white-space: nowrap; }
+.filter-select { width: 169px; }
+.filter-select .el-input__inner { height: 28px; font-size: 12px; color: #666; }
+.filter-clear { font-size: 12px; color: #197afb; cursor: pointer; margin: 6px 0 0 4px; }
+.filter-right { margin-left: auto; display: flex; align-items: center; gap: 12px; padding-top: 0; }
+
+/* 关键词搜索：字段类型下拉 + 关键词输入 + 放大镜 + 批量搜索气泡 */
+.cl-search { display: flex; align-items: center; height: 28px; }
+.search-field { width: 100px; flex: none; }
+.search-field .el-input__inner { height: 28px; font-size: 12px; }
+.search-input { width: 200px; }
+.search-input .el-input__inner { height: 28px; font-size: 12px; }
+.search-input .el-input-group__append { padding: 0; background: #fff; }
+.search-more-btn { height: 28px; padding: 0 6px; border-radius: 0 3px 3px 0; }
+.batch-search-ops { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+/* ---------- 功能按钮条（线上 .table-toolbar / .toolbar-operate） ---------- */
+.table-toolbar {
+  display: flex; align-items: center; gap: 12px; height: 50px; padding: 8px 16px;
+  background: #fff; border: 1px solid #e8eaec; border-radius: 3px; margin-bottom: 8px;
+}
+.tool-btn { font-size: 12px; height: 32px; padding: 9px 15px; border-radius: 3px; }
+.batch-select { width: 120px; margin-left: 4px; }
+.batch-select .el-input__inner { height: 32px; font-size: 12px; }
+
+/* ---------- 列表（线上 el-table--border） ---------- */
+.asset-table { font-size: 12px; width: 100%; }
+.asset-table .el-table__header th { background: #fafafa; color: #909399; font-size: 12px; height: 56px; padding: 0; }
+.asset-table .el-table__cell { font-size: 12px; color: #606266; padding: 8px 0; }
+.asset-table .el-button { font-size: 12px; }
+.asset-table .el-button.is-link { margin-left: 10px; padding: 0; }
+.asset-table .el-button.is-link:first-child { margin-left: 0; }
+.asset-table .el-tag { font-size: 12px; }
+
+/* 名称 + 备注两行单元格 */
+.desc-cell { line-height: 18px; }
+.desc-cell__title { color: #333; }
+.desc-cell__desc { color: #909399; font-size: 12px; }
+
+/* ---------- 分页 ---------- */
+.pager-card {
+  display: flex; align-items: center; height: 64px; margin-top: 16px; padding: 2px 5px 2px 24px;
+  background: #fff; border: 1px solid #e8eaec; border-radius: 3px;
+}
+.pager-card .el-pagination { font-size: 12px; }
+
+/* ---------- 抽屉（线上 div.cl-drawer，宽度 1016px） ---------- */
+.cl-drawer { display: flex; flex-direction: column; height: 100%; background: #f0f2f5; }
+.drawer-header {
+  flex: none; height: 49px; padding: 0 16px; display: flex; align-items: center;
+  background: #fff; border-bottom: 1px solid #e8eaec;
+}
+.header-title { font-size: 16px; font-weight: 500; color: #333; }
+.drawer-content { flex: 1; overflow-y: auto; padding: 0 16px; background: #f0f2f5; }
+.module-container { background: #fff; margin-bottom: 16px; }
+.cl-form-block-title {
+  height: 48px; line-height: 48px; padding: 0 0 0 16px;
+  background: #fbfcfd; font-size: 16px; color: #333;
+}
+.cl-drawer-form { padding: 16px 16px 0; }
+.cl-drawer-form .el-form-item { margin-bottom: 20px; }
+.cl-drawer-form .el-form-item__label { width: 144px; font-size: 14px; color: #666; }
+.cl-drawer-form .el-form-item__content { margin-left: 144px; }
+.drawer-footer { flex: none; padding: 12px 16px 24px; background: #fff; border-top: 1px solid #e8eaec; }
+.dialog-footer { display: flex; justify-content: flex-end; }
+.operate-button { display: flex; gap: 16px; }
+.operate-button .el-button { font-size: 12px; height: 32px; padding: 9px 15px; border-radius: 3px; }
+
+/* ---------- 表单控件（线上 360×32、13px；单选按钮 9px 12px / #d6eaff） ---------- */
+.ag-input { width: 360px; }
+.ag-input .el-input__inner { height: 32px; font-size: 13px; }
+.ag-input-wrap { position: relative; width: 360px; }
+.ag-input-wrap.has-counter .ag-input .el-input__inner { padding-right: 30px; }
+.input-suffix {
+  position: absolute; right: 10px; top: 0; height: 32px; line-height: 32px;
+  font-size: 14px; color: #dcdee6; pointer-events: none;
+}
+.ag-select { width: 360px; }
+.ag-select .el-input__inner { height: 32px; font-size: 13px; }
+.ag-radio .el-radio-button__inner { padding: 9px 12px; font-size: 12px; }
+.ag-radio .el-radio-button__orig-radio { display: none; }
+.ag-radio .el-radio-button.is-active .el-radio-button__inner {
+  background: #d6eaff; border-color: #197afb; color: #197afb; box-shadow: -1px 0 0 0 #197afb;
+}
+.link-row { display: flex; align-items: center; margin-bottom: 8px; }
+.ag-add-link { color: #197afb; }
+.ml8 { margin-left: 8px; }
+.ml16 { margin-left: 16px; }

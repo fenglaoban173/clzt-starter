@@ -1,0 +1,11 @@
+/* 创量标准版「巨量广告·标准 → 资产 → 落地页」页面私有样式（全局引入）
+ * 仅覆盖 el-dialog 内部由组件库渲染、scoped 选不到的部分（标题栏 / body / footer）。
+ * 采集依据：创量线上「新建模板」弹窗（宽 800px、标题 16px #333、表单 label 144px、底部按钮 88×32 12px）。
+ */
+
+.lp-dialog-header { padding: 16px 20px 10px; }
+.lp-dialog-header .el-dialog__title { font-size: 16px; font-weight: 500; color: #333; }
+
+.lp-dialog-body { padding: 12px 20px 4px; }
+
+.lp-dialog-footer { padding: 12px 20px 16px; border-top: 1px solid #e8eaec; }
