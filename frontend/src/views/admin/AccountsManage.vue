@@ -19,7 +19,7 @@
         <el-table-column label="广告主 ID" prop="advertiser_id" :width="160" />
         <el-table-column label="账户名称" prop="name" :width="220" />
         <el-table-column label="登录邮箱" prop="email" :width="170" />
-        <el-table-column label="创量项目" prop="project" :width="130" />
+        <el-table-column label="智投项目" prop="project" :width="130" />
         <el-table-column label="产品" prop="product" :width="120" />
         <el-table-column label="优化师" prop="optimizer" :width="100" />
         <el-table-column label="部门" prop="dept" :width="100" />

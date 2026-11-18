@@ -36,7 +36,7 @@
           <el-radio-button value="advertiser_id">账户</el-radio-button>
           <el-radio-button value="owner_user_id">优化师</el-radio-button>
           <el-radio-button value="media">媒体</el-radio-button>
-          <el-radio-button value="project">创量项目</el-radio-button>
+          <el-radio-button value="project">智投项目</el-radio-button>
           <el-radio-button value="partner">合作商</el-radio-button>
           <el-radio-button value="dept">部门</el-radio-button>
         </el-radio-group>
