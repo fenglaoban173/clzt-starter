@@ -633,7 +633,8 @@ onMounted(load);
 .sel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .scope-caret { color: #86909c; cursor: pointer; }
 .scope-caret:hover { color: #4e5969; }
-.proj-cell .link { color: #2563eb; cursor: pointer; }
+/* 表格内链接：项目名称与「详情」统一为蓝色 */
+.table-card .link { color: #2563eb; cursor: pointer; }
 .proj-cell .ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proj-id { font-size: 13px; color: #86909c; margin-top: 2px; }
 .total-label { font-size: 15px; font-weight: 600; color: #1d2129; }

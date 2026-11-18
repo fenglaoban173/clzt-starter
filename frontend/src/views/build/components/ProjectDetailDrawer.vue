@@ -9,12 +9,15 @@
     class="pd-drawer"
     @update:model-value="(v) => emit('update:modelValue', v)"
   >
-    <div class="pd">
-      <!-- 顶部：关闭按钮 + 项目名称 -->
+    <div class="pd-wrap">
+      <!-- 关闭按钮：贴附在抽屉左边缘（与线上一致，悬浮在抽屉外的蒙层上） -->
+      <button class="pd-close" title="关闭" @click="close">
+        <el-icon><Close /></el-icon>
+      </button>
+
+      <div class="pd-scroll">
+      <!-- 顶部：项目名称 -->
       <div class="pd-head">
-        <button class="pd-close" title="关闭" @click="close">
-          <el-icon><Close /></el-icon>
-        </button>
         <div class="pd-title" :title="d.name">{{ d.name }}</div>
       </div>
 
@@ -85,6 +88,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </el-drawer>
 </template>
@@ -125,23 +129,39 @@ function onViewAds() {
 </script>
 
 <style scoped>
-.pd {
+.pd-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 14px 20px 20px;
+}
+
+/* 抽屉外壳：相对定位，关闭按钮贴附在左边缘 */
+.pd-wrap {
   /* 取色对齐创量线上项目详情抽屉 */
   --pd-blue: #546ef7;
   --pd-text: #333;
   --pd-text-weak: #999;
   --pd-bar: #f2f2f2;
   --pd-line: #e5e7ed;
+  position: absolute;
+  inset: 0;
+}
+
+.pd {
   color: var(--pd-text);
   font-size: 13px;
 }
 
-/* 顶部：关闭 + 标题 */
+/* 顶部：标题 */
 .pd-head { display: flex; align-items: center; gap: 12px; }
+/* 关闭按钮：贴在抽屉左边缘外侧（线上为悬浮在蒙层上的蓝色方块） */
 .pd-close {
-  width: 34px;
-  height: 34px;
-  flex: none;
+  position: absolute;
+  left: -36px;
+  top: 8px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
   border-radius: 3px;
@@ -221,4 +241,9 @@ function onViewAds() {
   text-overflow: ellipsis;
   cursor: pointer;
 }
+</style>
+
+<!-- 抽屉本体：去掉内边距并允许溢出，使关闭按钮能贴附在抽屉左边缘外侧 -->
+<style>
+.pd-drawer .el-drawer__body { padding: 0; overflow: visible; min-height: 0; }
 </style>

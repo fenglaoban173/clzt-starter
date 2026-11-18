@@ -1051,3 +1051,38 @@
 - 结构核对：页签「项目」；通栏「基础信息 + 查看项目下广告」；左栏 4 个区块（营销目标与场景 / 关联产品投放 / 投放内容与目标 / 受众倾向与过滤，共 32 行）；右栏 5 个区块（排期与预算 / 投放版位 / 搜索快投 / 监测链接 / 直达链接，共 17 行）；合计 49 行明细。
 - 量得几何：抽屉 1000×1080；两栏 470px / 470px；标签列 114px；灰条底色 `rgb(242,242,242)`；标签 `rgb(153,153,153)`；取值 `rgb(51,51,51)`；链接 `rgb(84,110,247)`；状态标签 `rgb(96,195,68)`；抽屉标题 16px/600、区块标题 14px/600、标签 13px——与线上换算后一致。
 - `pageerror` = 0；生产构建 `npm run build` 通过（7.5s，仅 chunk 体积告警）。
+
+---
+
+## 五十一、项目详情抽屉：关闭按钮贴附抽屉边缘 + 「详情」链接改蓝色（2026-11-18，需求 R37）
+
+**需求**（附本地截图 76.png 与线上截图 77.png）：
+
+1. 关闭按钮是**附在抽屉弹窗边上**的（线上为悬浮在蒙层上、右边缘与抽屉左边缘齐平的蓝色方块），不是内嵌在标题栏里；
+2. 项目列表「操作」列的**「详情」按钮仍是黑色**，改成统一的蓝色。
+
+### ① 线上实抓对照（线上截图 77.png）
+
+- 线上抽屉宽 1000 CSS px（截图 800px ÷ 0.8 缩放系数），左侧为蒙层；**关闭按钮**是一个 36×36 的**蓝色（`#546ef7`）方块**，位于抽屉**左边缘外侧**、靠上（top ≈ 10px），其**右边缘与抽屉左边缘完全对齐**，悬浮在蒙层之上。
+- 线上表格中的项目名称与「详情」均为**蓝色链接**。
+
+### ② 代码改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/ProjectDetailDrawer.vue` | 关闭按钮从 `.pd-head`（标题行内）移到新的 `.pd-wrap` 外壳中，改为**绝对定位** `left:-36px; top:8px; width/height:36px; background:#546ef7`，右边缘正好贴住抽屉左边缘；新增 `.pd-scroll` 作为可滚动内容层（`height:100%; overflow-y:auto`）；`.pd-wrap` 改为 `position:absolute; inset:0` 并承载 `--pd-blue` 等 CSS 变量；追加**非 scoped** 规则 `.pd-drawer .el-drawer__body { padding:0; overflow:visible; min-height:0; }`，让按钮可以溢出到抽屉外 |
+| `frontend/src/views/build/Projects.vue` | 表格链接色由 `.proj-cell .link` 改为 `.table-card .link { color:#2563eb }`，使**项目名称**与**「详情」**统一为蓝色（此前「详情」无配色规则、渲染为黑色） |
+
+### ③ 关键技术点
+
+- **Element Plus 抽屉边距/裁剪**：`.el-drawer__body` 默认 `padding:20px; overflow:auto`，会裁掉溢出到抽屉外的按钮；需在**非 scoped** 样式里覆盖（drawer 的 `inheritAttrs:false` 会把 `class="pd-drawer"` 合并到 `.el-drawer` 节点上，故选择器写成 `.pd-drawer .el-drawer__body`）。
+- **flex 项 `min-height:auto` 陷阱**：把 body 改成 `overflow:visible` 后，body 作为 flex 子项恢复了「自动最小尺寸」，会撑到内容高度、抽屉不再滚动。修复：body 加 `min-height:0`，并让 `.pd-wrap` 以 `position:absolute; inset:0` 直接铺满 `.el-drawer`（不依赖百分比高度链）。
+- **CSS 变量作用域**：`--pd-blue` 等必须定义在 `.pd-wrap` 上（关闭按钮已移出 `.pd` 容器），否则 `var(--pd-blue)` 取不到值。
+
+### ④ 验证（Playwright，生产预览 `http://localhost:4173`）
+
+- 表格内 20 个链接（项目名称 + 「详情」）颜色**全部**为 `rgb(37,99,235)` = `#2563eb`。
+- 抽屉几何：drawer `x=920 width=1000`；关闭按钮 `x=884 y=8 36×36`，**右边缘 920 = 抽屉左边缘 920**（完全贴附）；按钮底色 `rgb(84,110,247)` = 创量蓝。
+- 抽屉 body `padding:0px`、`overflow:visible`；`.pd-scroll` 可滚动到底（`scrollTop > 100`），滚动后关闭按钮仍固定可见于抽屉左上边缘。
+- 关闭按钮可关闭抽屉；关闭后点「详情」仍能重新打开抽屉（两个触发点均正常）。
+- `pageerror` = 0；生产构建 `npm run build` 通过（12.45s，仅 chunk 体积告警）。
