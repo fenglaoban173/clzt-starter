@@ -60,13 +60,16 @@ function onStrategyConfirm(group) {
 
 <style scoped>
 .promo-actions { display: flex; align-items: center; gap: 12px; }
+/* 绿色按钮统一为 #00a272（hover / active 为同色系加深） */
 .teal-btn {
-  --el-button-bg-color: #1fb497;
-  --el-button-border-color: #1fb497;
-  --el-button-hover-bg-color: #19a58b;
-  --el-button-hover-border-color: #19a58b;
-  --el-button-active-bg-color: #159580;
-  --el-button-active-border-color: #159580;
+  --el-button-bg-color: #00a272;
+  --el-button-border-color: #00a272;
+  --el-button-hover-bg-color: #009267;
+  --el-button-hover-border-color: #009267;
+  --el-button-active-bg-color: #00825b;
+  --el-button-active-border-color: #00825b;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-text-color: #fff;
 }
 .date-range { width: 280px !important; }
 </style>
