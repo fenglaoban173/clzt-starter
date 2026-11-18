@@ -233,8 +233,8 @@
     <!-- 手动同步：同步项目与广告 -->
     <SyncProjectDialog v-model="syncVisible" @confirm="onSyncConfirm" />
 
-    <!-- 批量操作弹窗 -->
-    <AdBatchDialog v-model="batchVisible" :op="batchOpName" :rows="batchRows" @confirm="onBatchConfirm" />
+    <!-- 批量操作弹窗（表单字段对齐巨量引擎开放平台接口） -->
+    <BatchOpDialog v-model="batchVisible" scope="promotion" :op="batchOpName" :rows="batchRows" @confirm="onBatchConfirm" />
 
     <!-- 广告详情 -->
     <AdDetailDrawer v-model="detailVisible" :row="detailRow" @view-project="onViewProject" />
@@ -249,11 +249,12 @@ import { CaretBottom, Close, Delete, EditPen, Operation, Search } from '@element
 import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import AdComboFilter from './components/AdComboFilter.vue';
-import AdBatchDialog from './components/AdBatchDialog.vue';
+import BatchOpDialog from './components/BatchOpDialog.vue';
 import AdDetailDrawer from './components/AdDetailDrawer.vue';
 import AdFilterPicker from './components/AdFilterPicker.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
-import { AD_FILTER_DEFS, AD_BATCH_OPS, AD_BATCH_OP_TOASTS } from '@/mock/adFilters';
+import { AD_FILTER_DEFS, AD_BATCH_OPS } from '@/mock/adFilters';
+import { getBatchOpConfig } from '@/api/oceanengine';
 import {
   AD_METRIC_CATALOG,
   AD_METRIC_MAP,
@@ -579,20 +580,11 @@ function onComboApply(combo) {
 }
 
 // ---------- 批量操作 ----------
+// 表单字段全部对齐巨量引擎开放平台接口（见 src/api/oceanengine.js）
 function onBatchOp(op) {
   batchOp.value = '';
   if (!selected.value.length) {
     ElMessage.warning('请先选择广告');
-    return;
-  }
-  // 启停 / 删除：原型仅提示
-  if (op === '启用' || op === '暂停' || op === '删除') {
-    ElMessage.info(`原型：已对 ${selected.value.length} 条广告执行「${op}」（不提交真实接口）`);
-    return;
-  }
-  // 线上仅提示、不弹窗的操作
-  if (AD_BATCH_OP_TOASTS[op]) {
-    ElMessage.info(AD_BATCH_OP_TOASTS[op]);
     return;
   }
   batchOpName.value = op;
@@ -601,7 +593,8 @@ function onBatchOp(op) {
 }
 
 function onBatchConfirm({ op, rows: list }) {
-  ElMessage.success(`原型：已对 ${list.length} 条广告执行「${op}」`);
+  const c = getBatchOpConfig('promotion', op);
+  ElMessage.success(`原型：已对 ${list.length} 条广告执行「${op}」→ ${c ? c.api.name : ''}`);
   load();
 }
 

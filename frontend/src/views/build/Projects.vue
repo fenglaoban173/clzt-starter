@@ -217,6 +217,9 @@
       @toggle="onDetailToggle"
       @view-ads="onViewAds"
     />
+
+    <!-- 批量操作弹窗（表单字段对齐巨量引擎开放平台接口） -->
+    <BatchOpDialog v-model="batchVisible" scope="project" :op="batchOpName" :rows="batchRows" @confirm="onBatchConfirm" />
   </div>
 </template>
 
@@ -231,6 +234,8 @@ import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue'
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
+import BatchOpDialog from './components/BatchOpDialog.vue';
+import { getBatchOpConfig } from '@/api/oceanengine';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -252,6 +257,9 @@ const all = ref([]);
 const rows = ref([]);
 const selected = ref([]);
 const batchOp = ref('');
+const batchOpName = ref('');
+const batchRows = ref([]);
+const batchVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -551,7 +559,24 @@ function onSyncConfirm({ accounts, range }) {
   load();
 }
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
-function onBatchOp(op) { ElMessage.info(`原型：已对 ${selected.value.length} 条项目执行「${op}」（不提交真实接口）`); }
+
+// 批量操作：表单字段对齐巨量引擎开放平台接口（见 src/api/oceanengine.js）
+function onBatchOp(op) {
+  batchOp.value = '';
+  if (!selected.value.length) {
+    ElMessage.warning('请先选择项目');
+    return;
+  }
+  batchOpName.value = op;
+  batchRows.value = selected.value.map((r) => ({ ...r }));
+  batchVisible.value = true;
+}
+
+function onBatchConfirm({ op, rows: list }) {
+  const c = getBatchOpConfig('project', op);
+  ElMessage.success(`原型：已对 ${list.length} 条项目执行「${op}」→ ${c ? c.api.name : ''}`);
+  load();
+}
 
 // ---------- 项目详情 ----------
 const detailVisible = ref(false);

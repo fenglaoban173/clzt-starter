@@ -1246,3 +1246,91 @@
 - 详情抽屉：广告页区块 = 基础信息 / 推广身份 / 原生锚点 / 落地页 / 直达链接 / 标题 / 产品信息 / 广告设置；项目页区块 = 基础信息 / 营销目标与场景 / 关联产品投放 / 投放内容与目标 / 受众倾向与过滤 / 排期与预算 / 投放版位 / 搜索快投 / 监测链接 / 直达链接，右上链接分别为「查看项目广告 / 查看项目下广告」。
 - 弹窗核对：自定义指标（16 分类、默认 15 指标与表头一致）、同步项目与广告、批量修改预算（已选 N 条可操作广告计划 / 修改规则 / 预算 / 广告计划·当日消耗·转化成本·当前预算 / 分别修改预算）均可正常打开。
 - 生产构建 `npm run build` 通过（7.05s，仅 chunk 体积告警）。
+
+## 五十七、批量操作弹窗按巨量引擎开放平台接口逐项对齐（2026-11-18，需求 R42）
+
+**需求**：
+
+> 现在我跟你说个逻辑：1、项目，广告列表的批量操作；每一项对应的弹窗显示表单 修改项有哪些，根据选项的文字描述，你去巨量开放平台官网文档去检索，看看对应的api接口内容。给出准确的 弹窗表单。
+
+**本轮目标**：广告（单元）列表 **24 项**、项目列表 **18 项** 批量操作，**每一项**都弹出**按巨量引擎开放平台官方接口字段**构建的表单弹窗，并在弹窗内直接标出「调哪个接口 / 传哪些字段 / 取值限制」。
+
+### ① 官方文档检索方式（open.oceanengine.com）
+
+- 开放平台左侧导航条目不是 `<a>`，而是 `<div title="…">`；用 CDP 驱动点击导航并读取 `location.pathname`（形如 `/labels/7/docs/<id>`）枚举出「广告管理 / 项目管理 / 工具 / 定向」等全部文档目录，逐篇抓取 **40+ 篇**接口文档正文（`main.byted-layout-content`）。
+- 每篇抽取「请求参数 → 请求示例」区间，压缩为 `name(必填) : type — desc` 结构，形成字段清单、枚举值、取值范围与调用限制。
+- 关键结论沉淀到 `frontend/src/api/oceanengine.js`，作为 42 个批量操作弹窗的唯一数据源（`PROMOTION_BATCH_OPS` / `PROJECT_BATCH_OPS`）。
+
+### ② 接口映射（弹窗 → 官方接口 → 接口字段）
+
+#### 广告（单元）层级 24 项
+| 批量操作项 | 弹窗标题 | 方法 + 接口路径 | 接口名 | 接口字段（data[] 除外按实际） |
+| --- | --- | --- | --- | --- |
+| 启用 | 批量启用广告 | POST `/open_api/v3.0/promotion/status/update/` | 批量更新营销启用状态 | data[].opt_status |
+| 暂停 | 批量暂停广告 | POST `/open_api/v3.0/promotion/status/update/` | 批量更新营销启用状态 | data[].opt_status |
+| 删除 | 批量删除广告 | POST `/open_api/v3.0/promotion/delete/` | 批量删除营销 | promotion_ids |
+| 修改预算 | 批量修改预算 | POST `/open_api/v3.0/promotion/budget/update/` | 批量更新营销预算 | data[].budget_mode、data[].budget、data[] |
+| 修改出价 | 批量修改出价 | POST `/open_api/v3.0/promotion/bid/update/` | 批量更新营销出价 | data[].bid、data[]、- |
+| 修改深度出价 | 批量修改深度出价 | POST `/open_api/v3.0/promotion/deepbid/update/` | 批量修改深度出价 | data[].deepbid、data[] |
+| 修改ROI系数 | 批量修改ROI系数 | POST `/open_api/v3.0/promotion/update/` | 修改单元 | roi_goal、first_roi_goal、shop_multi_roi_goals[] |
+| 修改创意 | 修改创意 | POST `/open_api/v3.0/promotion/update/` | 修改单元（promotion_materials） | -、-、promotion_materials |
+| 开启一键起量 | 设置一键起量 | POST `/open_api/v3.0/tools/promotion_raise/set/` | 开启/更新一键起量 | raise_info[]、raise_info[].raise_budget、raise_info[].is_effective_now |
+| 修改落地页 | 修改落地页 | POST `/open_api/v3.0/promotion/update/` | 修改单元（external_url_material_list） | -、external_url_material_list[] |
+| 修改直达链接 | 修改直达链接 | POST `/open_api/v3.0/promotion/update/` | 修改单元（open_url） | open_url |
+| 修改多直达链接 | 修改多直达链接 | POST `/open_api/v3.0/promotion/update/` | 修改单元（open_urls） | open_urls[] |
+| 修改来源 | 修改来源 | POST `/open_api/v3.0/promotion/update/` | 修改单元（source） | source |
+| 修改广告标题和素材 | 修改广告标题和素材 | POST `/open_api/v3.0/promotion/update/` | 修改单元（title_material_list / promotion_materials） | title_material_list[].title、promotion_materials |
+| 修改时段 | 批量修改时段 | POST `/open_api/v3.0/promotion/schedule_time/update/` | 批量更新营销投放时段 | data[].schedule_time |
+| 修改附加创意组件 | 修改附加创意组件 | POST `/open_api/v3.0/promotion/update/` | 修改单元（component_material_list） | component_material_list[].component_id |
+| 修改广告否定词 | 批量修改否定词 | POST `/open_api/v3.0/tools/privative_word/promotion/update/` | 批量更新营销否定词 | -、promotion_list[].phrase_words[]、promotion_list[].precise_words[] |
+| 修改产品名称 | 修改产品名称 | POST `/open_api/v3.0/promotion/update/` | 修改单元（product_info.titles） | product_info.product_name_type、product_info.titles[] |
+| 修改产品主图 | 修改产品主图 | POST `/open_api/v3.0/promotion/update/` | 修改单元（product_info.image_ids） | product_info.image_ids[] |
+| 修改直达备用链接 | 修改广告直达备用链接 | POST `/open_api/v3.0/promotion/update/` | 修改单元（ulink） | ulink |
+| 修改字节小程序/小游戏链接 | 修改字节小程序/小游戏链接 | POST `/open_api/v3.0/promotion/update/` | 修改单元（小程序调起链接） | urls[]、auto[].app_id、auto[].start_path、auto[].params |
+| 修改产品卖点 | 修改产品卖点 | POST `/open_api/v3.0/promotion/update/` | 修改单元（product_info.selling_points） | product_info.selling_points[] |
+| 批量修改广告名称 | 批量修改广告名称 | POST `/open_api/v3.0/promotion/update/` | 修改单元（name） | name、name、name |
+| 修改短剧专辑链接 | 修改短剧专辑链接 | POST `/open_api/v3.0/promotion/update/` | 修改单元（playlet_series_url_list） | playlet_series_url_list[] |
+
+#### 项目层级 18 项
+| 批量操作项 | 弹窗标题 | 方法 + 接口路径 | 接口名 | 接口字段 |
+| --- | --- | --- | --- | --- |
+| 启用 | 批量启用项目 | POST `/open_api/v3.0/project/status/update/` | 批量更新项目状态 | data[].opt_status |
+| 暂停 | 批量暂停项目 | POST `/open_api/v3.0/project/status/update/` | 批量更新项目状态 | data[].opt_status |
+| 删除 | 批量删除项目 | POST `/open_api/v3.0/project/delete/` | 批量删除项目 | project_ids |
+| 修改出价 | 批量修改出价 | POST `/open_api/v3.0/project/cpa_bid/update/` | 批量更新项目出价 | data[].cpa_bid |
+| 修改深度出价 | 批量修改深度出价 | POST `/open_api/v3.0/project/deep_cpa_bid/update/` | 批量更新深层项目出价 | data[].deepbid |
+| 修改出价与深度出价 | 批量修改出价与深度出价 | POST `/open_api/v3.0/project/cpa_bid/update/ + /open_api/v3.0/project/deep_cpa_bid/update/` | 批量更新项目出价 + 批量更新深层项目出价 | data[].cpa_bid、data[].deepbid |
+| 修改ROI系数 | 批量修改ROI系数 | POST `/open_api/v3.0/project/roigoal/update/` | 批量修改项目ROI系数 | data[].roi_goal |
+| 修改预算 | 批量修改预算 | POST `/open_api/v3.0/project/budget/update/` | 批量更新项目预算 | data[].budget_mode、data[].budget |
+| 修改项目排期 | 批量修改项目排期 | POST `/open_api/v3.0/project/schedule_time/update/ + /open_api/v3.0/project/week_schedule/update/` | 批量更新项目投放时间 + 批量更新项目投放时段 | data[].schedule_type、data[].schedule_scene、data[].schedule_time |
+| 批量修改投放时间 | 批量修改投放时间 | POST `/open_api/v3.0/project/schedule_time/update/` | 批量更新项目投放时间 | data[].schedule_type |
+| 修改应用商店下载 | 批量修改应用商店下载 | POST `/open_api/v3.0/project/update/` | 更新项目（download_mode） | download_mode |
+| 修改直达链接 | 批量修改直达链接 | POST `/open_api/v3.0/project/update/` | 更新项目（open_url / open_url_type） | open_url_type、open_url |
+| 修改监测活动 | 批量修改监测活动 | POST `/open_api/v3.0/project/update/` | 更新项目（track_url_setting） | track_url_setting.track_url_type、track_url_setting.track_url[]、track_url_setting.action_track_url[]、track_url_setting.active_track_url[]、track_url_setting.video_play_effective_track_url[]、track_url_setting.video_play_done_track_url[]、track_url_setting.send_type |
+| 修改定向包 | 批量修改定向包 | POST `/open_api/v3.0/project/update/` | 更新项目（audience.audience_package_id） | audience.audience_package_id、audience.gender、audience.age[]、audience.retargeting_tags_include[]、audience.retargeting_tags_exclude[] |
+| 修改项目否定向 | 批量修改项目否定向 | POST `/open_api/v3.0/project/update/` | 更新项目（hide_if_converted / filter_event） | audience.hide_if_converted、audience.filter_event[] |
+| 修改搜索快投关键词 | 批量修改搜索快投关键词 | POST `/open_api/v3.0/project/update/` | 更新项目（keywords） | search_bid_ratio、auto_extend_traffic、keywords[] |
+| 素材一键起量 | 设置素材一键起量 | POST `/open_api/v3.0/tools/material_raise/create/` | 开启素材起量 | material_ids[]、raise_info.raise_effective_type、raise_info.raise_budget、raise_info.appoint_time.start_time、raise_info.appoint_time.end_time |
+| 批量修改项目名称 | 批量修改项目名称 | POST `/open_api/v3.0/project/update/` | 更新项目（name） | name、name、name |
+### ③ 代码改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/api/oceanengine.js`（新增，747 行） | **42 个批量操作的接口注册表**：`OCEAN_API_BASE`（`https://api.oceanengine.com/open_api/v3.0/...`）、`BATCH_LIMIT = 10`、`ONLINE_ONLY_TOAST`（线上仅提示不弹窗的 6 项文案）、`ENUMS`（opt_status / budget_mode / schedule_type / schedule_scene / download_mode / open_url_type / track_url_type / send_type / match_type / keyword_bid_type / raise_effective_type / hide_if_converted / filter_event / component_type / gender 等 20 组枚举），以及 `PROMOTION_BATCH_OPS`（24）/ `PROJECT_BATCH_OPS`（18）；每项含 `title`、`desc`、`api{method,path,name,scope}`、`fields[]`（label / 类型 / **apiField** / 选项 / 必填 / 默认值 / 官方 rule 文案 / visibleWhen 联动）、`build(rows, form)`（按官方入参结构产出请求体） |
+| `frontend/src/views/build/components/BatchOpDialog.vue`（新增，607 行，替换 `AdBatchDialog.vue`） | **一个注册表驱动的通用弹窗**，同时服务广告与项目两个列表：顶部「接口条」（方法 + 完整 URL + 接口名 + 权限点 + 批量上限 10 条）；表单区每个字段下方标注**接口字段名**与**官方取值限制**；按 `visibleWhen` 做字段联动（如 `budget_mode = BUDGET_MODE_DAY` 才显示预算、`schedule_type = SCHEDULE_START_END` 才显示结束日期、`scope = each` 才显示逐条修改表）；48×7 半小时投放时段栅格；底部**请求体预览**实时输出将要 POST 的 JSON |
+| `frontend/src/views/build/Ads.vue` | 批量操作由「6 项提示 + 3 项原型提示」改为 **24 项全部打开真实表单弹窗**；`onBatchOp` 收集选中行 → `BatchOpDialog`；`onBatchConfirm` 提示所调接口名并刷新列表；行内预算/出价编辑复用同一弹窗 |
+| `frontend/src/views/build/Projects.vue` | 新增 `BatchOpDialog`（scope = project），**18 项**批量操作全部打开真实表单弹窗 |
+| `frontend/src/views/build/components/AdBatchDialog.vue`（删除） | 由 `BatchOpDialog.vue` 取代 |
+
+**展示细节**：弹窗描述文案按选中条数求值（如「已选 1 条可操作广告计划」），接口字段名与取值限制在弹窗内自动换行、不截断；数值型字段（budget / bid / deepbid / cpa_bid / roi_goal / raise_budget / search_bid_ratio 等）统一按 number 输出，空值不传。
+
+**接口口径修正**：投放时段由上一版的 **24 格（1 小时）** 改为官方接口要求的 **48 格 × 7 天（半小时为最小粒度）**，序列化为 `schedule_time` 的 48×7 位 0/1 字符串（336 位）；「修改项目排期」同时调用 `/project/schedule_time/update/`（投放时间类型 / 结束日期）与 `/project/week_schedule/update/`（投放时段 / 生效方式）两个接口。
+
+### ④ 验证（生产预览 `http://localhost:4173`，`npm run build` 通过 7.42s）
+
+- **广告列表 24 项**：逐项点击「批量操作」下拉 → 打开弹窗，**24/24 全部成功**，标题、接口 URL、字段标签与接口字段全部核对一致（启用 → `/promotion/status/update/` `data[].opt_status`；修改预算 → `/promotion/budget/update/` `data[].budget_mode`/`data[].budget`；修改创意 → `/promotion/update/` `promotion_materials`；开启一键起量 → `/tools/promotion_raise/set/` `raise_info[].raise_budget`；修改时段 → `/promotion/schedule_time/update/` `data[].schedule_time`；修改广告否定词 → `/tools/privative_word/promotion/update/` `promotion_list[].phrase_words[]`；批量修改广告名称 → `/promotion/update/` `name` …）。
+- **项目列表 18 项**：**18/18 全部成功**（启用 → `/project/status/update/`；修改出价 → `/project/cpa_bid/update/` `data[].cpa_bid`；修改ROI系数 → `/project/roigoal/update/` `data[].roi_goal`；修改项目排期 → `/project/schedule_time/update/` + `/project/week_schedule/update/`；修改监测活动 → `/project/update/` `track_url_setting.track_url_type` 等 7 个子字段；修改定向包 → `/project/update/` `audience.audience_package_id`；素材一键起量 → `/tools/material_raise/create/` `raise_info.appoint_time.start_time` …）。
+- 时段栅格：广告「批量修改时段」与项目「批量修改项目排期」均为 **336 格**（7 天 × 48 段），弹窗顶部展示 `data[].schedule_time` 字段名与官方规则文案。
+- 请求体预览可用：「批量修改预算」输出 `{"advertiser_id":"{advertiser_id}","data":[{"promotion_id":902,"budget_mode":"BUDGET_MODE_DAY","budget":500}]}`；「批量删除广告」输出 `{"advertiser_id":"{advertiser_id}","promotion_ids":[902,903]}`；数值型字段（budget / bid / deepbid / cpa_bid / roi_goal / raise_budget / search_bid_ratio 等）统一按 number 输出，空值不传。
+- 线上「仅提示不弹窗」的 6 项（修改深度出价 / 修改ROI系数 / 修改多直达链接 / 修改来源 / 修改字节小程序·小游戏链接 / 修改短剧专辑链接）本地已补齐表单，并在弹窗内以「线上提示：…」保留原线上文案。
+- 注册表自检脚本：广告 24/24、项目 18/18 均有接口定义，**缺失 0 项**。
