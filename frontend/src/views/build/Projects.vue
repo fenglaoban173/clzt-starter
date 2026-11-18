@@ -13,8 +13,8 @@
           <el-button class="f-search-btn" title="搜索" @click="onSearch"><el-icon><Search /></el-icon></el-button>
         </div>
 
-        <!-- 筛选项（顺序与线上一致；可通过「添加筛选」控制显隐） -->
-        <template v-for="d in visibleFilterDefs" :key="d.key">
+        <!-- 筛选项（顺序与线上一致） -->
+        <template v-for="d in FILTER_DEFS" :key="d.key">
           <div v-if="d.kind === 'select'" class="f-item">
             <el-select
               v-model="filters[d.key]"
@@ -25,6 +25,22 @@
               <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
               <el-option v-for="o in filterOptions(d)" :key="o" :label="o" :value="o" />
             </el-select>
+            <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+          </div>
+
+          <!-- 创意素材：与线上一致，点击打开「素材查询」弹窗 -->
+          <div v-else-if="d.kind === 'material'" class="f-item">
+            <el-input
+              v-model="filters[d.key]"
+              class="f-box f-input f-material"
+              :style="{ '--f-w': d.width + 'px' }"
+              :placeholder="d.placeholder"
+              :title="filters[d.key]"
+              readonly
+              @click="openMaterialPicker"
+            >
+              <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+            </el-input>
             <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
           </div>
 
@@ -52,18 +68,6 @@
         </template>
 
         <div class="filter-actions">
-          <!-- 添加筛选：与线上一致，勾选需要展示的查询条件 -->
-          <el-dropdown trigger="click" popper-class="filter-menu-popper" @command="onFilterCommand">
-            <el-button class="add-filter-btn"><el-icon><Plus /></el-icon>添加筛选</el-button>
-            <template #dropdown>
-              <el-dropdown-menu class="filter-menu">
-                <el-dropdown-item v-for="d in FILTER_DEFS" :key="d.key" :command="d.key">
-                  <span class="fm-label">{{ d.label }}</span>
-                  <el-icon v-if="visibleFilters.includes(d.key)" class="fm-check"><Check /></el-icon>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
           <el-button link type="primary" @click="resetFilters">清空</el-button>
           <el-button type="primary" @click="onSearch">查询</el-button>
         </div>
@@ -80,7 +84,7 @@
           <span v-if="selected.length" class="sel-tip">已选择{{ selected.length }}条项目</span>
         </div>
         <div class="op-right">
-          <el-button class="light-btn" @click="onSync">手动同步</el-button>
+          <el-button class="light-btn" @click="openSyncDialog">手动同步</el-button>
           <el-button @click="onExport">导出数据</el-button>
           <el-dropdown v-if="templates.length" trigger="hover" @command="onTplCommand">
             <el-button @click="openCustomMetric"><el-icon><Operation /></el-icon>自定义指标</el-button>
@@ -195,6 +199,16 @@
       @apply="onMetricApply"
       @save-template="onSaveTemplate"
     />
+
+    <!-- 素材查询（创意素材选择器） -->
+    <MaterialPickerDialog
+      v-model="materialVisible"
+      :selected-ids="materialIds"
+      @submit="onMaterialSubmit"
+    />
+
+    <!-- 手动同步：同步项目与广告 -->
+    <SyncProjectDialog v-model="syncVisible" @confirm="onSyncConfirm" />
   </div>
 </template>
 
@@ -202,10 +216,12 @@
 import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { CaretBottom, Check, Close, Delete, Operation, Plus, Search } from '@element-plus/icons-vue';
+import { CaretBottom, Close, Delete, Operation, Search } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import { buildApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
+import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
+import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import {
   CL_PROJECTS, CL_PRODUCTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -254,7 +270,7 @@ const FILTER_DEFS = [
   { key: 'star', label: '星广联投', kind: 'select', def: '全部', width: 180, source: 'star', options: STAR_FLAGS },
   { key: 'starTaskId', label: '星广联任务ID', kind: 'input', placeholder: '请输入星广联任务ID', width: 220 },
   { key: 'platform', label: '平台', kind: 'select', def: '不限', width: 180, source: 'platform', options: PLATFORMS },
-  { key: 'material', label: '创意素材', kind: 'select', def: '请选择素材', width: 200, source: 'material' },
+  { key: 'material', label: '创意素材', kind: 'material', def: '请选择素材', placeholder: '请选择素材', width: 200, source: 'material' },
   { key: 'goods', label: '关联商品', kind: 'select', def: '全部商品', width: 200, source: 'goods' },
 ];
 
@@ -264,22 +280,13 @@ const filters = reactive({
   optGoal: '所有', deepGoal: '所有', deepMode: '所有',
   subject: '所有主体', account: '所有账户', purpose: '所有推广目的',
   deliveryMode: '全部', status: '不限', createTime: [], adType: '不限',
-  star: '全部', starTaskId: '', platform: '不限', material: '请选择素材', goods: '全部商品',
+  star: '全部', starTaskId: '', platform: '不限', material: '', goods: '全部商品',
 });
 
-// 当前展示的查询条件（默认全部展示，与线上一致；「添加筛选」可勾选显示/隐藏）
-const visibleFilters = ref(FILTER_DEFS.map((d) => d.key));
-const visibleFilterDefs = computed(() => FILTER_DEFS.filter((d) => visibleFilters.value.includes(d.key)));
-
-// 「添加筛选」下拉：点击某项切换该查询条件的显示 / 隐藏
-function onFilterCommand(key) {
-  if (visibleFilters.value.includes(key)) {
-    visibleFilters.value = visibleFilters.value.filter((k) => k !== key);
-  } else {
-    // 保持与线上一致的展示顺序
-    visibleFilters.value = FILTER_DEFS.map((d) => d.key).filter((k) => visibleFilters.value.includes(k) || k === key);
-  }
-}
+// 素材查询弹窗 + 已选素材
+const materialVisible = ref(false);
+const materialIds = ref([]);
+const materialNames = ref([]);
 
 // 状态：线上「未投放」下还有二级菜单（已暂停 / 项目超出预算 / 未达投放时间 / 不在投放时段）
 const STATUS_MATCH = { 启用中: 'enabled', 未投放: 'disabled' };
@@ -294,7 +301,11 @@ function filterOptions(def) {
 
 function clearFilter(def) {
   if (def.kind === 'select') filters[def.key] = def.def;
-  else if (def.kind === 'daterange') filters[def.key] = [];
+  else if (def.kind === 'material') {
+    filters[def.key] = '';
+    materialIds.value = [];
+    materialNames.value = [];
+  } else if (def.kind === 'daterange') filters[def.key] = [];
   else filters[def.key] = '';
 }
 
@@ -337,6 +348,10 @@ function applyFilter() {
   if (filters.starTaskId) {
     const kw = filters.starTaskId.trim().toLowerCase();
     list = list.filter((p) => String(p.star_task_id || '').toLowerCase().includes(kw));
+  }
+  // 创意素材（素材查询弹窗选择）
+  if (materialNames.value.length) {
+    list = list.filter((p) => materialNames.value.includes(p.material));
   }
   // 排序
   if (sortState.prop && sortState.order) {
@@ -479,7 +494,11 @@ function delTemplate(tpl) {
 function resetFilters() {
   FILTER_DEFS.forEach((d) => {
     if (d.kind === 'select') filters[d.key] = d.def;
-    else if (d.kind === 'daterange') filters[d.key] = [];
+    else if (d.kind === 'material') {
+      filters[d.key] = '';
+      materialIds.value = [];
+      materialNames.value = [];
+    } else if (d.kind === 'daterange') filters[d.key] = [];
     else filters[d.key] = '';
   });
   filters.nameType = 'name';
@@ -487,7 +506,30 @@ function resetFilters() {
   page.value = 1;
   load();
 }
-function onSync() { ElMessage.info('原型：手动同步巨量项目数据'); }
+
+// ---------- 素材查询 ----------
+function openMaterialPicker() {
+  materialVisible.value = true;
+}
+function onMaterialSubmit(picked) {
+  materialIds.value = picked.map((m) => m.id);
+  materialNames.value = picked.map((m) => m.name);
+  filters.material = materialNames.value.length ? materialNames.value.join('、') : '';
+  page.value = 1;
+  load();
+}
+
+// ---------- 手动同步（同步项目与广告） ----------
+const syncVisible = ref(false);
+function openSyncDialog() {
+  syncVisible.value = true;
+}
+function onSyncConfirm({ accounts, range }) {
+  const from = range && range.length === 2 ? range[0] : '不限';
+  const to = range && range.length === 2 ? range[1] : '不限';
+  ElMessage.success(`原型：已对 ${accounts.length} 个媒体账户同步项目与广告（${from} 至 ${to}）`);
+  load();
+}
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
 function onBatchOp(op) { ElMessage.info(`原型：已对 ${selected.value.length} 条项目执行「${op}」（不提交真实接口）`); }
 function onDetail(record) { ElMessage.info(`原型：查看项目 ${record.name} 详情`); }
@@ -545,7 +587,6 @@ onMounted(load);
   color: #4e5969;
 }
 .filter-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.add-filter-btn { color: #4e5969; }
 
 /* 操作行 */
 .op-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -577,21 +618,4 @@ onMounted(load);
 .st-green { color: #00b42a; }
 .st-gray { color: #86909c; }
 .pager { margin-top: 16px; justify-content: flex-start; }
-</style>
-
-<style>
-/* 「添加筛选」下拉：与线上一致，条目为蓝色文字，右侧显示勾选标记 */
-.filter-menu-popper .el-dropdown-menu__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-width: 160px;
-  color: #165dff;
-}
-.filter-menu-popper .el-dropdown-menu__item:not(.is-disabled):hover {
-  background: #f2f3f5;
-  color: #165dff;
-}
-.filter-menu-popper .fm-check { color: #165dff; font-size: 14px; }
 </style>
