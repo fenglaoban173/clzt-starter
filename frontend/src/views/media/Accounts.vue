@@ -1,28 +1,5 @@
 <template>
   <div v-loading="loading" class="page">
-    <!-- 页头：批量新建 + 策略新建 + 日期区间 -->
-    <div class="page-head">
-      <div class="head-actions">
-        <template v-if="isUpgrade">
-          <el-button type="primary" class="teal-btn" @click="onNewBuild">批量新建</el-button>
-          <el-button type="primary" class="teal-btn" @click="onUseStrategy">使用已有策略新建</el-button>
-        </template>
-        <el-button v-else type="primary" class="teal-btn" @click="onNewBuild">
-          {{ isUni ? '新建全域项目' : '新建智擎项目' }}
-        </el-button>
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          unlink-panels
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          class="date-range"
-        />
-      </div>
-    </div>
-
     <!-- 筛选行：标签内嵌在下拉框内，单行排布 -->
     <el-card class="filter-card" shadow="never">
       <div class="filter-row">
@@ -337,14 +314,12 @@
     />
     <!-- 创意清理 -->
     <CreativeCleanDialog v-model="cleanVisible" :accounts="all" />
-    <!-- 使用已有策略新建：策略组选择 -->
-    <StrategyGroupDialog v-model="strategyVisible" @confirm="onStrategyConfirm" />
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CaretBottom, Delete, Operation, Plus, Search } from '@element-plus/icons-vue';
 import { mediaApi } from '@/api/media';
@@ -355,14 +330,11 @@ import BatchBlockWordDialog from './components/BatchBlockWordDialog.vue';
 import RtaDialog from './components/RtaDialog.vue';
 import CustomMetricDialog from './components/CustomMetricDialog.vue';
 import CreativeCleanDialog from './components/CreativeCleanDialog.vue';
-import StrategyGroupDialog from './components/StrategyGroupDialog.vue';
 import { DEFAULT_METRICS, METRIC_MAP, loadTemplates, saveTemplates } from './customMetrics';
 
 const route = useRoute();
-const router = useRouter();
 const media = computed(() => route.query.media || 'upgrade');
 const isUpgrade = computed(() => media.value === 'upgrade');
-const isUni = computed(() => media.value === 'uni');
 
 const loading = ref(false);
 const all = ref([]);
@@ -372,7 +344,6 @@ const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
 const sortState = reactive({ prop: '', order: '' });
 
 const today = dayjs().format('YYYY-MM-DD');
-const dateRange = ref([today, today]);
 
 const filters = reactive({
   subject: '', project: '', optimizer: '', dept: '', status: '',
@@ -624,8 +595,6 @@ const batchAccounts = computed(() => {
 const metricVisible = ref(false);
 // ---------- 创意清理 ----------
 const cleanVisible = ref(false);
-// ---------- 使用已有策略新建 ----------
-const strategyVisible = ref(false);
 const templates = ref(loadTemplates());
 // 账户名称 / 账户ID 由左侧固定列承载，不作为数据列渲染
 const FIXED_KEYS = ['name', 'advertiser_id'];
@@ -684,7 +653,6 @@ function delTemplate(tpl) {
 }
 
 // 以下均为原型占位：不触发真实增删改
-function onNewBuild() { router.push({ name: 'build-create', query: { media: media.value } }); }
 function onAddAccount() { ElMessage.info('原型：对接巨量 OAuth 添加账户'); }
 function onBatchOp(cmd) {
   if (cmd === 'rename') { renameVisible.value = true; return; }
@@ -694,12 +662,6 @@ function onBatchOp(cmd) {
   ElMessage.info(`原型：批量操作「${cmd}」（不提交真实接口）`);
 }
 function onCreativeClean() { cleanVisible.value = true; }
-/** 打开策略组弹窗 */
-function onUseStrategy() { strategyVisible.value = true; }
-/** 选定策略组后跳转批量搭建页，并把策略组带入自动回填各板块 */
-function onStrategyConfirm(group) {
-  router.push({ name: 'build-create', query: { media: media.value, strategy: group.id } });
-}
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
 function onCustomMetric() { ElMessage.info('原型：自定义展示指标列'); }
 function onDetail(record) { ElMessage.info(`原型：查看账户 ${record.name} 详情`); }
@@ -720,19 +682,6 @@ onMounted(load);
   gap: 12px;
   font-size: 15px;
 }
-
-/* 页头：批量新建 + 策略新建 + 日期区间 */
-.page-head { display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap; }
-.head-actions { display: flex; align-items: center; gap: 12px; }
-.teal-btn {
-  --el-button-bg-color: #1fb497;
-  --el-button-border-color: #1fb497;
-  --el-button-hover-bg-color: #19a58b;
-  --el-button-hover-border-color: #19a58b;
-  --el-button-active-bg-color: #159580;
-  --el-button-active-border-color: #159580;
-}
-.date-range { width: 280px !important; }
 
 /* 筛选行：标签内嵌在下拉框内 */
 .filter-card { border-radius: 4px; }

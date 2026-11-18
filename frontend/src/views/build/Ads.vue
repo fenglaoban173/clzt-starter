@@ -1,13 +1,5 @@
 <template>
   <div v-loading="loading" class="page">
-    <div class="page-head">
-      <div class="head-tip">近 15 天一键过审已为 40 条广告产出 54 个修复方案。<a class="tip-link">立即查看</a> <a class="tip-link">自动采纳</a></div>
-      <div class="head-actions">
-        <el-button type="primary" @click="onNewBuild">批量新建</el-button>
-        <el-button @click="onUseStrategy">使用已有策略新建</el-button>
-      </div>
-    </div>
-
     <el-card class="filter-card">
       <div class="filter-row">
         <el-input v-model="filters.keyword" style="width: 260px" placeholder="广告名称关键词" clearable @keyup.enter="load">
@@ -58,7 +50,6 @@
         </el-select>
       </div>
       <div class="filter-row">
-        <el-date-picker v-model="filters.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 260px" />
         <el-select v-model="filters.adType" style="width: 200px" clearable placeholder="广告类型">
           <el-option value="ALL">信息流</el-option>
           <el-option value="SEARCH">搜索广告</el-option>
@@ -105,7 +96,6 @@
     <el-card class="table-card">
       <div class="op-row">
         <el-space>
-          <el-button @click="onCombineFilter">组合筛选</el-button>
           <el-select v-model="batchOp" style="width: 130px" placeholder="批量操作" disabled>
             <el-option value="enable">批量启用</el-option>
             <el-option value="disable">批量暂停</el-option>
@@ -171,14 +161,9 @@
 
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import { buildApi } from '@/api/media';
-
-const route = useRoute();
-const router = useRouter();
-const media = computed(() => route.query.media || 'upgrade');
 
 const loading = ref(false);
 const all = ref([]);
@@ -191,7 +176,7 @@ const subject = '北京央广时代文化传播有限公司';
 
 const filters = reactive({
   keyword: '', project: '', product: '', optimizer: '', account: '', subject: '', purpose: '',
-  deliveryMode: '', campaign: '', status: '', diagnosis: '', strategy: '', dateRange: [],
+  deliveryMode: '', campaign: '', status: '', diagnosis: '', strategy: '',
   adType: '', learn: '', star: '', starTaskId: '', platform: '', optGoal: '', deepGoal: '',
   deepMode: '', material: '',
 });
@@ -239,9 +224,6 @@ function resetFilters() {
   load();
 }
 
-function onNewBuild() { router.push({ name: 'build-create', query: { media: media.value } }); }
-function onUseStrategy() { router.push({ name: 'build-create', query: { media: media.value, tab: 'strategy' } }); }
-function onCombineFilter() { ElMessage.info('原型：打开组合筛选条件'); }
 function onAddFilter() { ElMessage.info('原型：添加更多筛选项'); }
 function onCopy() { ElMessage.info('原型：批量快捷复制所选广告'); }
 function onCopyOne(record) { ElMessage.info(`原型：复制广告 ${record.name}`); }
@@ -256,9 +238,6 @@ onMounted(load);
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 12px; }
-.page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.head-tip { font-size: 13px; color: #86909c; }
-.tip-link { color: #2563eb; margin: 0 4px; cursor: pointer; }
 .filter-card { padding-bottom: 4px; }
 .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .filter-actions { margin-left: auto; }

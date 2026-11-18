@@ -1,28 +1,5 @@
 <template>
   <div v-loading="loading" class="page">
-    <!-- 页头：一键过审提示 + 批量新建 + 日期区间 -->
-    <div class="page-head">
-      <div class="head-tip">
-        近15天一键过审已为45条广告产出73个修复方案。
-        <a class="tip-link" @click="onTipView">立即查看</a>
-        <a class="tip-link" @click="onTipAdopt">自动采纳</a>
-      </div>
-      <div class="head-actions">
-        <el-button type="primary" class="teal-btn" @click="onNewBuild">批量新建</el-button>
-        <el-button type="primary" class="teal-btn" @click="onUseStrategy">使用已有策略新建</el-button>
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          unlink-panels
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          class="date-range"
-        />
-      </div>
-    </div>
-
     <!-- 筛选区：标签内嵌在下拉框内，右侧为「全部筛选」清单 -->
     <el-card class="filter-card" shadow="never">
       <div class="filter-row">
@@ -114,21 +91,6 @@
     <el-card class="table-card" shadow="never">
       <div class="op-row">
         <div class="op-left">
-          <el-popover placement="bottom-start" :width="280" trigger="click" popper-class="combine-popper">
-            <template #reference>
-              <el-button>组合筛选</el-button>
-            </template>
-            <div class="combine-head">组合筛选条件</div>
-            <div class="combine-list">
-              <div v-for="c in combos" :key="c.id" class="combine-item">
-                <span class="c-name" @click="applyCombo(c)">{{ c.name }}</span>
-                <el-icon class="c-del" title="删除" @click.stop="delCombo(c)"><Delete /></el-icon>
-              </div>
-              <div v-if="!combos.length" class="combine-empty">暂无组合筛选条件</div>
-            </div>
-            <el-button link type="primary" class="combine-clear" @click="resetFilters">清除筛选</el-button>
-          </el-popover>
-
           <el-select v-model="batchOp" class="batch-select" placeholder="批量操作" :disabled="!selected.length">
             <el-option value="enable">批量启用</el-option>
             <el-option value="disable">批量暂停</el-option>
@@ -255,7 +217,7 @@
 
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { CaretBottom, Close, Delete, Filter, Operation, Plus, Search } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
@@ -270,7 +232,6 @@ import {
 } from './projectMetrics';
 
 const route = useRoute();
-const router = useRouter();
 const media = computed(() => route.query.media || 'upgrade');
 
 const loading = ref(false);
@@ -283,8 +244,6 @@ const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
 const sortState = reactive({ prop: '', order: '' });
 const cacheTime = ref(dayjs().format('HH:mm:ss'));
-const today = dayjs().format('YYYY-MM-DD');
-const dateRange = ref([today, today]);
 
 // ---------- 筛选项定义（顺序与线上一致） ----------
 // kind: select 下拉 / input 输入框 / daterange 日期区间；def 为「不限」时的默认展示值
@@ -525,30 +484,6 @@ function delTemplate(tpl) {
   ElMessage.success(`原型：已删除自定义指标模板「${tpl.name}」`);
 }
 
-// ---------- 组合筛选 ----------
-const COMBO_KEY = 'clzt.project.filter.combos';
-const combos = ref(loadCombos());
-
-function loadCombos() {
-  try {
-    const raw = localStorage.getItem(COMBO_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list : [];
-  } catch (e) {
-    return [];
-  }
-}
-function saveCombos(list) {
-  try { localStorage.setItem(COMBO_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
-}
-function applyCombo(c) {
-  ElMessage.info(`原型：应用组合筛选「${c.name}」`);
-}
-function delCombo(c) {
-  combos.value = combos.value.filter((x) => x.id !== c.id);
-  saveCombos(combos.value);
-}
-
 // ---------- 其他 ----------
 function resetFilters() {
   FILTER_DEFS.forEach((d) => {
@@ -561,10 +496,6 @@ function resetFilters() {
   page.value = 1;
   load();
 }
-function onTipView() { ElMessage.info('原型：查看一键过审修复方案'); }
-function onTipAdopt() { ElMessage.info('原型：自动采纳一键过审修复方案'); }
-function onNewBuild() { router.push({ name: 'build-create', query: { media: media.value } }); }
-function onUseStrategy() { router.push({ name: 'build-create', query: { media: media.value, tab: 'strategy' } }); }
 function onSync() { ElMessage.info('原型：手动同步巨量项目数据'); }
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
 function onDetail(record) { ElMessage.info(`原型：查看项目 ${record.name} 详情`); }
@@ -586,20 +517,6 @@ onMounted(load);
   gap: 12px;
   font-size: 15px;
 }
-
-/* 页头 */
-.page-head { display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap; }
-.head-tip { font-size: 15px; color: #4e5969; }
-.tip-link { color: #2563eb; margin: 0 6px; cursor: pointer; }
-.head-actions { display: flex; align-items: center; gap: 12px; }
-.teal-btn {
-  --el-button-bg-color: #1fb497;
-  --el-button-border-color: #1fb497;
-  --el-button-hover-bg-color: #19a58b;
-  --el-button-hover-border-color: #19a58b;
-  --el-button-active-bg-color: #159580;
-}
-.date-range { width: 280px !important; }
 
 /* 筛选行：标签内嵌在下拉框内 */
 .filter-card { border-radius: 4px; }
@@ -658,17 +575,6 @@ onMounted(load);
 .tpl-name { margin-right: 8px; }
 .tpl-del { color: #c9cdd4; }
 .tpl-del:hover { color: #f53f3f; }
-
-/* 组合筛选 */
-.combine-head { font-size: 14px; color: #1d2129; padding-bottom: 8px; border-bottom: 1px solid #f2f3f5; }
-.combine-list { max-height: 220px; overflow-y: auto; }
-.combine-item { display: flex; align-items: center; justify-content: space-between; height: 32px; font-size: 14px; }
-.c-name { cursor: pointer; }
-.c-name:hover { color: #2563eb; }
-.c-del { color: #c9cdd4; cursor: pointer; }
-.c-del:hover { color: #f53f3f; }
-.combine-empty { padding: 12px 0; font-size: 13px; color: #86909c; }
-.combine-clear { margin-top: 4px; }
 
 /* 表格 */
 .sel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }

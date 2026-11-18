@@ -89,17 +89,20 @@
 
       <!-- 主区 -->
       <el-main class="app-content">
-        <!-- 推广·标准 下的三级页签 -->
+        <!-- 推广·标准 下的三级页签，右侧为批量新建 / 策略新建 / 日期区间 -->
         <div v-if="showPromoTabs" class="sub-tabs">
-          <div
-            v-for="t in promoTabs"
-            :key="t.name"
-            class="sub-tab"
-            :class="{ active: route.name === t.name }"
-            @click="goTab(t.name)"
-          >
-            {{ t.title }}
+          <div class="sub-tab-list">
+            <div
+              v-for="t in promoTabs"
+              :key="t.name"
+              class="sub-tab"
+              :class="{ active: route.name === t.name }"
+              @click="goTab(t.name)"
+            >
+              {{ t.title }}
+            </div>
           </div>
+          <PromoActionBar :media="media" />
         </div>
         <router-view />
       </el-main>
@@ -112,6 +115,7 @@ import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/store/auth';
+import PromoActionBar from './components/PromoActionBar.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -331,8 +335,6 @@ const allPromoTabs = [
   { name: 'accounts', title: '账户' },
   { name: 'projects', title: '项目' },
   { name: 'ads', title: '广告' },
-  { name: 'auto-plans', title: '托管方案' },
-  { name: 'play-assistant', title: '铺剧助手' },
 ];
 const promoTabs = computed(() => {
   if (media.value === 'uni' || media.value === 'oc') {
@@ -340,7 +342,8 @@ const promoTabs = computed(() => {
   }
   return allPromoTabs;
 });
-const showPromoTabs = computed(() => module.value === 'promo' && route.name !== 'build-create');
+// 仅账户 / 项目 / 广告三个页签展示页签行（含批量新建等操作）
+const showPromoTabs = computed(() => allPromoTabs.some((t) => t.name === route.name));
 
 function goTab(name) { router.push({ name, query: { media: media.value } }); }
 
@@ -453,12 +456,14 @@ async function onUserMenu(command) {
 .sub-tabs {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 28px;
   height: 44px;
   padding: 0 20px;
   background: #fff;
   border-bottom: 1px solid #e5e6eb;
 }
+.sub-tab-list { display: flex; align-items: center; gap: 28px; height: 44px; }
 .sub-tab {
   position: relative;
   height: 44px;
