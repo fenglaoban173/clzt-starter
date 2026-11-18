@@ -806,3 +806,33 @@
 ### ⑤ 提交记录
 
 - `93ef15f` feat(projects): 一比一还原线上创量项目列表页（本次）。
+
+---
+
+## 四十四、推广页签行改造：操作区上提 + 精简页签（2026-11-18，需求 R30）
+
+**需求**：① 移除「托管方案」「铺剧助手」两个页签，并把原先位于页面右下角的「批量新建 / 使用已有策略新建 / 日期区间」三个控件移到**与「账户」同一行（页签行）并靠右对齐**；② 账户、项目、广告三页统一使用这套控件；③ 移除「近15天一键过审…」提示；④ 移除「组合筛选」按钮。
+
+### ① 改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/layout/components/PromoActionBar.vue` | **新增**：三页共用的操作区组件（批量新建 / 使用已有策略新建 / 日期区间），内置策略组弹窗（`StrategyGroupDialog`），确认策略组后跳 `build-create?strategy=<id>`；巨量全域/智擎媒体下自动降级为「新建全域项目 / 新建智擎项目」单按钮 |
+| `frontend/src/composables/usePromoRange.js` | **新增**：模块级单例 `dateRange`（默认今天~今天），操作区与页面共享同一份日期状态 |
+| `frontend/src/layout/AppLayout.vue` | `allPromoTabs` 由 5 项收敛为 3 项（账户/项目/广告）；页签行改为「左侧页签列表 + 右侧操作区」（`justify-content: space-between`）；`showPromoTabs` 改为仅在账户/项目/广告三个路由为真，托管方案/铺剧助手页不再显示无关页签行 |
+| `frontend/src/views/media/Accounts.vue` | 删除页头（批量新建/策略新建/日期区间）与策略组弹窗实例及相关脚本、样式 |
+| `frontend/src/views/build/Projects.vue` | 删除页头 + 「近15天一键过审…」提示、「组合筛选」按钮及其浮层、组合条件读写脚本与样式 |
+| `frontend/src/views/build/Ads.vue` | 删除页头 + 「近 15 天一键过审…」提示、「组合筛选」按钮、筛选区内的重复日期选择器 |
+
+### ② 验证（Playwright，dev server 5173 / preview 4173）
+
+- 三个页签行几何一致：页签行 `top=56 / bottom=101`，操作区 `top=62 / bottom=94`（垂直居中），`left=1262`（靠右）；页签 账户/项目/广告 位于 `x=208/268/328`。
+- 账户、项目、广告三页均渲染 2 个按钮 + 日期区间（值 `2026-11-18 / 2026-11-18`），页面内已无「近15天…」提示与「组合筛选」。
+- 交互：点「使用已有策略新建」弹出策略组弹窗（标题「策略组」）；点「批量新建」跳转 `/build/create?media=upgrade`；项目页筛选仍可用（共 84 条 → 搜索「漫剧」共 6 条）；页签切换正常，`pageerror` = 0。
+- 生产构建 `npm run build` 通过（7.62s）；preview(4173) 复验三页页签行一致、项目页共 84 条。
+
+### ③ 遇到的一个坑：dev server 的 `data.js` 缓存未刷新
+
+- 现象：dev server 上项目列表只有「共 4 条」，而构建产物与线上均为「共 84 条」——`curl http://localhost:5173/src/mock/data.js` 返回的是**不含** R29 mock 扩展的旧版本（1297 行，磁盘为 1372 行），即 Vite 的文件监听漏掉了那次改动，模块图里留着旧 transform。
+- 处理：对 `src/mock/data.js` 触发一次 mtime 更新（`os.utime`）后，dev server 立即返回新文件，列表恢复「共 84 条」，与构建产物一致。
+- 结论：不是代码缺陷，而是 dev server 的 watch 缓存问题；验证页面数据时应对照构建产物复核一遍。
