@@ -17,7 +17,7 @@
             :key="t.key"
             class="mp-tab"
             :class="{ active: tab === t.key }"
-            @click="tab = t.key"
+            @click="switchTab(t.key)"
           >{{ t.label }}</div>
         </div>
         <a class="mp-upload" @click="onUpload">上传素材</a>
@@ -27,6 +27,7 @@
     <div class="mp-body">
       <!-- 筛选区 -->
       <div class="mp-filters">
+        <!-- 第一行：素材名称 + 关键词 + 排除素材名 + 类型/账户 -->
         <div class="mp-frow">
           <div class="mp-search-group">
             <el-select v-model="f.nameField" class="mp-f-select mp-f-name">
@@ -37,15 +38,22 @@
             </el-input>
             <el-button class="mp-f-btn" @click="onSearch"><el-icon><Search /></el-icon></el-button>
           </div>
+          <span class="mp-chip">排除素材名</span>
           <div class="mp-search-group">
             <el-input v-model="f.exclude" class="mp-f-input" placeholder="多个以空格分隔，结果取并集">
               <template #suffix><el-icon class="mp-suffix-icon"><Search /></el-icon></template>
             </el-input>
             <el-button class="mp-f-btn" @click="onSearch"><el-icon><Search /></el-icon></el-button>
           </div>
-          <el-select v-if="tab === 'media'" v-model="f.account" class="mp-f-select mp-f-type">
+          <el-select
+            v-if="tab === 'media'"
+            v-model="f.account"
+            class="mp-f-select mp-f-account"
+            placeholder="全部"
+            clearable
+          >
             <template #prefix><span class="mp-pre">账户：</span></template>
-            <el-option v-for="o in OPTS.account" :key="o" :label="o" :value="o" />
+            <el-option v-for="a in accounts" :key="a.id" :label="accountLabel(a)" :value="a.name" />
           </el-select>
           <el-select v-else v-model="f.type" class="mp-f-select mp-f-type">
             <template #prefix><span class="mp-pre">类型：</span></template>
@@ -61,65 +69,117 @@
           <!-- 素材库 -->
           <template v-if="tab === 'library'">
             <div class="mp-frow">
-              <el-select v-model="f.getType" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.getType" class="mp-f-select mp-f-mid" placeholder="获取方式" clearable>
                 <template #prefix><span class="mp-pre">获取方式：</span></template>
                 <el-option v-for="o in OPTS.getType" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.clProject" class="mp-f-select mp-f-mid">
-                <template #prefix><span class="mp-pre">创量项目：</span></template>
-                <el-option v-for="o in OPTS.clProject" :key="o" :label="o" :value="o" />
+              <el-select v-model="f.ztProject" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+                <template #prefix><span class="mp-pre">智投项目：</span></template>
+                <el-option v-for="o in OPTS.ztProject" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.directory" class="mp-f-select mp-f-mid">
+              <el-cascader
+                v-model="f.directory"
+                :options="OPTS.directory"
+                :props="DIRECTORY_PROPS"
+                class="mp-f-select mp-f-mid"
+                placeholder="全部"
+                clearable
+              >
                 <template #prefix><span class="mp-pre">素材目录：</span></template>
-                <el-option v-for="o in OPTS.directory" :key="o" :label="o" :value="o" />
-              </el-select>
-              <el-select v-model="f.tag" class="mp-f-select mp-f-mid">
+              </el-cascader>
+              <el-cascader
+                v-model="f.tag"
+                :options="OPTS.tag"
+                :props="TAG_PROPS"
+                show-checkbox
+                class="mp-f-select mp-f-mid"
+                placeholder="全部"
+                clearable
+              >
                 <template #prefix><span class="mp-pre">素材标签：</span></template>
-                <el-option v-for="o in OPTS.tag" :key="o" :label="o" :value="o" />
-              </el-select>
+              </el-cascader>
             </div>
             <div class="mp-frow">
-              <el-select v-model="f.excludeTag" class="mp-f-select mp-f-mid">
+              <el-cascader
+                v-model="f.excludeTag"
+                :options="OPTS.excludeTag"
+                :props="TAG_PROPS"
+                show-checkbox
+                class="mp-f-select mp-f-mid"
+                placeholder="全部"
+                clearable
+              >
                 <template #prefix><span class="mp-pre">排除标签：</span></template>
-                <el-option v-for="o in OPTS.excludeTag" :key="o" :label="o" :value="o" />
-              </el-select>
-              <el-select v-model="f.personalTag" class="mp-f-select mp-f-mid">
+              </el-cascader>
+              <el-select v-model="f.personalTag" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">个人标签：</span></template>
                 <el-option v-for="o in OPTS.personalTag" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.useStatus" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.useStatus" class="mp-f-select mp-f-mid" placeholder="不限" clearable>
                 <template #prefix><span class="mp-pre">使用情况：</span></template>
                 <el-option v-for="o in OPTS.useStatus" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.layout" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.layout" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">版式：</span></template>
                 <el-option v-for="o in OPTS.layout" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
             <div class="mp-frow">
-              <el-select v-model="f.duration" class="mp-f-select mp-f-mid">
-                <template #prefix><span class="mp-pre">视频时长：</span></template>
-                <el-option v-for="o in OPTS.duration" :key="o" :label="o" :value="o" />
-              </el-select>
-              <el-select v-model="f.number" class="mp-f-select mp-f-mid">
+              <div class="mp-dur" :class="{ empty: durEmpty }">
+                <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
+                <span class="mp-dur-txt">{{ durText }}</span>
+                <el-icon v-if="!durEmpty" class="mp-dur-clear" @click="f.duration = [0, 600]">
+                  <CircleClose />
+                </el-icon>
+              </div>
+              <el-select v-model="f.number" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">编号：</span></template>
-                <el-option v-for="o in OPTS.number" :key="o" :label="o" :value="o" />
+                <el-option v-for="o in OPTS.member" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.clip" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.clip" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">剪辑：</span></template>
-                <el-option v-for="o in OPTS.clip" :key="o" :label="o" :value="o" />
+                <el-option v-for="o in OPTS.member" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.filterRule" class="mp-f-select mp-f-mid">
+              <el-select
+                v-model="f.filterRule"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                :max-collapse-tags="1"
+                class="mp-f-select mp-f-rule"
+                placeholder="全部"
+                clearable
+              >
                 <template #prefix><span class="mp-pre">素材过滤：</span></template>
                 <el-option v-for="o in OPTS.filterRule" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
+            <div class="mp-frow">
+              <el-select v-model="f.attr" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
+                <template #prefix><span class="mp-pre">素材属性：</span></template>
+                <el-option v-for="o in OPTS.attr" :key="o" :label="o" :value="o" />
+              </el-select>
+              <el-select v-model="f.status" class="mp-f-select mp-f-mid" placeholder="不限" clearable>
+                <template #prefix><span class="mp-pre">启停状态：</span></template>
+                <el-option v-for="o in OPTS.status" :key="o" :label="o" :value="o" />
+              </el-select>
+              <el-date-picker
+                v-model="f.uploadRange"
+                type="datetimerange"
+                unlink-panels
+                range-separator="至"
+                start-placeholder="开始时间"
+                end-placeholder="结束时间"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                class="mp-f-date"
+              />
+            </div>
           </template>
 
           <!-- 媒体素材 -->
-          <template v-else-if="tab === 'media'">
+          <template v-else>
             <div class="mp-frow">
-              <el-select v-model="f.source" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.source" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">来源：</span></template>
                 <el-option v-for="o in OPTS.source" :key="o" :label="o" :value="o" />
               </el-select>
@@ -137,42 +197,40 @@
                 <template #prefix><span class="mp-pre">类型：</span></template>
                 <el-option v-for="o in OPTS.type" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.layout" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.layout" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">版式：</span></template>
                 <el-option v-for="o in OPTS.layout" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
             <div class="mp-frow">
-              <el-select v-model="f.duration" class="mp-f-select mp-f-mid">
-                <template #prefix><span class="mp-pre">视频时长：</span></template>
-                <el-option v-for="o in OPTS.duration" :key="o" :label="o" :value="o" />
-              </el-select>
-              <el-select v-model="f.filterRule" class="mp-f-select mp-f-mid">
+              <div class="mp-dur" :class="{ empty: durEmpty }">
+                <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
+                <span class="mp-dur-txt">{{ durText }}</span>
+                <el-icon v-if="!durEmpty" class="mp-dur-clear" @click="f.duration = [0, 600]">
+                  <CircleClose />
+                </el-icon>
+              </div>
+              <el-select
+                v-model="f.filterRule"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                :max-collapse-tags="1"
+                class="mp-f-select mp-f-rule"
+                placeholder="全部"
+                clearable
+              >
                 <template #prefix><span class="mp-pre">素材过滤：</span></template>
                 <el-option v-for="o in OPTS.mediaFilterRule" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.attr" class="mp-f-select mp-f-mid">
+              <el-select v-model="f.attr" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">素材属性：</span></template>
                 <el-option v-for="o in OPTS.attr" :key="o" :label="o" :value="o" />
               </el-select>
               <span class="mp-warn">
                 <el-icon><WarningFilled /></el-icon>
-                使用母版达人的视频时，将只能投放自定义创意
+                使用抖音达人的视频时，将只能投放自定义创意
               </span>
-            </div>
-          </template>
-
-          <!-- 魔剪 / 收藏夹 -->
-          <template v-else>
-            <div class="mp-frow">
-              <el-select v-model="f.type" class="mp-f-select mp-f-mid">
-                <template #prefix><span class="mp-pre">类型：</span></template>
-                <el-option v-for="o in OPTS.type" :key="o" :label="o" :value="o" />
-              </el-select>
-              <el-select v-model="f.useStatus" class="mp-f-select mp-f-mid">
-                <template #prefix><span class="mp-pre">使用情况：</span></template>
-                <el-option v-for="o in OPTS.useStatus" :key="o" :label="o" :value="o" />
-              </el-select>
             </div>
           </template>
         </template>
@@ -196,17 +254,17 @@
             <el-icon><Menu /></el-icon>列表
           </button>
         </div>
-        <el-checkbox v-model="f.onlyDeliverable">仅显示可投放素材</el-checkbox>
+        <el-checkbox v-model="tool.onlyDeliverable">仅显示可投放素材</el-checkbox>
         <el-icon class="mp-help"><QuestionFilled /></el-icon>
         <div class="mp-filter-item">
-          <el-checkbox v-model="f.filterReject">过滤拒绝次数≥</el-checkbox>
-          <el-input v-model="f.rejectTimes" class="mp-num" />
+          <el-checkbox v-model="tool.filterReject">过滤拒绝次数≥</el-checkbox>
+          <el-input v-model="tool.rejectTimes" class="mp-num" />
           <span>的素材</span>
           <el-icon class="mp-help"><QuestionFilled /></el-icon>
         </div>
         <div class="mp-filter-item">
-          <el-checkbox v-model="f.filterSuggest">过滤建议次数≥</el-checkbox>
-          <el-input v-model="f.suggestTimes" class="mp-num" />
+          <el-checkbox v-model="tool.filterSuggest">过滤建议次数≥</el-checkbox>
+          <el-input v-model="tool.suggestTimes" class="mp-num" />
           <span>的素材</span>
         </div>
         <div class="mp-toolbar-right">
@@ -231,7 +289,7 @@
                   <el-icon class="mp-play"><VideoPlay /></el-icon>
                 </div>
                 <div class="mp-res">{{ m.resolution }}</div>
-                <div class="mp-dur">{{ m.duration }}</div>
+                <div class="mp-dur-badge">{{ m.duration }}</div>
                 <el-icon class="mp-more"><MoreFilled /></el-icon>
               </div>
               <div class="mp-info">
@@ -276,7 +334,7 @@
           素材封面缺失时，请授权账户时勾选敏感物料。
         </span>
         <span v-else class="mp-tip-inline">
-          1、素材可投放尺寸：；<a class="mp-link">详细尺寸&gt;&gt;</a>
+          1、素材可投放尺寸：<a class="mp-link">详细尺寸&gt;&gt;</a>
           2、创意审核状态：只有素材库素材通过审核才可以使用；
         </span>
         <div class="mp-pager">
@@ -317,11 +375,15 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-  Grid, Menu, MoreFilled, Operation, QuestionFilled, Search, VideoPlay, WarningFilled,
+  CircleClose, Grid, Menu, MoreFilled, Operation, QuestionFilled, Search, VideoPlay, WarningFilled,
 } from '@element-plus/icons-vue';
+import dayjs from 'dayjs';
+import { mediaApi } from '@/api/media';
 import {
-  MATERIAL_LIBRARY, MATERIAL_MOJO, MATERIAL_FAVORITE, MATERIAL_MEDIA,
+  MATERIAL_LIBRARY, MATERIAL_MEDIA,
   MATERIAL_FILTER_OPTIONS as OPTS,
+  MATERIAL_FILTER_RULE_DEFAULT,
+  MATERIAL_FILTER_RULE_MEDIA_DEFAULT,
 } from '@/mock/materials';
 
 const props = defineProps({
@@ -330,12 +392,15 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue', 'submit']);
 
+// 页签：素材库 / 媒体素材（线上另有「魔剪 / 收藏夹」，按需求移除）
 const TABS = [
   { key: 'library', label: '素材库', data: MATERIAL_LIBRARY },
-  { key: 'mojo', label: '魔剪', data: MATERIAL_MOJO },
-  { key: 'favorite', label: '收藏夹', data: MATERIAL_FAVORITE },
   { key: 'media', label: '媒体素材', data: MATERIAL_MEDIA },
 ];
+
+// 级联面板参数：素材目录（单选 · 悬停展开）、素材标签（多选 · 勾选）
+const DIRECTORY_PROPS = { emitPath: false, expandTrigger: 'hover' };
+const TAG_PROPS = { multiple: true, emitPath: false, checkStrictly: false };
 
 const tab = ref('library');
 const view = ref('grid');
@@ -343,16 +408,67 @@ const collapsed = ref(false);
 const selected = ref([]);
 const page = ref(1);
 const pageSize = ref(20);
+const accounts = ref([]);
 
-const f = reactive({
-  nameField: '素材名称', keyword: '', exclude: '', type: '视频',
-  getType: '全部', clProject: '全部', directory: '全部', tag: '全部',
-  excludeTag: '全部', personalTag: '全部', useStatus: '不限', layout: '全部',
-  duration: '~', number: '全部', clip: '全部', filterRule: OPTS.filterRule[0],
-  source: '全部', uploadRange: [], account: '全部', attr: '全部',
-  caliber: '标准版',
-  onlyDeliverable: false, filterReject: false, rejectTimes: '',
-  filterSuggest: false, suggestTimes: '',
+// 上传时间默认区间（对齐线上：近 90 天）
+function defaultRange(withTime) {
+  const start = dayjs().subtract(90, 'day');
+  const end = dayjs();
+  return withTime
+    ? [start.startOf('day').format('YYYY-MM-DD HH:mm:ss'), end.endOf('day').format('YYYY-MM-DD HH:mm:ss')]
+    : [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+}
+
+function createFilterState(kind) {
+  return {
+    nameField: '素材名称',
+    keyword: '',
+    exclude: '',
+    type: '视频',
+    getType: '',
+    ztProject: '',
+    directory: '',
+    tag: [],
+    excludeTag: [],
+    personalTag: '',
+    useStatus: '',
+    layout: '',
+    number: '',
+    clip: '',
+    filterRule: kind === 'media'
+      ? [...MATERIAL_FILTER_RULE_MEDIA_DEFAULT]
+      : [...MATERIAL_FILTER_RULE_DEFAULT],
+    source: '',
+    account: '',
+    attr: '',
+    status: '',
+    uploadRange: defaultRange(kind !== 'media'),
+    duration: [0, 600],
+    caliber: '标准版',
+  };
+}
+
+const fLibrary = reactive(createFilterState('library'));
+const fMedia = reactive(createFilterState('media'));
+const f = computed(() => (tab.value === 'media' ? fMedia : fLibrary));
+
+// 工具条（两页签共用）
+const tool = reactive({
+  onlyDeliverable: false,
+  filterReject: false,
+  rejectTimes: '',
+  filterSuggest: false,
+  suggestTimes: '',
+});
+
+const durEmpty = computed(() => {
+  const d = f.value.duration || [];
+  return !d.length || (d[0] <= 0 && d[1] >= 600);
+});
+const durText = computed(() => {
+  const d = f.value.duration || [];
+  if (!d.length || (d[0] <= 0 && d[1] >= 600)) return '~';
+  return `${d[0]}s ~ ${d[1]}s`;
 });
 
 const currentData = computed(() => (TABS.find((t) => t.key === tab.value) || {}).data || []);
@@ -367,8 +483,22 @@ watch(() => props.modelValue, (v) => {
   if (v) selected.value = [...props.selectedIds];
 });
 
-function init() {
+async function init() {
   selected.value = [...props.selectedIds];
+  page.value = 1;
+  if (!accounts.value.length) {
+    const res = await mediaApi.accounts();
+    accounts.value = res.data?.list || [];
+  }
+}
+
+function accountLabel(a) {
+  return `${a.name}--${a.advertiser_id}`;
+}
+
+function switchTab(key) {
+  if (tab.value === key) return;
+  tab.value = key;
   page.value = 1;
 }
 
@@ -399,13 +529,9 @@ function clearSelection() {
 }
 
 function resetFilters() {
-  Object.assign(f, {
-    nameField: '素材名称', keyword: '', exclude: '', type: '视频',
-    getType: '全部', clProject: '全部', directory: '全部', tag: '全部',
-    excludeTag: '全部', personalTag: '全部', useStatus: '不限', layout: '全部',
-    duration: '~', number: '全部', clip: '全部', filterRule: OPTS.filterRule[0],
-    source: '全部', uploadRange: [], account: '全部', attr: '全部',
-  });
+  const next = createFilterState(tab.value);
+  Object.assign(f.value, next);
+  page.value = 1;
 }
 
 function onSearch() { page.value = 1; ElMessage.info('原型：按条件筛选素材'); }
@@ -456,9 +582,11 @@ function submit() {
 .mp-search-group { display: flex; align-items: center; }
 .mp-f-select { flex: none; }
 .mp-f-name { width: 130px; }
-.mp-f-type { width: 190px; }
-.mp-f-mid { width: 230px; }
-.mp-f-input { width: 300px; }
+.mp-f-type { width: 130px; }
+.mp-f-account { width: 250px; }
+.mp-f-mid { width: 190px; }
+.mp-f-rule { width: 240px; }
+.mp-f-input { width: 210px; }
 .mp-f-input :deep(.el-input__wrapper) { border-radius: 4px 0 0 4px; }
 .mp-f-btn {
   width: 40px;
@@ -470,11 +598,72 @@ function submit() {
 }
 .mp-suffix-icon { color: #86909c; cursor: pointer; }
 .mp-pre { color: #4e5969; }
+/* 「排除素材名」标签 */
+.mp-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  margin: 0 10px;
+  border: 1px solid #c9cdd4;
+  border-radius: 4px;
+  background: #fff;
+  color: #1d2129;
+  font-size: 14px;
+  white-space: nowrap;
+}
 .mp-f-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .mp-link { color: #165dff; cursor: pointer; font-size: 14px; }
-.mp-f-date { width: 320px !important; }
+.mp-f-date { width: 340px !important; }
 .mp-warn { display: inline-flex; align-items: center; gap: 4px; color: #86909c; font-size: 13px; }
 .mp-warn .el-icon { color: #ff7d00; }
+
+/* 视频时长：区间滑块 */
+.mp-dur {
+  position: relative;
+  flex: none;
+  width: 190px;
+  height: 32px;
+  border: 1px solid #c9cdd4;
+  border-radius: 4px;
+  background: #fff;
+}
+.mp-dur :deep(.el-slider) {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 30px;
+  margin: 0;
+  padding: 0 10px;
+}
+.mp-dur :deep(.el-slider__runway) { height: 4px; margin: 13px 0; background: #e5e6eb; }
+.mp-dur :deep(.el-slider__button) { width: 12px; height: 12px; border-width: 2px; }
+/* 未设置区间时与线上一致：仅显示「~」，悬停后出现滑块 */
+.mp-dur.empty :deep(.el-slider) { opacity: 0; }
+.mp-dur.empty:hover :deep(.el-slider) { opacity: 1; }
+.mp-dur-txt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 13px;
+  color: #4e5969;
+  background: #fff;
+  padding: 0 8px;
+  pointer-events: none;
+}
+.mp-dur-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #c9cdd4;
+  cursor: pointer;
+}
+.mp-dur-clear:hover { color: #86909c; }
 
 /* 指标数据口径 */
 .mp-caliber { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 10px 0; }
@@ -524,7 +713,7 @@ function submit() {
 .mp-cover.tone-3 { background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%); }
 .mp-cover.tone-4 { background: linear-gradient(135deg, #fffbe6 0%, #ffe9a8 100%); }
 .mp-play { font-size: 30px; color: rgba(29, 33, 41, .35); }
-.mp-res, .mp-dur {
+.mp-res, .mp-dur-badge {
   position: absolute;
   bottom: 6px;
   padding: 1px 6px;
@@ -534,7 +723,7 @@ function submit() {
   border-radius: 2px;
 }
 .mp-res { left: 8px; }
-.mp-dur { right: 8px; }
+.mp-dur-badge { right: 8px; }
 .mp-more { position: absolute; right: 8px; top: 8px; color: #86909c; }
 .mp-info { padding: 10px 12px 12px; }
 .mp-title { display: flex; align-items: baseline; gap: 8px; }
@@ -567,4 +756,6 @@ function submit() {
 .mp-dialog .el-dialog__body { padding: 12px 20px 0; }
 .mp-dialog .el-dialog__footer { padding: 12px 20px 16px; }
 .mp-dialog .el-input__wrapper { box-shadow: 0 0 0 1px #c9cdd4 inset; }
+/* 级联面板与线上保持一致的高度 */
+.mp-dialog .el-cascader__dropdown { max-height: 320px; }
 </style>
