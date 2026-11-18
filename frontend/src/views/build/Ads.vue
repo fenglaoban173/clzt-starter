@@ -1,158 +1,243 @@
 <template>
   <div v-loading="loading" class="page">
-    <el-card class="filter-card">
+    <!-- 查询条件：标签内嵌在下拉框内，顺序与线上一致 -->
+    <el-card class="filter-card" shadow="never">
       <div class="filter-row">
-        <el-input v-model="filters.keyword" style="width: 260px" placeholder="广告名称关键词" clearable @keyup.enter="load">
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-select v-model="filters.project" style="width: 200px" clearable placeholder="智投项目">
-          <el-option v-for="p in projectOptions" :key="p" :value="p">{{ p }}</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.optimizer" style="width: 200px" clearable placeholder="优化师">
-          <el-option v-for="o in optimizerOptions" :key="o" :value="o">{{ o }}</el-option>
-        </el-select>
-        <el-select v-model="filters.account" style="width: 200px" clearable placeholder="媒体账户">
-          <el-option v-for="a in accountOptions" :key="a" :value="a">{{ a }}</el-option>
-        </el-select>
-        <el-select v-model="filters.subject" style="width: 200px" clearable placeholder="账户主体">
-          <el-option :value="subject">{{ subject }}</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.purpose" style="width: 200px" clearable placeholder="推广目的">
-          <el-option v-for="o in purposes" :key="o" :value="o">{{ o }}</el-option>
-        </el-select>
-        <el-select v-model="filters.deliveryMode" style="width: 200px" clearable placeholder="投放模式">
-          <el-option value="MANUAL">手动投放</el-option>
-          <el-option value="PROCEDURAL">程序化投放</el-option>
-        </el-select>
-        <el-select v-model="filters.campaign" style="width: 200px" clearable placeholder="项目">
-          <el-option v-for="c in campaignOptions" :key="c" :value="c">{{ c }}</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.status" style="width: 200px" clearable placeholder="状态">
-          <el-option value="enabled">投放中</el-option>
-          <el-option value="disabled">已暂停</el-option>
-        </el-select>
-        <el-select v-model="filters.diagnosis" style="width: 200px" clearable placeholder="诊断建议">
-          <el-option value="all">不限</el-option>
-          <el-option value="reject">有拒绝建议</el-option>
-          <el-option value="low">低质素材</el-option>
-        </el-select>
-        <el-select v-model="filters.strategy" style="width: 200px" clearable placeholder="策略组">
-          <el-option value="all">不限</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.adType" style="width: 200px" clearable placeholder="广告类型">
-          <el-option value="ALL">信息流</el-option>
-          <el-option value="SEARCH">搜索广告</el-option>
-        </el-select>
-        <el-select v-model="filters.learn" style="width: 200px" clearable placeholder="学习期状态">
-          <el-option value="all">不限</el-option>
-          <el-option value="learning">学习中</el-option>
-          <el-option value="passed">已过学习期</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.star" style="width: 200px" clearable placeholder="星广联投">
-          <el-option value="all">全部</el-option>
-          <el-option value="yes">已联投</el-option>
-          <el-option value="no">未联投</el-option>
-        </el-select>
-        <el-input v-model="filters.starTaskId" style="width: 260px" placeholder="星广联任务ID" clearable />
-        <el-select v-model="filters.platform" style="width: 200px" clearable placeholder="平台">
-          <el-option v-for="o in platforms" :key="o" :value="o">{{ o }}</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.optGoal" style="width: 200px" clearable placeholder="优化目标">
-          <el-option v-for="o in optGoals" :key="o" :value="o">{{ o }}</el-option>
-        </el-select>
-        <el-select v-model="filters.deepGoal" style="width: 200px" clearable placeholder="深度优化目标">
-          <el-option v-for="o in deepGoals" :key="o" :value="o">{{ o }}</el-option>
-        </el-select>
-        <el-select v-model="filters.deepMode" style="width: 200px" clearable placeholder="深度优化方式">
-          <el-option v-for="o in deepModes" :key="o" :value="o">{{ o }}</el-option>
-        </el-select>
-      </div>
-      <div class="filter-row">
-        <el-select v-model="filters.material" style="width: 200px" clearable placeholder="创意素材">
-          <el-option value="video">视频素材</el-option>
-          <el-option value="image">图片素材</el-option>
-        </el-select>
-        <el-button @click="onAddFilter">+ 添加筛选</el-button>
-        <el-button link type="primary" @click="resetFilters">清空</el-button>
-        <div class="filter-actions"><el-button type="primary" @click="load">查询</el-button></div>
+        <div class="filter-main">
+          <!-- 全部筛选：选择要展示的筛选项 -->
+          <AdFilterPicker v-model:visible-keys="visibleKeys" mode="all" @change="onVisibleChange" />
+
+          <!-- 广告名称 / 广告ID + 关键词 -->
+          <div class="name-filter">
+            <el-select v-model="filters.nameType" class="f-name-type">
+              <el-option label="广告名称" value="name" />
+              <el-option label="广告ID" value="id" />
+            </el-select>
+            <el-input v-model="filters.keyword" class="f-keyword" placeholder="请输入关键词" clearable @keyup.enter="onSearch" />
+            <el-button class="f-search-btn" title="搜索" @click="onSearch"><el-icon><Search /></el-icon></el-button>
+          </div>
+
+          <!-- 筛选项（顺序与线上一致） -->
+          <template v-for="d in visibleFilters" :key="d.key">
+            <!-- 多选下拉 -->
+            <div v-if="d.kind === 'multi'" class="f-item">
+              <el-select
+                v-model="filters[d.key]"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                :filterable="!!d.filterable"
+                class="f-box"
+                :style="{ '--f-w': d.width + 'px' }"
+                :placeholder="d.def"
+                :title="multiTitle(d)"
+              >
+                <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+                <template v-if="d.searchIcon" #suffix><el-icon class="f-search-ico"><Search /></el-icon></template>
+                <el-option v-for="o in filterOptions(d)" :key="o" :label="o" :value="o" />
+              </el-select>
+              <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+            </div>
+
+            <!-- 单选下拉 -->
+            <div v-else-if="d.kind === 'select'" class="f-item">
+              <el-select
+                v-model="filters[d.key]"
+                class="f-box"
+                :style="{ '--f-w': d.width + 'px' }"
+                :title="filters[d.key]"
+              >
+                <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+                <el-option v-for="o in filterOptions(d)" :key="o" :label="o" :value="o" />
+              </el-select>
+              <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+            </div>
+
+            <!-- 日期区间 -->
+            <el-date-picker
+              v-else-if="d.kind === 'daterange'"
+              v-model="filters[d.key]"
+              type="daterange"
+              unlink-panels
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="f-date"
+              :style="{ '--f-w': d.width + 'px' }"
+            />
+
+            <!-- 输入框 -->
+            <el-input
+              v-else
+              v-model="filters[d.key]"
+              class="f-box f-input"
+              :style="{ '--f-w': d.width + 'px' }"
+              :placeholder="d.placeholder"
+              clearable
+            />
+          </template>
+
+          <!-- 添加筛选：追加要展示的筛选项 -->
+          <AdFilterPicker v-model:visible-keys="visibleKeys" mode="add" @change="onVisibleChange" />
+        </div>
+
+        <!-- 查询：靠右、垂直居中（与线上一致） -->
+        <div class="filter-actions">
+          <el-button type="primary" @click="onSearch">查询</el-button>
+        </div>
       </div>
     </el-card>
 
-    <el-card class="table-card">
+    <!-- 列表 -->
+    <el-card class="table-card" shadow="never">
       <div class="op-row">
-        <el-space>
-          <el-select v-model="batchOp" style="width: 130px" placeholder="批量操作" disabled>
-            <el-option value="enable">批量启用</el-option>
-            <el-option value="disable">批量暂停</el-option>
+        <div class="op-left">
+          <AdComboFilter v-model="comboVisible" @apply="onComboApply" @clear="resetFilters" />
+          <el-select
+            v-model="batchOp"
+            class="batch-select"
+            placeholder="批量操作"
+            :disabled="!selected.length"
+            @change="onBatchOp"
+          >
+            <el-option v-for="op in AD_BATCH_OPS" :key="op" :label="op" :value="op" />
           </el-select>
-          <el-button @click="onCopy">快捷复制</el-button>
-        </el-space>
-        <el-space>
-          <el-button @click="onSync">手动同步</el-button>
+          <el-button :disabled="!selected.length" @click="onCopy">快捷复制</el-button>
+          <span v-if="selected.length" class="sel-tip">已选择{{ selected.length }}条广告计划</span>
+        </div>
+        <div class="op-right">
+          <el-button class="light-btn" @click="openSyncDialog">手动同步</el-button>
           <el-button @click="onExport">导出数据</el-button>
-          <el-button @click="onCustomMetric">自定义指标</el-button>
-        </el-space>
+          <el-dropdown v-if="templates.length" trigger="hover" @command="onTplCommand">
+            <el-button @click="openCustomMetric"><el-icon><Operation /></el-icon>自定义指标</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-for="tpl in templates" :key="tpl.id" :command="tpl.id">
+                  <span class="tpl-name">{{ tpl.name }}</span>
+                  <el-icon class="tpl-del" title="删除模板" @click.stop="delTemplate(tpl)"><Delete /></el-icon>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button v-else @click="openCustomMetric"><el-icon><Operation /></el-icon>自定义指标</el-button>
+        </div>
       </div>
 
       <el-table
-        :data="list"
+        ref="tableRef"
+        :data="tableData"
         row-key="id"
         border
-        stripe
         style="margin-top: 12px"
-        @selection-change="(k) => (selected = k)"
+        :row-class-name="rowClassName"
+        @selection-change="onSelectionChange"
+        @sort-change="onSortChange"
       >
-        <el-table-column type="selection" :width="42" />
-        <el-table-column label="任务名称" prop="name" :min-width="220" fixed="left" />
-        <el-table-column label="任务状态" :width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'enabled' ? 'success' : 'info'">{{ row.status === 'enabled' ? '投放中' : '已暂停' }}</el-tag>
+        <!-- 选择列：表头为「全选框 + 批量选择范围」 -->
+        <el-table-column type="selection" width="60">
+          <template #header>
+            <div class="sel-head">
+              <el-checkbox :model-value="allChecked" :indeterminate="halfChecked" @change="toggleSelectAll" />
+              <el-dropdown trigger="click" @command="onScopeCommand">
+                <span class="scope-caret" title="选择范围"><el-icon><CaretBottom /></el-icon></span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="page">当前页</el-dropdown-item>
+                    <el-dropdown-item command="50">前50页</el-dropdown-item>
+                    <el-dropdown-item command="all">全选</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="广告预算（元）" prop="budget" :width="120" align="right" />
-        <el-table-column label="拒绝建议" :width="120">
+
+        <!-- 启停开关（线上为行内 el-switch，本地复刻该功能） -->
+        <el-table-column width="72" align="center" fixed="left">
           <template #default="{ row }">
-            <el-tooltip v-if="row.reject_note" :content="row.reject_note" placement="top">
-              <el-tag type="danger">有拒绝建议</el-tag>
-            </el-tooltip>
-            <span v-else>-</span>
+            <el-switch v-if="!row.__summary" v-model="row.enabled" size="small" @change="onToggle(row)" />
           </template>
         </el-table-column>
-        <el-table-column label="广告出价（元）" prop="bid" :width="110" align="right" />
-        <el-table-column label="深度转化出价（元）" prop="deep_bid" :width="130" align="right" />
-        <el-table-column label="消耗" prop="stat_cost" :width="100" align="right" />
-        <el-table-column label="展示数" prop="show_cnt" :width="100" align="right" />
-        <el-table-column label="平均千次展现费用" prop="cpm" :width="130" align="right" />
-        <el-table-column label="点击数" prop="click_cnt" :width="100" align="right" />
-        <el-table-column label="点击率" prop="ctr" :width="90" align="right" />
-        <el-table-column label="转化数" prop="convert_cnt" :width="90" align="right" />
-        <el-table-column label="转化成本" prop="convert_cost" :width="100" align="right" />
-        <el-table-column label="转化率" prop="convert_rate" :width="90" align="right" />
-        <el-table-column label="深度转化数" prop="deep_cnt" :width="100" align="right" />
-        <el-table-column label="深度转化成本" prop="deep_cost" :width="110" align="right" />
-        <el-table-column label="深度转化率" prop="deep_rate" :width="100" align="right" />
-        <el-table-column label="广告" prop="ad_id" :width="140" />
-        <el-table-column label="操作" :width="180" fixed="right">
+
+        <!-- 广告名称 + 广告ID（首行为「合计(缓存时间)」行） -->
+        <el-table-column label="广告" fixed="left" width="220">
           <template #default="{ row }">
-            <el-button size="small" @click="onDetail(row)">查看</el-button>
-            <el-button size="small" @click="onCopyOne(row)">快捷复制</el-button>
-            <el-button size="small" @click="onToggle(row)">{{ row.status === 'enabled' ? '暂停' : '启用' }}</el-button>
+            <div class="ad-cell">
+              <p v-if="row.__summary" class="ad-summary">合计(缓存时间：{{ cacheTime }})</p>
+              <template v-else>
+                <p class="ad-name" :title="row.name">{{ row.name }}</p>
+                <p class="ad-id" :title="row.ad_id">ID：{{ row.ad_id }}</p>
+              </template>
+            </div>
+          </template>
+        </el-table-column>
+
+        <!-- 操作 -->
+        <el-table-column label="操作" fixed="left" width="120">
+          <template #default="{ row }">
+            <a v-if="!row.__summary" class="link" @click="onDetail(row)">详情</a>
+          </template>
+        </el-table-column>
+
+        <!-- 数据列：由「自定义指标」选中的指标及顺序驱动 -->
+        <el-table-column
+          v-for="col in tableColumns"
+          :key="col.key"
+          :label="col.label"
+          :prop="col.prop"
+          :width="col.width"
+          :align="col.align"
+          :sortable="col.sortable ? 'custom' : false"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            <template v-if="col.type === 'status'">
+              <span v-if="!row.__summary" class="status-text" :class="row.status === 'enabled' ? 'st-green' : 'st-gray'">
+                {{ row.status === 'enabled' ? '投放中' : '已暂停' }}
+              </span>
+            </template>
+            <template v-else-if="col.type === 'number' || col.type === 'computed'">
+              <span class="num-cell">{{ row.__summary ? (summaryVals[col.key] || '') : fmtMetric(row, col) }}</span>
+              <el-icon v-if="!row.__summary && editableCols.includes(col.key)" class="edit-icon" title="批量修改" @click="onEditCell(col, row)">
+                <EditPen />
+              </el-icon>
+            </template>
+            <template v-else-if="col.type === 'dash'">{{ '--' }}</template>
+            <template v-else>{{ row.__summary ? '' : (row[col.prop] || '--') }}</template>
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        class="pager"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="pagination.total"
+        :current-page="pagination.current"
+        :page-size="pagination.pageSize"
+        :page-sizes="[20, 50, 100]"
+        @current-change="onPage"
+        @size-change="onSizeChange"
+      />
     </el-card>
+
+    <!-- 自定义指标 -->
+    <CustomMetricDialog
+      v-model="metricVisible"
+      :catalog="AD_METRIC_CATALOG"
+      :model-keys="metricSel"
+      @apply="onMetricApply"
+      @save-template="onSaveTemplate"
+    />
+
+    <!-- 手动同步：同步项目与广告 -->
+    <SyncProjectDialog v-model="syncVisible" @confirm="onSyncConfirm" />
+
+    <!-- 批量操作弹窗 -->
+    <AdBatchDialog v-model="batchVisible" :op="batchOpName" :rows="batchRows" @confirm="onBatchConfirm" />
+
+    <!-- 广告详情 -->
+    <AdDetailDrawer v-model="detailVisible" :row="detailRow" @view-project="onViewProject" />
   </div>
 </template>
 
@@ -160,49 +245,201 @@
 import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { CaretBottom, Close, Delete, EditPen, Operation, Search } from '@element-plus/icons-vue';
 import { buildApi, mediaApi } from '@/api/media';
+import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
+import AdComboFilter from './components/AdComboFilter.vue';
+import AdBatchDialog from './components/AdBatchDialog.vue';
+import AdDetailDrawer from './components/AdDetailDrawer.vue';
+import AdFilterPicker from './components/AdFilterPicker.vue';
+import SyncProjectDialog from './components/SyncProjectDialog.vue';
+import { AD_FILTER_DEFS, AD_BATCH_OPS, AD_BATCH_OP_TOASTS } from '@/mock/adFilters';
+import {
+  AD_METRIC_CATALOG,
+  AD_METRIC_MAP,
+  AD_DEFAULT_METRICS,
+  loadAdTemplates,
+  saveAdTemplates,
+} from './adMetrics';
 
 const route = useRoute();
 
 const loading = ref(false);
 const all = ref([]);
-const list = ref([]);
+const rows = ref([]);
 const selected = ref([]);
 const batchOp = ref('');
+const batchOpName = ref('');
+const batchRows = ref([]);
+const batchVisible = ref(false);
+const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
-const subject = '北京央广时代文化传播有限公司';
+const sortState = reactive({ prop: '', order: '' });
 
+// 全部展示的筛选项（默认全部 21 项，与线上一致）
+const visibleKeys = ref(AD_FILTER_DEFS.map((d) => d.key));
+const visibleFilters = computed(() => AD_FILTER_DEFS.filter((d) => visibleKeys.value.includes(d.key)));
+
+// 多选筛选项的初值
 const filters = reactive({
-  keyword: '', project: '', optimizer: '', account: '', subject: '', purpose: '',
-  deliveryMode: '', campaign: '', status: '', diagnosis: '', strategy: '',
-  adType: '', learn: '', star: '', starTaskId: '', platform: '', optGoal: '', deepGoal: '',
-  deepMode: '', material: '',
+  nameType: 'name',
+  keyword: '',
+  clProject: [],
+  optimizer: [],
+  account: [],
+  subject: [],
+  purpose: '所有推广目的',
+  deliveryMode: '全部',
+  campaign: [],
+  status: '不限',
+  diagnosis: [],
+  strategy: [],
+  createTime: [],
+  adType: '不限',
+  learn: '不限',
+  star: '全部',
+  starTaskId: '',
+  platform: '不限',
+  optGoal: [],
+  deepGoal: [],
+  deepMode: [],
+  material: '请选择素材',
 });
 
-const optGoals = ['销售线索', '商品购买', '表单提交', 'APP下载', '小程序付费'];
-const deepGoals = ['付费', '下单', '激活', '注册', '表单提交'];
-const deepModes = ['深度出价', '付费ROI', '转化出价'];
-const purposes = ['APP推广', '网页推广', '小程序推广', '小游戏推广'];
-const platforms = ['抖音', '穿山甲', '西瓜视频', '今日头条'];
+// ---------- 合计行（对齐线上「合计(缓存时间：HH:mm:ss)」） ----------
+const cacheTime = ref('');
 
-const projectOptions = computed(() => [...new Set(all.value.map((a) => a.project || '未分组'))]);
-const optimizerOptions = computed(() => [...new Set(all.value.map((a) => a.optimizer || '全部'))]);
-const accountOptions = computed(() => [...new Set(all.value.map((a) => a.account_name))]);
-const campaignOptions = computed(() => [...new Set(all.value.map((a) => a.campaign_id))]);
+const summaryVals = computed(() => {
+  const list = rows.value;
+  const sum = (k) => list.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+  const stat_cost = sum('stat_cost');
+  const show_cnt = sum('show_cnt');
+  const click_cnt = sum('click_cnt');
+  const convert_cnt = sum('convert_cnt');
+  const deep_cnt = sum('deep_cnt');
+  return {
+    stat_cost: stat_cost.toFixed(2),
+    show_cnt: String(show_cnt),
+    cpm: show_cnt ? (stat_cost / show_cnt * 1000).toFixed(2) : '0.00',
+    click_cnt: String(click_cnt),
+    ctr: show_cnt ? `${(click_cnt / show_cnt * 100).toFixed(2)}%` : '0.00%',
+    cpc: click_cnt ? (stat_cost / click_cnt).toFixed(2) : '0.00',
+    convert_cnt: String(convert_cnt),
+    convert_cost: convert_cnt ? (stat_cost / convert_cnt).toFixed(2) : '0.00',
+    convert_rate: click_cnt ? `${(convert_cnt / click_cnt * 100).toFixed(2)}%` : '0.00%',
+    deep_cnt: String(deep_cnt),
+    deep_cost: deep_cnt ? (stat_cost / deep_cnt).toFixed(2) : '0.00',
+    deep_rate: click_cnt ? `${(deep_cnt / click_cnt * 100).toFixed(2)}%` : '0.00%',
+  };
+});
 
-function applyFilter() {
-  let rows = all.value;
-  if (filters.status) rows = rows.filter((a) => a.status === filters.status);
-  if (filters.keyword) {
-    const kw = filters.keyword.toLowerCase();
-    rows = rows.filter((a) => a.name.toLowerCase().includes(kw) || (a.account_name || '').toLowerCase().includes(kw));
-  }
-  if (filters.account) rows = rows.filter((a) => a.account_name === filters.account);
-  return rows;
+// 表格数据：首行为合计行
+const tableData = computed(() => ([
+  { id: '__summary__', __summary: true },
+  ...rows.value,
+]));
+
+function rowClassName({ row }) {
+  return row.__summary ? 'ad-summary-row' : '';
 }
 
+// 状态：线上「投放中 / 未投放」为启停状态
+const STATUS_MATCH = { 投放中: 'enabled', 未投放: 'disabled' };
+const STATUS_EMPTY = ['已终止', '已完成', '已删除'];
+// 星广联投：是 / 否
+const STAR_MATCH = { 是: 'yes', 否: 'no' };
+
+function filterOptions(def) {
+  if (def.options) return def.options;
+  if (def.source === 'account_name') {
+    return [...new Set(all.value.map((a) => a.account_name).filter(Boolean))];
+  }
+  if (def.source === 'campaign_name') {
+    return [...new Set(all.value.map((a) => a.campaign_name).filter(Boolean))];
+  }
+  return [];
+}
+
+function multiTitle(def) {
+  const v = filters[def.key];
+  return Array.isArray(v) && v.length ? v.join('、') : def.def;
+}
+
+function clearFilter(def) {
+  if (def.kind === 'multi') filters[def.key] = [];
+  else if (def.kind === 'daterange') filters[def.key] = [];
+  else filters[def.key] = def.def;
+}
+
+function onVisibleChange() {
+  // 隐藏的筛选项同时清空取值
+  AD_FILTER_DEFS.forEach((d) => {
+    if (!visibleKeys.value.includes(d.key)) clearFilter(d);
+  });
+}
+
+// ---------- 筛选 ----------
+function applyFilter() {
+  let list = all.value;
+  AD_FILTER_DEFS.forEach((d) => {
+    if (d.kind === 'multi') {
+      const v = filters[d.key];
+      if (!Array.isArray(v) || !v.length) return;
+      list = list.filter((a) => v.includes(a[d.source] || a[d.key]));
+      return;
+    }
+    if (d.kind !== 'select') return;
+    const v = filters[d.key];
+    if (!v || v === d.def) return;
+    if (d.key === 'status') {
+      if (STATUS_MATCH[v]) list = list.filter((a) => a.status === STATUS_MATCH[v]);
+      else if (STATUS_EMPTY.includes(v)) list = [];
+      return;
+    }
+    if (d.key === 'star') {
+      if (STAR_MATCH[v]) list = list.filter((a) => a.star === STAR_MATCH[v]);
+      return;
+    }
+    if (d.key === 'deliveryMode') {
+      list = list.filter((a) => a.delivery_mode === v);
+      return;
+    }
+    if (d.key === 'learn') {
+      list = list.filter((a) => a.learn === v);
+      return;
+    }
+    list = list.filter((a) => (d.source ? a[d.source] : a[d.key]) === v);
+  });
+  // 关键词（广告名称 / 广告ID）
+  if (filters.keyword) {
+    const kw = filters.keyword.trim().toLowerCase();
+    list = list.filter((a) => (filters.nameType === 'id'
+      ? String(a.ad_id || '').toLowerCase().includes(kw)
+      : String(a.name || '').toLowerCase().includes(kw)));
+  }
+  // 创建时间区间
+  if (filters.createTime && filters.createTime.length === 2) {
+    const [from, to] = filters.createTime;
+    list = list.filter((a) => {
+      const d = String(a.created_at || '').slice(0, 10);
+      return d >= from && d <= to;
+    });
+  }
+  // 星广联任务ID
+  if (filters.starTaskId) {
+    const kw = filters.starTaskId.trim().toLowerCase();
+    list = list.filter((a) => String(a.star_task_id || '').toLowerCase().includes(kw));
+  }
+  // 排序
+  if (sortState.prop && sortState.order) {
+    const dir = sortState.order === 'ascending' ? 1 : -1;
+    list = [...list].sort((x, y) => ((Number(x[sortState.prop]) || 0) - (Number(y[sortState.prop]) || 0)) * dir);
+  }
+  return list;
+}
+
+// ---------- 数据 ----------
 // 「查看广告」跳转过来时：URL 携带 account_id，自动定位到该媒体账户并过滤
 const accountQueryDone = ref(false);
 async function applyAccountQuery() {
@@ -211,46 +448,294 @@ async function applyAccountQuery() {
   accountQueryDone.value = true;
   const res = await mediaApi.accounts();
   const acc = (res.data?.list || []).find((a) => String(a.advertiser_id) === String(id));
-  if (acc) filters.account = acc.name;
+  if (acc) filters.account = [acc.name];
 }
 
 async function load() {
   loading.value = true;
   try {
     await applyAccountQuery();
-    const res = await buildApi.ads({ status: filters.status });
-    all.value = res.data?.list || [];
-    const rows = applyFilter();
-    list.value = rows.slice((page.value - 1) * pagination.pageSize, page.value * pagination.pageSize);
-    pagination.total = rows.length;
+    const res = await buildApi.ads();
+    all.value = (res.data?.list || []).map((a) => ({ ...a, enabled: a.status === 'enabled' }));
+    const filtered = applyFilter();
+    pagination.total = filtered.length;
+    rows.value = filtered
+      .slice((page.value - 1) * pagination.pageSize, page.value * pagination.pageSize)
+      .map((a) => ({ ...a }));
+    cacheTime.value = new Date().toTimeString().slice(0, 8);
   } finally {
     loading.value = false;
   }
 }
 
 function onPage(p) { page.value = p; load(); }
+function onSizeChange(s) { pagination.pageSize = s; page.value = 1; load(); }
+function onSearch() { page.value = 1; load(); }
+function onSelectionChange(list) { selected.value = list.filter((r) => !r.__summary); }
+function onSortChange({ prop, order }) {
+  sortState.prop = prop || '';
+  sortState.order = order || '';
+  load();
+}
+
 function resetFilters() {
-  Object.keys(filters).forEach((k) => { filters[k] = Array.isArray(filters[k]) ? [] : ''; });
+  AD_FILTER_DEFS.forEach((d) => {
+    if (d.kind === 'multi') filters[d.key] = [];
+    else if (d.kind === 'daterange') filters[d.key] = [];
+    else filters[d.key] = d.def;
+  });
+  filters.nameType = 'name';
+  filters.keyword = '';
   page.value = 1;
   load();
 }
 
-function onAddFilter() { ElMessage.info('原型：添加更多筛选项'); }
-function onCopy() { ElMessage.info('原型：批量快捷复制所选广告'); }
-function onCopyOne(record) { ElMessage.info(`原型：复制广告 ${record.name}`); }
-function onSync() { ElMessage.info('原型：手动同步巨量广告数据'); }
-function onExport() { ElMessage.info('原型：导出广告报表'); }
-function onCustomMetric() { ElMessage.info('原型：自定义展示指标列'); }
-function onDetail(record) { ElMessage.info(`原型：查看广告 ${record.name}`); }
-function onToggle(record) { ElMessage.info(`原型：${record.status === 'enabled' ? '暂停' : '启用'}广告（不提交真实接口）`); }
+// ---------- 选择 ----------
+const allChecked = computed(() => rows.value.length > 0 && rows.value.every((r) => selected.value.includes(r)));
+const halfChecked = computed(() => !allChecked.value && rows.value.some((r) => selected.value.includes(r)));
+
+function toggleSelectAll(val) {
+  tableRef.value?.toggleAllSelection(val);
+}
+
+function onScopeCommand(cmd) {
+  if (cmd === 'page') {
+    tableRef.value?.clearSelection();
+    rows.value.forEach((r) => tableRef.value?.toggleRowSelection(r, true));
+    ElMessage.info('已选择当前页广告');
+  } else if (cmd === '50') {
+    ElMessage.info('原型：已选择前 50 页广告');
+  } else {
+    ElMessage.info('原型：已选择全部广告');
+  }
+}
+
+// ---------- 数值格式化 ----------
+function fmtMetric(row, col) {
+  const v = row[col.prop];
+  if (v == null || Number.isNaN(Number(v))) return '';
+  const digits = col.digits ?? 2;
+  const text = digits ? Number(v).toFixed(digits) : String(Math.round(Number(v)));
+  return text + (col.suffix || '');
+}
+
+// ---------- 自定义指标 ----------
+const metricVisible = ref(false);
+const templates = ref(loadAdTemplates());
+const metricSel = ref([...AD_DEFAULT_METRICS]);
+
+// 当前展示的列：按已选指标顺序渲染（广告名称 / 广告ID 由左侧固定列承载）
+const tableColumns = computed(() => metricSel.value
+  .map((k) => AD_METRIC_MAP[k])
+  .filter(Boolean));
+
+function openCustomMetric() { metricVisible.value = true; }
+
+function onMetricApply(keys) {
+  metricSel.value = [...keys];
+  ElMessage.success(`原型：已应用自定义指标（${metricSel.value.length} 个指标）`);
+}
+
+function onSaveTemplate({ name, keys }) {
+  const list = [...templates.value];
+  const exist = list.find((t) => t.name === name);
+  if (exist) exist.keys = [...keys];
+  else list.push({ id: `tpl_${Date.now()}`, name, keys: [...keys] });
+  templates.value = list;
+  saveAdTemplates(list);
+  ElMessage.success(`原型：已保存自定义指标模板「${name}」`);
+}
+
+function onTplCommand(id) {
+  const tpl = templates.value.find((t) => t.id === id);
+  if (!tpl) return;
+  metricSel.value = [...tpl.keys];
+  ElMessage.success(`原型：已应用自定义指标模板「${tpl.name}」`);
+}
+
+function delTemplate(tpl) {
+  templates.value = templates.value.filter((t) => t.id !== tpl.id);
+  saveAdTemplates(templates.value);
+  ElMessage.success(`原型：已删除自定义指标模板「${tpl.name}」`);
+}
+
+// ---------- 手动同步（同步项目与广告） ----------
+const syncVisible = ref(false);
+function openSyncDialog() { syncVisible.value = true; }
+function onSyncConfirm({ accounts, range }) {
+  const from = range && range.length === 2 ? range[0] : '不限';
+  const to = range && range.length === 2 ? range[1] : '不限';
+  ElMessage.success(`原型：已对 ${accounts.length} 个媒体账户同步项目与广告（${from} 至 ${to}）`);
+  load();
+}
+
+function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
+function onCopy() { ElMessage.info(`原型：批量快捷复制所选 ${selected.value.length} 条广告`); }
+
+// ---------- 组合筛选 ----------
+const comboVisible = ref(false);
+function onComboApply(combo) {
+  ElMessage.info(`原型：已应用筛选组合「${combo.name}」（${combo.conditions.length} 个条件）`);
+}
+
+// ---------- 批量操作 ----------
+function onBatchOp(op) {
+  batchOp.value = '';
+  if (!selected.value.length) {
+    ElMessage.warning('请先选择广告');
+    return;
+  }
+  // 启停 / 删除：原型仅提示
+  if (op === '启用' || op === '暂停' || op === '删除') {
+    ElMessage.info(`原型：已对 ${selected.value.length} 条广告执行「${op}」（不提交真实接口）`);
+    return;
+  }
+  // 线上仅提示、不弹窗的操作
+  if (AD_BATCH_OP_TOASTS[op]) {
+    ElMessage.info(AD_BATCH_OP_TOASTS[op]);
+    return;
+  }
+  batchOpName.value = op;
+  batchRows.value = selected.value.map((r) => ({ ...r }));
+  batchVisible.value = true;
+}
+
+function onBatchConfirm({ op, rows: list }) {
+  ElMessage.success(`原型：已对 ${list.length} 条广告执行「${op}」`);
+  load();
+}
+
+// 行内编辑（预算 / 出价）：打开对应的批量修改弹窗
+const editableCols = ['budget', 'bid'];
+function onEditCell(col, row) {
+  batchOpName.value = col.key === 'budget' ? '修改预算' : '修改出价';
+  batchRows.value = [{ ...row }];
+  batchVisible.value = true;
+}
+
+// ---------- 广告详情 ----------
+const detailVisible = ref(false);
+const detailRow = ref({});
+function onDetail(record) {
+  detailRow.value = record;
+  detailVisible.value = true;
+}
+
+// 详情页「查看项目广告」：按该项目过滤当前广告列表
+function onViewProject(row) {
+  if (!row || !row.campaign_name) {
+    ElMessage.info('原型：该广告未关联项目');
+    return;
+  }
+  filters.campaign = [row.campaign_name];
+  detailVisible.value = false;
+  page.value = 1;
+  load();
+}
+
+// ---------- 行内启停 ----------
+function onToggle(record) {
+  record.status = record.enabled ? 'enabled' : 'disabled';
+  ElMessage.info(`原型：${record.enabled ? '启用' : '暂停'}广告（不提交真实接口）`);
+}
 
 onMounted(load);
 </script>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 12px; }
-.filter-card { padding-bottom: 4px; }
-.filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.filter-actions { margin-left: auto; }
-.op-row { display: flex; justify-content: space-between; align-items: center; }
+.page {
+  --el-font-size-base: 15px;
+  --el-font-size-small: 14px;
+  --el-font-size-extra-small: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+}
+
+/* 筛选行：标签内嵌在下拉框内 */
+.filter-card { border-radius: 4px; }
+.filter-row { flex-wrap: nowrap !important; gap: 16px !important; margin-bottom: 0 !important; }
+/* 左侧筛选项自行换行；右侧「查询」垂直居中（与线上一致） */
+.filter-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.f-prefix { font-size: 15px; color: #4e5969; white-space: nowrap; }
+.filter-card .f-box { width: var(--f-w, 220px) !important; min-width: 0; }
+.filter-card .f-date { width: var(--f-w, 300px) !important; }
+.f-search-ico { color: #86909c; }
+.f-item { display: flex; align-items: center; }
+.f-x {
+  width: 24px;
+  height: 32px;
+  margin-left: -1px;
+  padding: 0;
+  border: 1px solid #e5e6eb;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  background: #fff;
+  color: #86909c;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.f-x:hover { color: #4e5969; }
+.name-filter { display: flex; align-items: center; }
+.filter-card .f-name-type { width: 120px !important; border-radius: 4px 0 0 4px; }
+.filter-card .f-keyword { width: 220px !important; border-radius: 0; border-left: none; }
+.f-search-btn {
+  width: 40px;
+  padding: 8px 0;
+  margin-left: 0;
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+  color: #4e5969;
+}
+.filter-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; flex: none; }
+
+/* 操作行 */
+.op-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.op-left, .op-right { display: flex; align-items: center; gap: 12px; }
+.batch-select { width: 160px !important; }
+.sel-tip { font-size: 14px; color: #86909c; }
+.light-btn {
+  --el-button-bg-color: #edf4ff;
+  --el-button-border-color: #edf4ff;
+  --el-button-hover-bg-color: #dce9ff;
+  --el-button-hover-border-color: #dce9ff;
+  --el-button-text-color: #546ef7;
+  --el-button-hover-text-color: #3b5bdb;
+}
+.tpl-name { margin-right: 8px; }
+.tpl-del { color: #c9cdd4; }
+.tpl-del:hover { color: #f53f3f; }
+
+/* 表格 */
+.sel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+/* 表头字段不换行 */
+.table-card :deep(.el-table__header-wrapper th .cell) { white-space: nowrap; }
+.scope-caret { color: #86909c; cursor: pointer; }
+.scope-caret:hover { color: #4e5969; }
+/* 表格内链接：「详情」统一为蓝色 */
+.table-card .link { color: #2563eb; cursor: pointer; }
+/* 广告名称 + 广告ID */
+.ad-cell { min-width: 0; }
+.ad-name { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-id { margin: 2px 0 0; font-size: 13px; color: #86909c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 合计行 */
+.ad-summary { margin: 0; font-size: 14px; color: #4e5969; }
+.table-card :deep(.ad-summary-row .el-table-column--selection .el-checkbox) { display: none; }
+.num-cell { display: inline-block; }
+.edit-icon { margin-left: 4px; color: #86909c; cursor: pointer; vertical-align: middle; }
+.edit-icon:hover { color: #165dff; }
+.status-text { font-size: 15px; }
+.st-green { color: #00b42a; }
+.st-gray { color: #86909c; }
+.pager { margin-top: 16px; justify-content: flex-start; }
 </style>

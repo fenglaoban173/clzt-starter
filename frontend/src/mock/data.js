@@ -4,6 +4,12 @@ import {
   CL_PROJECTS, CL_PRODUCTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_AD_TYPES, PLATFORMS,
 } from './projectFilters';
+import {
+  AD_SUBJECTS, AD_CL_PROJECTS, AD_CL_PRODUCTS, AD_OPTIMIZERS, AD_PURPOSES,
+  AD_DELIVERY_MODES, AD_AD_TYPES, AD_PLATFORMS, AD_OPT_GOALS,
+  AD_DEEP_OPT_GOALS, AD_DEEP_OPT_MODES, AD_DIAGNOSIS, AD_MATERIALS,
+  AD_STRATEGY_GROUPS,
+} from './adFilters';
 
 const now = Date.now();
 const pad = (n) => String(n).padStart(2, '0');
@@ -414,6 +420,143 @@ const ads = [
     deep_cnt: 48, deep_cost: 25.18, deep_rate: 1.2, created_at: fmt(now - 86400000 * 0.3),
   },
 ];
+
+// ---------- 广告：模拟行扩充 + 维度字段补齐 ----------
+// 线上广告列表为百级数据，本地按账户批量铺开模拟行，便于演示筛选、分页、批量操作与详情。
+const AD_CAMPAIGN_POOL = [
+  '惯宠经年-央广-智者-APP内付费-安卓-爱到此处停止-知乎拉活-1118-非原生-16',
+  '玫瑰予爱-央广-智者-APP内付费-安卓-予我玫瑰-知乎拉活-1118-非原生-16',
+  '央广-智者天下二分-知乎-APP内付费-802889244-在投',
+  '央广-短剧-小程序-付费-1107',
+  'UG-端原生IAA-漫剧-免费roi-24020',
+];
+const AD_TITLE_POOL = [
+  '很久没有一本书让我看完想给作者磕个头了，这本算一个',
+  '评论区最高赞：“看完这本我把其他小说都删了”，我本来觉得夸张，现在懂了',
+  '开局虐渣爽感拉满，多重马甲惊艳全场，女主逆袭手撕仇人，全程高能反转不断',
+];
+const AD_SELLING_POINTS = '开局虐渣爽感拉满，多重马甲惊艳全场，爱恨拉扯越看越上头，女主逆袭手撕仇人，全程高能反转不断';
+const AD_ACTION_CALL = '抢先解锁，点开结局，即刻追读，速阅全文，畅读全本';
+
+const upgradeAccs = accounts.filter((a) => (a.media || 'upgrade') === 'upgrade');
+const generatedAds = [];
+upgradeAccs.forEach((acc, ai) => {
+  const n = generatedAds.length;
+  const seed = ai * 71 + 17;
+  const stat_cost = +(pseudo(seed) * 2600 + 60).toFixed(2);
+  const show_cnt = Math.round(pseudo(seed + 1) * 160000 + 4000);
+  const click_cnt = Math.round(show_cnt * (pseudo(seed + 2) * 0.08 + 0.006));
+  const ctr = show_cnt ? +((click_cnt / show_cnt) * 100).toFixed(2) : 0;
+  const cpm = show_cnt ? +((stat_cost / show_cnt) * 1000).toFixed(2) : 0;
+  const cpc = click_cnt ? +(stat_cost / click_cnt).toFixed(2) : 0;
+  const convert_cnt = Math.round(click_cnt * (pseudo(seed + 3) * 0.05 + 0.003));
+  const convert_cost = convert_cnt ? +(stat_cost / convert_cnt).toFixed(2) : 0;
+  const convert_rate = click_cnt ? +((convert_cnt / click_cnt) * 100).toFixed(2) : 0;
+  const deep_cnt = Math.round(convert_cnt * (pseudo(seed + 4) * 0.6 + 0.05));
+  const deep_cost = deep_cnt ? +(stat_cost / deep_cnt).toFixed(2) : 0;
+  const deep_rate = click_cnt ? +((deep_cnt / click_cnt) * 100).toFixed(2) : 0;
+  const campaign_name = AD_CAMPAIGN_POOL[n % AD_CAMPAIGN_POOL.length];
+  generatedAds.push({
+    id: 950 + n,
+    name: `${campaign_name}-${ai + 1}`,
+    account_name: acc.name,
+    advertiser_id: acc.advertiser_id,
+    campaign_id: `1879000${String(300 + n)}`,
+    campaign_name,
+    ad_id: `7709392${String(1000000 + n * 137)}`,
+    status: pseudo(seed + 5) > 0.75 ? 'disabled' : 'enabled',
+    budget: Math.round(pseudo(seed + 6) * 5000 + 500),
+    reject_note: pseudo(seed + 7) > 0.86 ? '素材文案含极限词，建议修改后重新提交' : '',
+    audit_note: pseudo(seed + 8) > 0.9 ? '落地页资质待补充' : '',
+    bid: +(pseudo(seed + 9) * 60 + 8).toFixed(1),
+    deep_bid: +(pseudo(seed + 10) * 80 + 10).toFixed(1),
+    roi_coefficient: pseudo(seed + 11) > 0.7 ? +(pseudo(seed + 12) * 3).toFixed(2) : 0,
+    stat_cost, show_cnt, cpm, click_cnt, ctr, cpc, convert_cnt, convert_cost, convert_rate,
+    deep_cnt, deep_cost, deep_rate,
+    created_at: fmt(now - 86400000 * (0.2 + n * 0.05)),
+  });
+});
+ads.push(...generatedAds);
+
+// 广告行补齐账户维度字段（对齐线上广告列表「查询条件」候选项，见 mock/adFilters.js）
+ads.forEach((a) => {
+  const acc = accounts.find((x) => x.name === a.account_name) || {};
+  const seed = a.id * 37;
+  a.advertiser_id = a.advertiser_id || acc.advertiser_id || '';
+  a.campaign_name = a.campaign_name || AD_CAMPAIGN_POOL[a.id % AD_CAMPAIGN_POOL.length];
+  a.cpc = a.cpc != null ? a.cpc : (a.click_cnt ? +(a.stat_cost / a.click_cnt).toFixed(2) : 0);
+  a.subject = AD_SUBJECTS[Math.floor(pseudo(seed + 1) * AD_SUBJECTS.length)];
+  a.project = AD_CL_PROJECTS[Math.floor(pseudo(seed + 2) * AD_CL_PROJECTS.length)];
+  a.product = AD_CL_PRODUCTS[Math.floor(pseudo(seed + 3) * AD_CL_PRODUCTS.length)];
+  a.optimizer = acc.optimizer || AD_OPTIMIZERS[Math.floor(pseudo(seed + 4) * AD_OPTIMIZERS.length)];
+  a.purpose = AD_PURPOSES[Math.floor(pseudo(seed + 5) * AD_PURPOSES.length)];
+  a.delivery_mode = AD_DELIVERY_MODES[1 + Math.floor(pseudo(seed + 6) * 2)];
+  a.ad_type = AD_AD_TYPES[1 + Math.floor(pseudo(seed + 7) * 2)];
+  a.star = pseudo(seed + 8) > 0.5 ? 'yes' : 'no';
+  a.star_task_id = a.star === 'yes' ? `XG${700000 + a.id}` : '';
+  a.platform = AD_PLATFORMS[1 + Math.floor(pseudo(seed + 9) * 2)];
+  a.opt_goal = AD_OPT_GOALS[Math.floor(pseudo(seed + 10) * AD_OPT_GOALS.length)];
+  a.deep_goal = AD_DEEP_OPT_GOALS[Math.floor(pseudo(seed + 11) * AD_DEEP_OPT_GOALS.length)];
+  a.deep_mode = AD_DEEP_OPT_MODES[Math.floor(pseudo(seed + 12) * AD_DEEP_OPT_MODES.length)];
+  a.material = AD_MATERIALS[1 + Math.floor(pseudo(seed + 13) * (AD_MATERIALS.length - 1))];
+  a.diagnosis = AD_DIAGNOSIS[Math.floor(pseudo(seed + 14) * AD_DIAGNOSIS.length)];
+  a.strategy = AD_STRATEGY_GROUPS[0];
+  a.learn = pseudo(seed + 15) > 0.66 ? '学习期中' : (pseudo(seed + 18) > 0.5 ? '学习期结束' : '学习期失败');
+  a.one_click = pseudo(seed + 16) > 0.6 ? '已开启' : '未开启';
+  a.douyin_id = `dy${8000000 + a.id}`;
+  // 详情抽屉（广告 tab）字段
+  a.identity = '推广身份';
+  a.anchor_id = pseudo(seed + 17) > 0.5 ? `anchor_${700000 + a.id}` : '';
+  a.landing_type = '小程序链接';
+  a.landing_url = `https://www.chengzijianzhan.com/tetris/page/${7676317811270926362 + a.id}/`;
+  a.direct_url = 'zhihu://market/paid_column/2103155961171014405/section/2101781169624834199?utm_id=119910215108381&ad_delivery_source=svip&utm_medium=svipgrowth&utm_source=1948ae58ec3f09902a7085e8e124626a';
+  a.backup_url = '';
+  a.titles = AD_TITLE_POOL;
+  a.product_name = '知乎';
+  a.selling_points = AD_SELLING_POINTS;
+  a.action_call = AD_ACTION_CALL;
+  a.source = '-';
+  a.comment_enabled = '启用';
+  // 详情抽屉（项目 tab）字段：与线上「广告项目 - 基础信息」结构一致
+  a.promo_target = `${a.purpose}/应用调起`;
+  a.delivery_type = '常规投放';
+  a.marketing_scene = '短视频/图片';
+  a.related_product_id = `17943648498${57348188 + (a.id % 90)}`;
+  a.app_name = a.product_name;
+  a.app_package = 'com.zhihu.android';
+  a.download_type = '直接下载';
+  a.launch_type = '直接调起';
+  a.store_first = '默认下载';
+  a.download_link = 'https://apps.bytesfield.com/download/basic/cur/832e6e4488582f35c59ff7c8bd52c853d92ca7f7';
+  a.ad_content = '-';
+  a.event_asset_id = `188171855${8657561 + (a.id % 90)}`;
+  a.backup_asset_id = '-';
+  a.region = '不限';
+  a.gender = pseudo(seed + 19) > 0.5 ? '女' : '男';
+  a.age = '18-19岁、20-23岁、24-30岁、31-35岁、36-40岁、41-45岁';
+  a.media_target = '不限';
+  a.device_type = '不限';
+  a.network = '不限';
+  a.carrier = '不限';
+  a.phone_brand = '不限';
+  a.phone_price = '不限';
+  a.bid_strategy = '稳定成本（常规版）';
+  a.delivery_time = `从今天起长期投放（${fmt(now)} ~ 2036-11-18 14:15:26）`;
+  a.project_budget = `日预算（${(a.budget || 0) * 1000}元）`;
+  a.project_roi = '-';
+  a.project_bid = '-';
+  a.project_deep_bid = '-';
+  a.placements = '今日头条、西瓜视频、抖音、番茄小说';
+  a.keyword = '-';
+  a.bid_factor = '1';
+  a.target_expand = '不启用';
+  a.monitor_group = `1881718559${616219 + (a.id % 90)}`;
+  a.monitor_show = '-';
+  a.monitor_valid_point = 'https://open.zhihu.com/api/channel/unified_tracking?source=1948ae58ec3f09902a7085e8e124626a&callback=__CALLBACK_PARAM__&ts=__TS__&os=__OS__&idfa=__IDFA__&imei_md5=__IMEI__&oaid=__OAID__&caid=__CAID__&ip=__IP__&ua=__UA__&mac_md5=__MAC1__&ad_campaign=__PROJECT_ID__&ad_adgroup=__PROMOTION_ID__&ad_creative=__CID__&appkey=1355&ad_delivery_model=feed_wake_up&ad_delivery_content=short_story&ad_delivery_source=svip&package=zh_ygsdlhff';
+  a.monitor_video_play = '-';
+  a.monitor_video_finish = '-';
+  a.monitor_video_valid = '-';
+});
 
 // ---------- 托管方案 ----------
 const autoPlans = [
