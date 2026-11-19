@@ -16,8 +16,8 @@
       <div v-for="(n, i) in cfg.notes || []" :key="i" class="bo-note">{{ n }}</div>
       <div v-if="onlineToast" class="bo-note bo-note-toast">线上提示：{{ onlineToast }}</div>
 
-      <!-- 接口信息 -->
-      <div class="bo-api">
+      <!-- 接口信息（项目层级弹窗不展示） -->
+      <div v-if="!isProject" class="bo-api">
         <span class="bo-api-tag">接口</span>
         <span class="bo-api-method">{{ cfg.api.method }}</span>
         <a class="bo-api-path" :href="apiUrl" target="_blank" rel="noreferrer">{{ apiUrl }}</a>
@@ -276,8 +276,8 @@
         </div>
       </div>
 
-      <!-- 请求体预览 -->
-      <div class="bo-payload">
+      <!-- 请求体预览（项目层级弹窗不展示） -->
+      <div v-if="!isProject" class="bo-payload">
         <div class="bo-payload-head">
           <span>请求体预览</span>
           <a class="bo-link" @click="showPayload = !showPayload">{{ showPayload ? '收起' : '展开' }}</a>
@@ -289,7 +289,7 @@
     <template #footer>
       <div class="bo-foot">
         <div class="bo-foot-left">
-          <el-button size="small" @click="showPayload = !showPayload">{{ showPayload ? '收起请求体' : '查看请求体' }}</el-button>
+          <el-button v-if="!isProject" size="small" @click="showPayload = !showPayload">{{ showPayload ? '收起请求体' : '查看请求体' }}</el-button>
         </div>
         <div class="bo-foot-btns">
           <el-button @click="close">{{ cfg && cfg.cancelText ? cfg.cancelText : '取 消' }}</el-button>
@@ -328,6 +328,8 @@ const showPayload = ref(true);
 const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
 const cfg = computed(() => getBatchOpConfig(props.scope, props.op));
+// 项目层级弹窗不展示「接口信息」与「请求体预览」（与线上一致）
+const isProject = computed(() => props.scope === 'project');
 const apiUrl = computed(() => buildApiUrl(cfg.value));
 const batchLimit = BATCH_LIMIT;
 const onlineToast = computed(() => (props.scope === 'promotion' ? ONLINE_ONLY_TOAST[props.op] : ''));
