@@ -663,23 +663,27 @@ export const PROJECT_BATCH_OPS = {
       },
     }),
   },
-  修改项目否定向: {
-    title: '批量修改项目否定向',
+  批量修改否定词: {
+    title: '批量修改否定词',
     desc: (n) => `已选中 ${n} 个项目`,
-    api: { method: 'POST', path: '/open_api/v3.0/project/update/', name: '更新项目（hide_if_converted / filter_event）', scope: AUTH_PROJECT },
+    api: { method: 'POST', path: '/open_api/v3.0/tools/privative_word/project/update/', name: '批量更新项目否定词', scope: AUTH_PROJECT },
+    notes: ['当前未操作过添加/替换否定词，请手动输入否定词。'],
     fields: [
-      { key: 'hide_if_converted', label: '过滤已转化用户', type: 'radio', apiField: 'audience.hide_if_converted', required: true, default: 'NO_EXCLUDE', options: ENUMS.hideIfConverted, rule: 'NO_EXCLUDE 不限制 / PROMOTION 单元 / PROJECT 项目 / ADVERTISER 投放账户 / APP 应用 / CUSTOMER 客户 / ORGANIZATION 旧版工作台 / GLOBAL_APP 全渠道应用；点击量、展示量优化目标时不支持该字段' },
-      { key: 'converted_time_duration', label: '过滤时间范围', type: 'input', apiField: 'audience.converted_time_duration', placeholder: '请输入过滤时间范围', visibleWhen: { hide_if_converted: ['APP', 'CUSTOMER', 'ORGANIZATION', 'GLOBAL_APP'] }, rule: '详见【附录-过滤时间范围】，默认 THREE_MONTH；仅投放穿山甲版位时不支持设置' },
-      { key: 'filter_event', label: '自定义过滤事件', type: 'checkboxGroup', apiField: 'audience.filter_event[]', options: ENUMS.filterEvent, rule: 'hide_if_converted = NO_EXCLUDE 时不支持传入' },
+      { key: 'mode', label: '修改方式', type: 'radio', apiField: '-', required: true, default: '添加否定词', options: [{ label: '添加否定词', value: 'add' }, { label: '替换否定词', value: 'replace' }], rule: '添加调用 /tools/privative_word/project/add/，替换调用 /tools/privative_word/project/update/' },
+      { key: 'smsOn', label: '短信否定词开关', type: 'radio', apiField: '-', default: '不启用', options: [{ label: '不启用', value: false }, { label: '启用', value: true }], rule: '不启用时保留原否定词（替换模式下清空）' },
+      { key: 'sms_words', label: '短信否定词', type: 'textarea', apiField: 'sms_words[]', placeholder: '请粘贴或输入短信否定词，回车可换行', rule: '单行不超过 60 个字符（中文算 2 个）；一次不超过 500 行；不能包含 emoji' },
+      { key: 'preciseOn', label: '精准否定词开关', type: 'radio', apiField: '-', default: '不启用', options: [{ label: '不启用', value: false }, { label: '启用', value: true }], rule: '同短信否定词开关' },
+      { key: 'precise_words', label: '精准否定词', type: 'textarea', apiField: 'precise_words[]', placeholder: '请粘贴或输入精准否定词，回车可换行', rule: '同短信否定词限制' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      project_id: '{project_id}',
-      audience: {
-        hide_if_converted: form.hide_if_converted,
-        converted_time_duration: form.converted_time_duration || undefined,
-        filter_event: form.filter_event || [],
-      },
+      project_list: rows.map((r) => ({
+        project_id: r.id,
+        sms_words_enabled: !!form.smsOn,
+        sms_words: form.smsOn ? form.sms_words || [] : [],
+        precise_words_enabled: !!form.preciseOn,
+        precise_words: form.preciseOn ? form.precise_words || [] : [],
+      })),
     }),
   },
   修改搜索快投关键词: {

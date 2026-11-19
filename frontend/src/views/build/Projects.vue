@@ -274,6 +274,9 @@
 
     <!-- 批量修改项目名称（版式对齐线上：自定义 / 关键词替换 / 表格导入） -->
     <ProjectRenameDialog v-model="renameVisible" :projects="batchRows" @confirm="onRenameConfirm" />
+
+    <!-- 批量修改否定词（版式对齐线上：修改方式 + 短信/精准否定词开关与输入区） -->
+    <ProjectNegativeWordDialog v-model="negativeWordVisible" :projects="batchRows" @confirm="onNegativeWordConfirm" />
   </div>
 </template>
 
@@ -300,6 +303,7 @@ import ProjectDirectLinkDialog from './components/ProjectDirectLinkDialog.vue';
 import ProjectThirdTrackDialog from './components/ProjectThirdTrackDialog.vue';
 import ProjectTargetingDialog from './components/ProjectTargetingDialog.vue';
 import ProjectRenameDialog from './components/ProjectRenameDialog.vue';
+import ProjectNegativeWordDialog from './components/ProjectNegativeWordDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -334,6 +338,7 @@ const directLinkVisible = ref(false);
 const thirdTrackVisible = ref(false);
 const targetingVisible = ref(false);
 const renameVisible = ref(false);
+const negativeWordVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -773,6 +778,11 @@ async function onBatchOp(op) {
     renameVisible.value = true;
     return;
   }
+  // 「批量修改否定词」按线上版式单独成弹窗（修改方式 / 短信否定词 / 精准否定词）
+  if (op === '批量修改否定词') {
+    negativeWordVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -823,6 +833,11 @@ function onTargetingConfirm() {
 
 /** 批量修改项目名称提交 */
 function onRenameConfirm() {
+  load();
+}
+
+/** 批量修改否定词提交 */
+function onNegativeWordConfirm() {
   load();
 }
 
