@@ -262,6 +262,15 @@
 
     <!-- 修改应用商店下载（版式对齐线上：开启提示 / 应用商店下载） -->
     <ProjectAppStoreDialog v-model="appStoreVisible" :projects="batchRows" @confirm="onAppStoreConfirm" />
+
+    <!-- 修改直达链接（版式对齐线上：直达链接输入 + 字数统计） -->
+    <ProjectDirectLinkDialog v-model="directLinkVisible" :projects="batchRows" @confirm="onDirectLinkConfirm" />
+
+    <!-- 修改第三方监测链接（版式对齐线上：六类监测链接的开启开关 + 地址输入） -->
+    <ProjectThirdTrackDialog v-model="thirdTrackVisible" :projects="batchRows" @confirm="onThirdTrackConfirm" />
+
+    <!-- 修改定向（版式对齐线上：运营商定向 + 修改后定向包） -->
+    <ProjectTargetingDialog v-model="targetingVisible" :projects="batchRows" @confirm="onTargetingConfirm" />
   </div>
 </template>
 
@@ -284,6 +293,9 @@ import ProjectBudgetDialog from './components/ProjectBudgetDialog.vue';
 import ProjectScheduleDialog from './components/ProjectScheduleDialog.vue';
 import ProjectDeliveryTimeDialog from './components/ProjectDeliveryTimeDialog.vue';
 import ProjectAppStoreDialog from './components/ProjectAppStoreDialog.vue';
+import ProjectDirectLinkDialog from './components/ProjectDirectLinkDialog.vue';
+import ProjectThirdTrackDialog from './components/ProjectThirdTrackDialog.vue';
+import ProjectTargetingDialog from './components/ProjectTargetingDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -314,6 +326,9 @@ const budgetVisible = ref(false);
 const scheduleVisible = ref(false);
 const deliveryTimeVisible = ref(false);
 const appStoreVisible = ref(false);
+const directLinkVisible = ref(false);
+const thirdTrackVisible = ref(false);
+const targetingVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -733,6 +748,21 @@ async function onBatchOp(op) {
     appStoreVisible.value = true;
     return;
   }
+  // 「修改直达链接」按线上版式单独成弹窗（直达链接输入 + 字数统计）
+  if (op === '修改直达链接') {
+    directLinkVisible.value = true;
+    return;
+  }
+  // 「修改监测活动」按线上版式单独成「修改第三方监测链接」弹窗（六类链接开关 + 地址）
+  if (op === '修改监测活动') {
+    thirdTrackVisible.value = true;
+    return;
+  }
+  // 「修改定向包」按线上版式单独成「修改定向」弹窗（运营商定向 + 修改后定向）
+  if (op === '修改定向包') {
+    targetingVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -763,6 +793,21 @@ function onDeliveryTimeConfirm() {
 
 /** 修改应用商店下载提交 */
 function onAppStoreConfirm() {
+  load();
+}
+
+/** 修改直达链接提交 */
+function onDirectLinkConfirm() {
+  load();
+}
+
+/** 修改第三方监测链接提交 */
+function onThirdTrackConfirm() {
+  load();
+}
+
+/** 修改定向提交 */
+function onTargetingConfirm() {
   load();
 }
 
