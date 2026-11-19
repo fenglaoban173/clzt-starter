@@ -221,6 +221,9 @@
     <!-- 批量操作弹窗（表单字段对齐巨量引擎开放平台接口） -->
     <BatchOpDialog v-model="batchVisible" scope="project" :op="batchOpName" :rows="batchRows" @confirm="onBatchConfirm" />
 
+    <!-- 批量修改项目出价（版式对齐线上：修改规则 / 出价 / 项目列表） -->
+    <ProjectBidDialog v-model="bidVisible" :projects="batchRows" @confirm="onBidConfirm" />
+
     <!-- 批量修改项目日预算（版式对齐线上：修改规则 / 预算 / 项目列表） -->
     <ProjectBudgetDialog v-model="budgetVisible" :projects="batchRows" @confirm="onBudgetConfirm" />
 
@@ -241,6 +244,7 @@ import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
+import ProjectBidDialog from './components/ProjectBidDialog.vue';
 import ProjectBudgetDialog from './components/ProjectBudgetDialog.vue';
 import ProjectScheduleDialog from './components/ProjectScheduleDialog.vue';
 import {
@@ -267,6 +271,7 @@ const batchOp = ref('');
 const batchOpName = ref('');
 const batchRows = ref([]);
 const batchVisible = ref(false);
+const bidVisible = ref(false);
 const budgetVisible = ref(false);
 const scheduleVisible = ref(false);
 const tableRef = ref(null);
@@ -616,6 +621,11 @@ async function onBatchOp(op) {
   }
   batchOpName.value = op;
   batchRows.value = selected.value.map((r) => ({ ...r }));
+  // 「修改出价」按线上版式单独成弹窗（修改规则 / 出价 / 项目列表）
+  if (op === '修改出价') {
+    bidVisible.value = true;
+    return;
+  }
   // 「修改预算」按线上版式单独成弹窗（修改规则 / 预算 / 项目列表）
   if (op === '修改预算') {
     budgetVisible.value = true;
@@ -627,6 +637,11 @@ async function onBatchOp(op) {
     return;
   }
   batchVisible.value = true;
+}
+
+/** 批量修改项目出价提交 */
+function onBidConfirm() {
+  load();
 }
 
 /** 批量修改项目日预算提交 */
