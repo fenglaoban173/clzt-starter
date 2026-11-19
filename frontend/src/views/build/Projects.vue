@@ -60,18 +60,20 @@
             <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
           </div>
 
-          <el-date-picker
-            v-else-if="d.kind === 'daterange'"
-            v-model="filters[d.key]"
-            type="daterange"
-            unlink-panels
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            class="f-date"
-            :style="{ '--f-w': d.width + 'px' }"
-          />
+          <!-- 创建时间：标签 + 日期区间（同一外框内，与线上一致） -->
+          <div v-else-if="d.kind === 'daterange'" class="f-item f-date-item" :style="{ '--f-w': d.width + 'px' }">
+            <span class="f-prefix">{{ d.label }}：</span>
+            <el-date-picker
+              v-model="filters[d.key]"
+              type="daterange"
+              unlink-panels
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="f-date"
+            />
+          </div>
 
           <el-input
             v-else
@@ -931,7 +933,20 @@ onMounted(load);
 .filter-row { gap: 8px !important; margin-bottom: 0 !important; }
 .f-prefix { font-size: 15px; color: #4e5969; white-space: nowrap; }
 .filter-card .f-box { width: var(--f-w, 220px) !important; min-width: 0; }
-.filter-card .f-date { width: var(--f-w, 300px) !important; }
+/* 创建时间：查询条件名称 + 日期区间同处一个外框（线上一致：label 在前、区间在后） */
+.f-date-item {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: var(--f-w, 300px) !important;
+  padding: 0 8px 0 10px;
+  border: 1px solid #e5e6eb;
+  border-radius: 4px;
+  background: #fff;
+}
+.f-date-item:focus-within { border-color: var(--el-color-primary); }
+.f-date-item :deep(.el-date-editor) { flex: 1; min-width: 0; width: auto !important; border: none !important; box-shadow: none !important; }
+.f-date-item :deep(.el-range-input) { min-width: 0; }
 .f-item { display: flex; align-items: center; }
 .f-x {
   width: 24px;
