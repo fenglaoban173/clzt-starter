@@ -704,25 +704,29 @@ export const PROJECT_BATCH_OPS = {
     }),
   },
   素材一键起量: {
-    title: '设置素材一键起量',
+    title: '素材一键起量',
     desc: (n) => `已选中 ${n} 个项目`,
     api: { method: 'POST', path: '/open_api/v3.0/tools/material_raise/create/', name: '开启素材起量', scope: AUTH_PROJECT },
     fields: [
-      { key: 'material_ids', label: '素材', type: 'materialIds', apiField: 'material_ids[]', placeholder: '请选择素材', hint: '素材ID，不传默认为项目下全量可用素材' },
-      { key: 'raise_effective_type', label: '起量方案类型', type: 'radio', apiField: 'raise_info.raise_effective_type', required: true, default: 'RAISE_NOW', options: ENUMS.raiseEffectiveType },
-      { key: 'raise_budget', label: '起量预算', type: 'number', apiField: 'raise_info.raise_budget', required: true, unit: '元', placeholder: '请输入起量预算', rule: '起量预算上下限校验 [100, 9999999.99]' },
-      { key: 'start_time', label: '开始时间', type: 'datetime', apiField: 'raise_info.appoint_time.start_time', required: true, placeholder: '请选择开始时间', rule: '格式：yyyy-mm-dd hh:mm' },
-      { key: 'end_time', label: '结束时间', type: 'datetime', apiField: 'raise_info.appoint_time.end_time', required: true, placeholder: '请选择结束时间', rule: '格式：yyyy-mm-dd hh:mm' },
+      { key: 'scope', label: '起量素材范围', type: 'radio', apiField: '-', required: true, default: '全部素材', options: [{ label: '全部素材', value: 'all' }, { label: '指定素材', value: 'appoint' }], rule: '「指定素材」需先在项目主面板基于「创意素材」筛选后再启用' },
+      { key: 'budget', label: '起量预算', type: 'number', apiField: 'raise_info.raise_budget', required: true, unit: '元', placeholder: '请输入起量预算', rule: '起量预算上下限校验 [100, 9999999.99]' },
+      { key: 'timeMode', label: '起量结束时间', type: 'radio', apiField: '-', required: true, default: '固定时间', options: [{ label: '固定时间', value: 'fixed' }, { label: '动态时间', value: 'dynamic' }], rule: '固定时间取具体结束时刻；动态时间取任务开始执行后的小时数' },
+      { key: 'end_time', label: '起量结束时间', type: 'datetime', apiField: 'raise_info.appoint_time.end_time', required: true, placeholder: '请选择起量结束时间', rule: '格式：yyyy-mm-dd hh:mm' },
+      { key: 'dynamic_hours', label: '动态时长', type: 'number', apiField: 'raise_info.appoint_time.duration', required: true, placeholder: '请输入时间', rule: '任务开始执行后 N 小时为起量结束时间，取值 1~336' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      project_id: '{project_id}',
-      material_ids: form.material_ids || undefined,
-      raise_info: {
-        raise_effective_type: form.raise_effective_type,
-        raise_budget: num(form.raise_budget),
-        appoint_time: { start_time: form.start_time, end_time: form.end_time },
-      },
+      project_list: rows.map((r) => ({
+        project_id: r.id,
+        raise_info: {
+          raise_effective_type: 'RAISE_NOW',
+          raise_budget: num(r.budget !== '' && r.budget != null ? r.budget : form.budget),
+          appoint_time:
+            form.timeMode === 'dynamic'
+              ? { duration: num(form.dynamic_hours) }
+              : { start_time: form.start_time, end_time: r.endTime || form.end_time },
+        },
+      })),
     }),
   },
   批量修改项目名称: {

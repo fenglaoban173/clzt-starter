@@ -277,6 +277,9 @@
 
     <!-- 批量修改否定词（版式对齐线上：修改方式 + 短信/精准否定词开关与输入区） -->
     <ProjectNegativeWordDialog v-model="negativeWordVisible" :projects="batchRows" @confirm="onNegativeWordConfirm" />
+
+    <!-- 素材一键起量（版式对齐线上：起量素材范围 / 起量预算 / 起量结束时间 + 项目列表） -->
+    <ProjectOneClickRaiseDialog v-model="oneClickRaiseVisible" :projects="batchRows" @confirm="onOneClickRaiseConfirm" />
   </div>
 </template>
 
@@ -304,6 +307,7 @@ import ProjectThirdTrackDialog from './components/ProjectThirdTrackDialog.vue';
 import ProjectTargetingDialog from './components/ProjectTargetingDialog.vue';
 import ProjectRenameDialog from './components/ProjectRenameDialog.vue';
 import ProjectNegativeWordDialog from './components/ProjectNegativeWordDialog.vue';
+import ProjectOneClickRaiseDialog from './components/ProjectOneClickRaiseDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -339,6 +343,7 @@ const thirdTrackVisible = ref(false);
 const targetingVisible = ref(false);
 const renameVisible = ref(false);
 const negativeWordVisible = ref(false);
+const oneClickRaiseVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -783,6 +788,11 @@ async function onBatchOp(op) {
     negativeWordVisible.value = true;
     return;
   }
+  // 「素材一键起量」按线上版式单独成弹窗（起量素材范围 / 起量预算 / 起量结束时间 + 项目列表）
+  if (op === '素材一键起量') {
+    oneClickRaiseVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -838,6 +848,11 @@ function onRenameConfirm() {
 
 /** 批量修改否定词提交 */
 function onNegativeWordConfirm() {
+  load();
+}
+
+/** 素材一键起量提交 */
+function onOneClickRaiseConfirm() {
   load();
 }
 
