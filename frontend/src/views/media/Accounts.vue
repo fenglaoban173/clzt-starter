@@ -27,7 +27,7 @@
           placeholder="全部"
           :title="filters.project || ''"
         >
-          <template #prefix><span class="f-prefix">创意项目：</span></template>
+          <template #prefix><span class="f-prefix">智投项目：</span></template>
           <el-option v-for="p in matchOptions(projectOptions, queries.project, filters.project)" :key="p" :value="p" :label="p" />
         </el-select>
 
@@ -375,7 +375,7 @@ function autoWidth(label, options, min = 180) {
   return Math.max(min, (labelLen + maxLen) * FONT_SIZE + 60);
 }
 const subjectWidth = computed(() => autoWidth('账户主体：', subjectOptions.value, 220));
-const projectWidth = computed(() => autoWidth('创意项目：', projectOptions.value, 200));
+const projectWidth = computed(() => autoWidth('智投项目：', projectOptions.value, 200));
 const optimizerWidth = computed(() => autoWidth('优化师：', optimizerOptions.value, 180));
 const deptWidth = computed(() => autoWidth('部门：', deptOptions.value, 180));
 const statusWidth = computed(() => autoWidth('账户状态：', ['正常', '授权失效', '已解绑'], 190));

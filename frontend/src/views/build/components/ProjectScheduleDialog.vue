@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="批量修改时段"
-    width="992px"
+    width="984px"
     class="ps-dialog"
     :close-on-click-modal="false"
     destroy-on-close
@@ -10,8 +10,6 @@
     @open="init"
   >
     <el-form label-width="144px" label-position="left" class="ps-form">
-      <div class="ps-title">已选 {{ rows.length }} 条可操作项目</div>
-
       <!-- 修改规则 -->
       <el-form-item label="修改规则">
         <el-radio-group v-model="rule" size="small" class="ps-radio">
@@ -38,14 +36,18 @@
           <el-radio-button border value="specified">指定时间段</el-radio-button>
         </el-radio-group>
 
-        <!-- 星期 × 半小时时段栅格 -->
+        <!-- 星期 × 时段栅格 -->
         <div v-if="slotType === 'specified'" class="ps-week">
           <table class="ps-week-table">
+            <colgroup>
+              <col style="width: 72px" />
+              <col v-for="i in 48" :key="i" style="width: 12px" />
+            </colgroup>
             <thead>
               <tr>
-                <th rowspan="8" class="ps-week-td">星期/时间</th>
-                <th colspan="24">00:00 - 12:00</th>
-                <th colspan="24">12:00 - 24:00</th>
+                <th rowspan="2" class="ps-week-td">星期/时间</th>
+                <th colspan="24" class="ps-group">00:00 - 12:00</th>
+                <th colspan="24" class="ps-group">12:00 - 24:00</th>
               </tr>
               <tr class="ps-hour">
                 <td v-for="h in 24" :key="h" colspan="2">{{ h - 1 }}</td>
@@ -66,10 +68,18 @@
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="49" class="ps-tip-td">
-                  <div class="ps-tip">
-                    <span class="ps-tip-text">可拖动鼠标选择时间段</span>
+                <td colspan="49" class="ps-list-td">
+                  <!-- 已选择时段（文字版） -->
+                  <div class="ps-list-head">
+                    <span class="ps-list-title">已选择时段</span>
                     <a class="ps-clear" @click="clearSlots">清空选择</a>
+                  </div>
+                  <div class="ps-list-body">
+                    <div v-for="d in selectedDays" :key="d.name" class="ps-list-row">
+                      <span class="ps-list-day">{{ d.name }}：</span>
+                      <span class="ps-list-range">{{ d.ranges }}</span>
+                    </div>
+                    <div v-if="!selectedDays.length" class="ps-list-empty">暂无已选择的时段</div>
                   </div>
                 </td>
               </tr>
@@ -100,9 +110,20 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 const OP = '修改项目排期';
 const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
-const rule = ref('now'); // now 立即生效 / next_day 次日0时生效 / scheduled 自定义时间
+/** 线上示例时段（半小时区段区间，闭区间）：[起, 止] */
+const DEMO_SLOTS = {
+  0: [[3, 3], [19, 41]], // 星期一 01:30~02:00、09:30~21:00
+  1: [[3, 42]], // 星期二 01:30~21:30
+  2: [[3, 5], [27, 42]], // 星期三 01:30~03:00、13:30~21:30
+  3: [[3, 5], [15, 17], [21, 23], [27, 42], [44, 47]], // 星期四
+  4: [[3, 11], [21, 28], [31, 42], [45, 46]], // 星期五
+  5: [[3, 18], [20, 42]], // 星期六
+  6: [], // 星期日
+};
+
+const rule = ref('scheduled'); // now 立即生效 / next_day 次日0时生效 / scheduled 自定义时间
 const effectiveTime = ref('');
-const slotType = ref('all'); // all 不限 / specified 指定时间段
+const slotType = ref('specified'); // all 不限 / specified 指定时间段
 const slots = ref([]); // 7 天 × 48 个半小时
 
 /** 可操作项目（去掉合计行） */
@@ -120,11 +141,50 @@ const canConfirm = computed(() => {
 
 const ruleText = computed(() => ({ now: '立即生效', next_day: '次日0时生效', scheduled: '自定义时间' }[rule.value]));
 
+/** 半小时区段 → HH:MM */
+function slotText(slot) {
+  const h = Math.floor(slot / 2);
+  const m = slot % 2 ? '30' : '00';
+  return `${String(h).padStart(2, '0')}:${m}`;
+}
+
+/** 把某一天的勾选区段整理成连续区间列表 */
+function dayRanges(day) {
+  const out = [];
+  let start = -1;
+  for (let i = 0; i < 48; i += 1) {
+    if (day[i]) {
+      if (start === -1) start = i;
+    } else if (start !== -1) {
+      out.push([start, i - 1]);
+      start = -1;
+    }
+  }
+  if (start !== -1) out.push([start, 47]);
+  return out;
+}
+
+/** 已选择时段（文字版）：星期一： 01:30~02:00、09:30~21:00 */
+const selectedDays = computed(() =>
+  weekdays
+    .map((name, i) => ({
+      name,
+      ranges: dayRanges(slots.value[i] || []).map(([s, e]) => `${slotText(s)}~${e + 1 === 48 ? '24:00' : slotText(e + 1)}`).join('、'),
+    }))
+    .filter((d) => d.ranges)
+);
+
 function init() {
-  rule.value = 'now';
+  rule.value = 'scheduled';
   effectiveTime.value = '';
-  slotType.value = 'all';
-  slots.value = weekdays.map(() => Array(48).fill(false));
+  slotType.value = 'specified';
+  slots.value = weekdays.map((_, i) => {
+    const day = Array(48).fill(false);
+    (DEMO_SLOTS[i] || []).forEach(([s, e]) => {
+      for (let k = s; k <= e; k += 1) day[k] = true;
+    });
+    return day;
+  });
 }
 
 // ---- 栅格交互：点击切换 / 按住拖动连片圈选 ----
@@ -190,7 +250,6 @@ function confirm() {
 
 <style scoped>
 .ps-form { font-size: 14px; color: #1d2129; }
-.ps-title { margin-bottom: 16px; font-size: 14px; color: #1d2129; }
 
 /* 按钮组（与线上一致：选中为蓝字 + 浅蓝底 + 蓝框） */
 .ps-radio :deep(.el-radio-button__inner) {
@@ -216,12 +275,12 @@ function confirm() {
 
 .ps-date { width: 220px; }
 
-/* 星期 × 半小时栅格 */
-.ps-week { margin-top: 16px; overflow-x: auto; }
-.ps-week-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+/* 星期 × 时段栅格 */
+.ps-week { margin-top: 16px; }
+.ps-week-table { border-collapse: collapse; table-layout: fixed; width: 648px; }
 .ps-week-table th,
 .ps-week-table td {
-  border: 1px solid #e5e6eb;
+  border: 1px solid #cccccc;
   text-align: center;
   font-weight: 400;
 }
@@ -229,34 +288,56 @@ function confirm() {
   padding: 8px 0;
   font-size: 13px;
   color: #1d2129;
-  background: #f7f8fa;
+  background: #fff;
 }
+.ps-week-table .ps-group { border-right: 1px solid #c9cdd4; }
 .ps-week-table .ps-week-td {
-  width: 70px;
+  width: 72px;
   font-size: 13px;
   color: #1d2129;
-  background: #f7f8fa;
+  background: #f8f9fa;
 }
 .ps-week-table .ps-hour td {
   padding: 4px 0;
   font-size: 12px;
   color: #86909c;
-  background: #fff;
+  background: #f8f9fa;
 }
+.ps-week-table tbody tr { height: 28px; }
+.ps-week-table tbody td.ps-week-td { padding: 0; line-height: 28px; }
 .ps-week-table tbody td.ps-cell {
-  height: 26px;
+  height: 28px;
   padding: 0;
   cursor: pointer;
   background: #fff;
   transition: background 0.12s;
 }
 .ps-week-table tbody td.ps-cell:hover { background: #e8f3ff; }
-.ps-week-table tbody td.ps-cell.on { background: #2563eb; }
-.ps-week-table tbody td.ps-cell.on:hover { background: #1d4fbf; }
+.ps-week-table tbody td.ps-cell.on { background: #546ef7; }
+.ps-week-table tbody td.ps-cell.on:hover { background: #2f5fe6; }
 
-.ps-tip-td { padding: 0 !important; background: #f7f8fa; }
-.ps-tip { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; }
-.ps-tip-text { font-size: 12px; color: #86909c; }
-.ps-clear { font-size: 12px; color: #2563eb; cursor: pointer; }
-.ps-clear:hover { color: #1d4fbf; }
+/* 已选择时段（文字版） */
+.ps-list-td { padding: 0 !important; background: #fff; }
+.ps-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+}
+.ps-list-title { font-size: 14px; color: #1d2129; }
+.ps-clear { font-size: 14px; color: #165dff; cursor: pointer; }
+.ps-clear:hover { color: #0e42d2; }
+.ps-list-body { padding: 0 12px 12px; }
+.ps-list-row { display: flex; line-height: 24px; font-size: 14px; color: #1d2129; }
+.ps-list-day { flex: none; color: #1d2129; }
+.ps-list-range { min-width: 0; }
+.ps-list-empty { font-size: 14px; color: #86909c; line-height: 24px; }
+</style>
+
+<style>
+/* 弹窗外壳：与线上一致 */
+.ps-dialog .el-dialog__header { margin-right: 0; padding: 18px 20px 14px; border-bottom: 1px solid #e5e6eb; }
+.ps-dialog .el-dialog__title { font-size: 18px; font-weight: 600; color: #1d2129; }
+.ps-dialog .el-dialog__body { padding: 18px 40px 8px; }
+.ps-dialog .el-dialog__footer { padding: 12px 20px 20px; }
 </style>

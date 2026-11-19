@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="选择媒体账户"
-    width="1140px"
+    width="1100px"
     top="6vh"
     class="map-dialog"
     :close-on-click-modal="false"
@@ -11,18 +11,17 @@
     @open="init"
   >
     <div class="mp-body">
-      <!-- 第一行：智投项目 / 账户主体 -->
+      <!-- 查询条件：智投项目 / 账户主体 / 搜索字段 + 关键词 + 清空 -->
       <div class="mp-frow">
-        <el-select v-model="f.clProject" class="mp-f-select mp-f-mid" placeholder="智投项目" clearable>
+        <el-select v-model="f.clProject" class="mp-f-select mp-f-project" placeholder="智投项目" clearable>
+          <template #prefix><span class="mp-pre">智投项目:</span></template>
           <el-option v-for="o in clProjects" :key="o" :label="o" :value="o" />
         </el-select>
-        <el-select v-model="f.subject" class="mp-f-select mp-f-mid" placeholder="账户主体" clearable>
+        <el-select v-model="f.subject" class="mp-f-select mp-f-subject" placeholder="账户主体" clearable>
+          <template #prefix><span class="mp-pre">账户主体:</span></template>
           <el-option v-for="o in subjects" :key="o" :label="o" :value="o" />
         </el-select>
-      </div>
 
-      <!-- 第二行：搜索字段 + 关键词 + 清空 -->
-      <div class="mp-frow">
         <div class="mp-search-group">
           <el-select v-model="f.searchField" class="mp-f-select mp-f-short">
             <el-option label="账户ID" value="账户ID" />
@@ -33,6 +32,7 @@
           </el-input>
           <el-button class="mp-f-btn" @click="onSearch"><el-icon><Search /></el-icon></el-button>
         </div>
+
         <a class="mp-link" @click="resetFilters">清空</a>
       </div>
 
@@ -52,7 +52,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column min-width="240">
+          <el-table-column min-width="230">
             <template #header>
               <span class="mp-th-sort" :class="{ active: sortKey === 'name' }" @click="toggleSort('name')">
                 账户名称
@@ -65,7 +65,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column width="180">
+          <el-table-column width="170">
             <template #header>
               <span class="mp-th-sort" :class="{ active: sortKey === 'subject' }" @click="toggleSort('subject')">
                 账户主体
@@ -77,7 +77,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="账户备注(巨量)" width="170">
+          <el-table-column label="账户备注(巨量)" width="160">
             <template #default="{ row }">
               <span class="mp-ellipsis" :title="row.remark_jl">{{ row.remark_jl || '--' }}</span>
             </template>
@@ -89,7 +89,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column width="110" align="right">
+          <el-table-column width="110">
             <template #header>
               <span class="mp-th-sort" :class="{ active: sortKey === 'balance' }" @click="toggleSort('balance')">
                 账户余额
@@ -121,7 +121,7 @@
       <div class="mp-pager">
         <span class="mp-total">共 {{ total }} 条</span>
         <el-select v-model="pageSize" class="mp-size-select" size="small">
-          <el-option v-for="s in [20, 50, 100]" :key="s" :label="`${s}条每页`" :value="s" />
+          <el-option v-for="s in [20, 50, 100]" :key="s" :label="`${s}条/页`" :value="s" />
         </el-select>
         <el-pagination
           v-model:current-page="page"
@@ -282,10 +282,12 @@ function confirm() {
 }
 .mp-frow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .mp-f-select { flex: none; }
+.mp-f-project { width: 230px; }
+.mp-f-subject { width: 256px; }
 .mp-f-short { width: 130px; }
-.mp-f-mid { width: 220px; }
+.mp-pre { color: #1d2129; font-size: 14px; }
 .mp-search-group { display: flex; align-items: center; }
-.mp-f-input { width: 220px; }
+.mp-f-input { width: 210px; }
 .mp-f-input :deep(.el-input__wrapper) { border-radius: 4px 0 0 4px; }
 .mp-f-btn {
   width: 40px;
@@ -310,7 +312,7 @@ function confirm() {
 /* 已选 */
 .mp-selected {
   flex: none;
-  width: 184px;
+  width: 180px;
   border: 1px solid #e5e6eb;
   border-radius: 4px;
   background: #fff;
@@ -324,16 +326,20 @@ function confirm() {
   border-bottom: 1px solid #e5e6eb;
   color: #1d2129;
 }
-.mp-selected-body { max-height: 380px; overflow-y: auto; padding: 4px 0; }
+.mp-selected-body { max-height: 380px; overflow-y: auto; padding: 8px; }
 .mp-selected-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  background: #f2f3f5;
 }
-.mp-selected-item:hover { background: #f7f8fa; }
+.mp-selected-item:last-child { margin-bottom: 0; }
+.mp-selected-item:hover { background: #e5e6eb; }
 .mp-selected-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.mp-selected-del { color: #c9cdd4; cursor: pointer; }
+.mp-selected-del { flex: none; color: #86909c; cursor: pointer; }
 .mp-selected-del:hover { color: #f53f3f; }
 
 /* 分页 */
@@ -344,6 +350,7 @@ function confirm() {
 
 <style>
 /* 弹窗外壳：与线上一致（无内边距头部、body 自行排版） */
+.map-dialog { padding: 0; }
 .map-dialog .el-dialog__header { margin-right: 0; padding: 14px 20px 0; }
 .map-dialog .el-dialog__body { padding: 12px 20px 0; }
 .map-dialog .el-dialog__footer { padding: 12px 20px 16px; }

@@ -254,8 +254,14 @@
     <!-- 批量修改项目日预算（版式对齐线上：修改规则 / 预算 / 项目列表） -->
     <ProjectBudgetDialog v-model="budgetVisible" :projects="batchRows" @confirm="onBudgetConfirm" />
 
-    <!-- 批量修改时段（版式对齐线上：修改规则 / 生效时间 / 投放时段栅格） -->
+    <!-- 批量修改时段（版式对齐线上：修改规则 / 生效时间 / 投放时段栅格 + 已选择时段文字版） -->
     <ProjectScheduleDialog v-model="scheduleVisible" :projects="batchRows" @confirm="onScheduleConfirm" />
+
+    <!-- 批量修改投放时间（版式对齐线上：投放时间 / 结束日期） -->
+    <ProjectDeliveryTimeDialog v-model="deliveryTimeVisible" :projects="batchRows" @confirm="onDeliveryTimeConfirm" />
+
+    <!-- 修改应用商店下载（版式对齐线上：开启提示 / 应用商店下载） -->
+    <ProjectAppStoreDialog v-model="appStoreVisible" :projects="batchRows" @confirm="onAppStoreConfirm" />
   </div>
 </template>
 
@@ -276,6 +282,8 @@ import ProjectBidDialog from './components/ProjectBidDialog.vue';
 import ProjectDeepBidDialog from './components/ProjectDeepBidDialog.vue';
 import ProjectBudgetDialog from './components/ProjectBudgetDialog.vue';
 import ProjectScheduleDialog from './components/ProjectScheduleDialog.vue';
+import ProjectDeliveryTimeDialog from './components/ProjectDeliveryTimeDialog.vue';
+import ProjectAppStoreDialog from './components/ProjectAppStoreDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -304,6 +312,8 @@ const bidVisible = ref(false);
 const deepBidVisible = ref(false);
 const budgetVisible = ref(false);
 const scheduleVisible = ref(false);
+const deliveryTimeVisible = ref(false);
+const appStoreVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -713,6 +723,16 @@ async function onBatchOp(op) {
     scheduleVisible.value = true;
     return;
   }
+  // 「批量修改投放时间」按线上版式单独成弹窗（投放时间 / 结束日期）
+  if (op === '批量修改投放时间') {
+    deliveryTimeVisible.value = true;
+    return;
+  }
+  // 「修改应用商店下载」按线上版式单独成弹窗（开启提示 / 应用商店下载）
+  if (op === '修改应用商店下载') {
+    appStoreVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -733,6 +753,16 @@ function onBudgetConfirm() {
 
 /** 批量修改时段提交 */
 function onScheduleConfirm() {
+  load();
+}
+
+/** 批量修改投放时间提交 */
+function onDeliveryTimeConfirm() {
+  load();
+}
+
+/** 修改应用商店下载提交 */
+function onAppStoreConfirm() {
   load();
 }
 
