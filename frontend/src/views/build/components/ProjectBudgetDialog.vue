@@ -57,7 +57,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="close">关闭窗口</el-button>
+      <el-button @click="close">取消</el-button>
       <el-button type="primary" :disabled="!rows.length" @click="confirm">确定</el-button>
     </template>
   </el-dialog>

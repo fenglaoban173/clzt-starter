@@ -224,6 +224,9 @@
     <!-- 批量修改项目出价（版式对齐线上：修改规则 / 出价 / 项目列表） -->
     <ProjectBidDialog v-model="bidVisible" :projects="batchRows" @confirm="onBidConfirm" />
 
+    <!-- 批量修改项目深度出价（版式对齐线上：修改规则 / 深度出价 / 项目列表） -->
+    <ProjectDeepBidDialog v-model="deepBidVisible" :projects="batchRows" @confirm="onDeepBidConfirm" />
+
     <!-- 批量修改项目日预算（版式对齐线上：修改规则 / 预算 / 项目列表） -->
     <ProjectBudgetDialog v-model="budgetVisible" :projects="batchRows" @confirm="onBudgetConfirm" />
 
@@ -245,6 +248,7 @@ import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
 import ProjectBidDialog from './components/ProjectBidDialog.vue';
+import ProjectDeepBidDialog from './components/ProjectDeepBidDialog.vue';
 import ProjectBudgetDialog from './components/ProjectBudgetDialog.vue';
 import ProjectScheduleDialog from './components/ProjectScheduleDialog.vue';
 import {
@@ -272,6 +276,7 @@ const batchOpName = ref('');
 const batchRows = ref([]);
 const batchVisible = ref(false);
 const bidVisible = ref(false);
+const deepBidVisible = ref(false);
 const budgetVisible = ref(false);
 const scheduleVisible = ref(false);
 const tableRef = ref(null);
@@ -626,6 +631,11 @@ async function onBatchOp(op) {
     bidVisible.value = true;
     return;
   }
+  // 「修改深度出价」按出价弹窗版式单独成弹窗（修改规则 / 深度出价 / 项目列表）
+  if (op === '修改深度出价') {
+    deepBidVisible.value = true;
+    return;
+  }
   // 「修改预算」按线上版式单独成弹窗（修改规则 / 预算 / 项目列表）
   if (op === '修改预算') {
     budgetVisible.value = true;
@@ -641,6 +651,11 @@ async function onBatchOp(op) {
 
 /** 批量修改项目出价提交 */
 function onBidConfirm() {
+  load();
+}
+
+/** 批量修改项目深度出价提交 */
+function onDeepBidConfirm() {
   load();
 }
 

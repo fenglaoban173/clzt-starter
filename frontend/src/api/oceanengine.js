@@ -520,13 +520,19 @@ export const PROJECT_BATCH_OPS = {
     }),
   },
   修改深度出价: {
-    title: '批量修改深度出价',
-    desc: (n) => `已选中 ${n} 个项目`,
+    title: '批量修改项目深度出价',
+    desc: (n) => `已选 ${n} 条可操作项目`,
     api: { method: 'POST', path: '/open_api/v3.0/project/deep_cpa_bid/update/', name: '批量更新深层项目出价', scope: AUTH_PROJECT },
+    // 线上「修改深度出价」走独立弹窗 ProjectDeepBidDialog：修改规则 / 深度出价批量 / 项目列表
     fields: [
+      { key: 'bid_mode', label: '深度出价修改方式', type: 'radio', apiField: '-', required: true, default: 'set', options: [{ label: '修改为', value: 'set' }, { label: '提高', value: 'inc' }, { label: '降低', value: 'dec' }, { label: '按 % 提高', value: 'incPct' }, { label: '按 % 降低', value: 'decPct' }], rule: '弹窗内「深度出价」下拉，决定各项目「分别修改深度出价」的换算方式（提高 / 降低均基于当前深度出价）' },
       { key: 'deepbid', label: '深度出价', type: 'number', apiField: 'data[].deepbid', required: true, unit: '元', placeholder: '请输入深度出价', rule: '深度出价，单位「元」，精度两位小数' },
+      { key: 'each', label: '分别修改深度出价', type: 'table', apiField: 'data[].deepbid', columns: [{ key: 'deepbid', label: '分别修改深度出价', placeholder: '请输入深度出价' }], rule: '按「深度出价修改方式」换算后写入各项目的目标深度出价' },
     ],
-    build: (rows, form) => ({ advertiser_id: '{advertiser_id}', data: rows.map((r) => ({ project_id: r.id, deepbid: num(form.deepbid) })) }),
+    build: (rows, form) => ({
+      advertiser_id: '{advertiser_id}',
+      data: rows.map((r) => ({ project_id: r.id, deepbid: num(r.__deepbid) })),
+    }),
   },
   修改出价与深度出价: {
     title: '批量修改出价与深度出价',
