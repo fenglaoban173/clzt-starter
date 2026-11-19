@@ -694,16 +694,14 @@ export const PROJECT_BATCH_OPS = {
     title: '批量修改搜索快投关键词',
     desc: (n) => `已选中 ${n} 个项目`,
     api: { method: 'POST', path: '/open_api/v3.0/project/update/', name: '更新项目（keywords）', scope: AUTH_PROJECT },
+    // 线上「修改搜索快投关键词」走独立弹窗 ProjectSearchKeywordDialog：关键词列表逐行增删
+    // （按需求移除「出价系数 search_bid_ratio」与「智能拓流 auto_extend_traffic」两项）
     fields: [
-      { key: 'search_bid_ratio', label: '出价系数', type: 'number', apiField: 'search_bid_ratio', placeholder: '请输入出价系数', rule: '默认系数为 1，可通过【获取快投推荐出价系数】查询，小数点后最多两位，取值范围 [1.00, 2.00]' },
-      { key: 'auto_extend_traffic', label: '智能拓流', type: 'radio', apiField: 'auto_extend_traffic', required: true, default: 'ON', options: ENUMS.onOff, rule: '仅使用自定义关键词（未设置蓝海关键词）时支持设置为 OFF；点击量优化目标时仅支持 OFF' },
       { key: 'keywords', label: '关键词', type: 'keywords', apiField: 'keywords[]', required: true, rule: '关键词长度不超过 30（汉字计 1，英文字符计 0.5），不能包含 emoji；匹配类型 EXTENSIVE 广泛 / PHRASE 短语 / PRECISION 精确；bid 取值 0.2～999.0' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
       project_id: '{project_id}',
-      search_bid_ratio: num(form.search_bid_ratio),
-      auto_extend_traffic: form.auto_extend_traffic,
       keywords: (form.keywords || []).map((k) => ({ word: k.word, match_type: k.match_type, bid: num(k.bid) })),
     }),
   },

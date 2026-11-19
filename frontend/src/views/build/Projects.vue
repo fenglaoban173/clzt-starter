@@ -283,6 +283,9 @@
 
     <!-- 批量修改ROI系数（列表形式：左侧项目名称，右侧每个项目单独填写 ROI 系数） -->
     <ProjectRoiCoefficientDialog v-model="roiCoefficientVisible" :projects="batchRows" @confirm="onRoiCoefficientConfirm" />
+
+    <!-- 批量修改搜索快投关键词（关键词列表：关键词 / 匹配类型 / 出价 / 操作 + 添加关键词） -->
+    <ProjectSearchKeywordDialog v-model="searchKeywordVisible" :projects="batchRows" @confirm="onSearchKeywordConfirm" />
   </div>
 </template>
 
@@ -312,6 +315,7 @@ import ProjectRenameDialog from './components/ProjectRenameDialog.vue';
 import ProjectNegativeWordDialog from './components/ProjectNegativeWordDialog.vue';
 import ProjectOneClickRaiseDialog from './components/ProjectOneClickRaiseDialog.vue';
 import ProjectRoiCoefficientDialog from './components/ProjectRoiCoefficientDialog.vue';
+import ProjectSearchKeywordDialog from './components/ProjectSearchKeywordDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -349,6 +353,7 @@ const renameVisible = ref(false);
 const negativeWordVisible = ref(false);
 const oneClickRaiseVisible = ref(false);
 const roiCoefficientVisible = ref(false);
+const searchKeywordVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -803,6 +808,11 @@ async function onBatchOp(op) {
     roiCoefficientVisible.value = true;
     return;
   }
+  // 「修改搜索快投关键词」按线上版式单独成弹窗（关键词列表 / 匹配类型 / 出价 / 操作 + 添加关键词）
+  if (op === '修改搜索快投关键词') {
+    searchKeywordVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -868,6 +878,11 @@ function onOneClickRaiseConfirm() {
 
 /** 批量修改ROI系数提交 */
 function onRoiCoefficientConfirm() {
+  load();
+}
+
+/** 批量修改搜索快投关键词提交 */
+function onSearchKeywordConfirm() {
   load();
 }
 
