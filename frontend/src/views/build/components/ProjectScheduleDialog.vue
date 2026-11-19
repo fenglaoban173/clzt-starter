@@ -110,18 +110,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 const OP = '修改项目排期';
 const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
-/** 线上示例时段（半小时区段区间，闭区间）：[起, 止] */
-const DEMO_SLOTS = {
-  0: [[3, 3], [19, 41]], // 星期一 01:30~02:00、09:30~21:00
-  1: [[3, 42]], // 星期二 01:30~21:30
-  2: [[3, 5], [27, 42]], // 星期三 01:30~03:00、13:30~21:30
-  3: [[3, 5], [15, 17], [21, 23], [27, 42], [44, 47]], // 星期四
-  4: [[3, 11], [21, 28], [31, 42], [45, 46]], // 星期五
-  5: [[3, 18], [20, 42]], // 星期六
-  6: [], // 星期日
-};
-
-const rule = ref('scheduled'); // now 立即生效 / next_day 次日0时生效 / scheduled 自定义时间
+const rule = ref('now'); // now 立即生效 / next_day 次日0时生效 / scheduled 自定义时间
 const effectiveTime = ref('');
 const slotType = ref('specified'); // all 不限 / specified 指定时间段
 const slots = ref([]); // 7 天 × 48 个半小时
@@ -175,16 +164,11 @@ const selectedDays = computed(() =>
 );
 
 function init() {
-  rule.value = 'scheduled';
+  rule.value = 'now';
   effectiveTime.value = '';
   slotType.value = 'specified';
-  slots.value = weekdays.map((_, i) => {
-    const day = Array(48).fill(false);
-    (DEMO_SLOTS[i] || []).forEach(([s, e]) => {
-      for (let k = s; k <= e; k += 1) day[k] = true;
-    });
-    return day;
-  });
+  // 默认不预勾选任何时段（由用户在栅格上选择）
+  slots.value = weekdays.map(() => Array(48).fill(false));
 }
 
 // ---- 栅格交互：点击切换 / 按住拖动连片圈选 ----
