@@ -15,7 +15,7 @@
 
       <!-- 开启提示 -->
       <div class="ptt-warn">
-        <span class="ptt-warn-icon">!</span>
+        <el-icon class="ptt-warn-icon"><WarningFilled /></el-icon>
         <span class="ptt-warn-text">开启后才会修改该链接内容，不填则原链接将置为空，不开启时不会修改原链接内容</span>
       </div>
 
@@ -61,6 +61,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import { WarningFilled } from '@element-plus/icons-vue';
 import { getBatchOpConfig } from '@/api/oceanengine';
 
 const props = defineProps({
@@ -158,15 +159,8 @@ function confirm() {
 .ptt-warn { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
 .ptt-warn-icon {
   flex: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #ff9b48;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-  text-align: center;
+  font-size: 14px;
+  color: #ff9b48;
 }
 .ptt-warn-text { font-size: 14px; color: #333; }
 
@@ -180,17 +174,19 @@ function confirm() {
   padding: 9px 12px;
   font-size: 12px;
   line-height: 12px;
-  color: #333;
+  color: #606266;
   background: #fff;
-  border-color: #dcdfe6;
+  border: 1px solid #dcdfe6;
+  outline: none;
   box-shadow: none;
 }
 .ptt-radio :deep(.el-radio-button.is-active .el-radio-button__inner) {
   color: #197afb;
   background: #d6eaff;
   border-color: #197afb;
-  box-shadow: -1px 0 0 0 #197afb;
+  box-shadow: none;
 }
+.ptt-radio :deep(.el-radio-button:not(:first-child) .el-radio-button__inner) { border-left-color: #606266; }
 .ptt-radio :deep(.el-radio-button:first-child .el-radio-button__inner) { border-radius: 3px 0 0 3px; }
 .ptt-radio :deep(.el-radio-button:last-child .el-radio-button__inner) { border-radius: 0 3px 3px 0; }
 

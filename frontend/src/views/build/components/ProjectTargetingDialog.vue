@@ -14,7 +14,7 @@
 
       <!-- 覆盖式修改提示 -->
       <div class="ptg-warn">
-        <span class="ptg-warn-icon">!</span>
+        <el-icon class="ptg-warn-icon"><WarningFilled /></el-icon>
         <div class="ptg-warn-body">
           <p>
             1) 项目定向修改为覆盖式修改，确认修改后将会把项目中的定向内容改为所选定向包内容，且定向与项目原有关联关系将解绑，请注意操作。
@@ -32,7 +32,7 @@
             <el-radio-button border :value="0">不使用</el-radio-button>
             <el-radio-button border :value="1">使用</el-radio-button>
           </el-radio-group>
-          <span class="ptg-tip"><span class="ptg-tip-icon">!</span>运营商定向仅对通信行业有效</span>
+          <span class="ptg-tip"><el-icon class="ptg-tip-icon"><WarningFilled /></el-icon>运营商定向仅对通信行业有效</span>
         </el-form-item>
 
         <!-- 修改后定向 -->
@@ -54,6 +54,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import { WarningFilled } from '@element-plus/icons-vue';
 import { getBatchOpConfig } from '@/api/oceanengine';
 import { mockDb } from '@/mock/data';
 
@@ -119,28 +120,15 @@ function confirm() {
 }
 .ptg-count { font-size: 14px; color: #606266; }
 
-/* 覆盖式修改提示 */
-.ptg-warn { display: flex; align-items: flex-start; gap: 8px; margin: 16px 0; }
-.ptg-warn-icon {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-top: 4px;
-  border-radius: 50%;
-  background: #ff9b48;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-  text-align: center;
-}
+/* 覆盖式修改提示（与线上一致：14px 警告图标 + 18px 行高 + 16px 段间距） */
+.ptg-warn { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0; }
+.ptg-warn-icon { flex: none; margin-top: 9px; font-size: 14px; color: #ff9b48; }
 .ptg-warn-body { min-width: 0; }
-.ptg-warn-body p { margin: 0 0 12px; font-size: 14px; line-height: 22px; color: #666; }
-.ptg-warn-body p:last-child { margin-bottom: 0; }
+.ptg-warn-body p { margin: 0 0 16px; font-size: 14px; line-height: 18px; color: #666; }
 
-.ptg-form :deep(.el-form-item) { margin-bottom: 20px; }
+.ptg-form :deep(.el-form-item) { margin-bottom: 24px; }
 .ptg-form :deep(.el-form-item__label) { font-size: 14px; color: #666; }
-.ptg-form :deep(.el-form-item__content) { display: flex; align-items: center; gap: 12px; }
+.ptg-form :deep(.el-form-item__content) { display: flex; align-items: center; gap: 0; }
 
 /* 不使用 / 使用（选中为蓝字 + 浅蓝底 + 蓝框，80×32） */
 .ptg-radio :deep(.el-radio-button__inner) {
@@ -148,39 +136,38 @@ function confirm() {
   padding: 9px 12px;
   font-size: 12px;
   line-height: 12px;
-  color: #333;
+  color: #606266;
   background: #fff;
-  border-color: #dcdfe6;
+  border: 1px solid #dcdfe6;
+  outline: none;
   box-shadow: none;
 }
 .ptg-radio :deep(.el-radio-button.is-active .el-radio-button__inner) {
   color: #197afb;
   background: #d6eaff;
   border-color: #197afb;
-  box-shadow: -1px 0 0 0 #197afb;
+  box-shadow: none;
 }
+.ptg-radio :deep(.el-radio-button:not(:first-child) .el-radio-button__inner) { border-left-color: #606266; }
 .ptg-radio :deep(.el-radio-button:first-child .el-radio-button__inner) { border-radius: 3px 0 0 3px; }
 .ptg-radio :deep(.el-radio-button:last-child .el-radio-button__inner) { border-radius: 0 3px 3px 0; }
 
-/* 橙色提示 */
-.ptg-tip { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: #ff9b48; }
-.ptg-tip-icon {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #ff9b48;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-  text-align: center;
+/* 橙色提示（12px，与线上一致） */
+.ptg-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 16px;
+  font-size: 12px;
+  line-height: 32px;
+  color: #ff9b48;
 }
+.ptg-tip-icon { flex: none; font-size: 12px; color: #ff9b48; }
 
 .ptg-select { flex: none; width: 360px; }
 .ptg-select :deep(.el-select__wrapper) { border-radius: 2px; }
 .ptg-select :deep(.el-select__placeholder),
-.ptg-select :deep(.el-select__input) { font-size: 13px; }
+.ptg-select :deep(.el-select__input) { font-size: 12px; }
 </style>
 
 <style>

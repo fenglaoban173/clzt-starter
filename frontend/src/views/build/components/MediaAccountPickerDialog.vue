@@ -300,8 +300,8 @@ function confirm() {
 .mp-suffix-icon { color: #86909c; cursor: pointer; }
 .mp-link { color: #165dff; cursor: pointer; font-size: 14px; }
 
-/* 账户列表 + 已选 */
-.mp-content { display: flex; gap: 12px; align-items: flex-start; }
+/* 账户列表 + 已选（已选面板默认展开，空态也占满高度） */
+.mp-content { display: flex; gap: 12px; align-items: stretch; }
 .mp-table { flex: 1; min-width: 0; }
 .mp-th-sort { display: inline-flex; align-items: center; gap: 2px; cursor: pointer; }
 .mp-th-sort.active { color: #165dff; }
@@ -313,6 +313,8 @@ function confirm() {
 .mp-selected {
   flex: none;
   width: 180px;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #e5e6eb;
   border-radius: 4px;
   background: #fff;
@@ -326,7 +328,7 @@ function confirm() {
   border-bottom: 1px solid #e5e6eb;
   color: #1d2129;
 }
-.mp-selected-body { max-height: 380px; overflow-y: auto; padding: 8px; }
+.mp-selected-body { flex: 1; min-height: 0; max-height: 380px; overflow-y: auto; padding: 8px; }
 .mp-selected-item {
   display: flex;
   align-items: center;
