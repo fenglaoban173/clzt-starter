@@ -226,7 +226,7 @@
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { CaretBottom, Close, Delete, Operation, Search } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import { buildApi, mediaApi } from '@/api/media';
@@ -235,7 +235,6 @@ import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
-import { getBatchOpConfig } from '@/api/oceanengine';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -560,11 +559,49 @@ function onSyncConfirm({ accounts, range }) {
 }
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
 
-// 批量操作：表单字段对齐巨量引擎开放平台接口（见 src/api/oceanengine.js）
-function onBatchOp(op) {
+// 批量操作：
+// · 启用 / 暂停 / 删除 没有可填参数 → 前端框架标准二次确认弹窗（ElMessageBox）
+// · 其余 15 项按表单弹窗处理（字段见 src/api/oceanengine.js）
+const PROJECT_CONFIRM_OPS = {
+  启用: {
+    title: '启用项目',
+    message: (n) => `确定要启用所选的 ${n} 个项目吗？`,
+    done: (n) => `原型：已启用 ${n} 个项目`,
+  },
+  暂停: {
+    title: '暂停项目',
+    message: (n) => `确定要暂停所选的 ${n} 个项目吗？暂停后项目将不再投放。`,
+    done: (n) => `原型：已暂停 ${n} 个项目`,
+  },
+  删除: {
+    title: '删除项目',
+    message: (n) => `确定要删除所选的 ${n} 个项目吗？删除后不可恢复。`,
+    type: 'warning',
+    done: (n) => `原型：已删除 ${n} 个项目`,
+  },
+};
+
+async function onBatchOp(op) {
   batchOp.value = '';
   if (!selected.value.length) {
     ElMessage.warning('请先选择项目');
+    return;
+  }
+  const conf = PROJECT_CONFIRM_OPS[op];
+  if (conf) {
+    const n = selected.value.length;
+    try {
+      await ElMessageBox.confirm(conf.message(n), conf.title, {
+        type: conf.type || 'info',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        closeOnClickModal: false,
+      });
+    } catch (e) {
+      return; // 取消
+    }
+    ElMessage.success(conf.done(n));
+    load();
     return;
   }
   batchOpName.value = op;
@@ -573,8 +610,7 @@ function onBatchOp(op) {
 }
 
 function onBatchConfirm({ op, rows: list }) {
-  const c = getBatchOpConfig('project', op);
-  ElMessage.success(`原型：已对 ${list.length} 条项目执行「${op}」→ ${c ? c.api.name : ''}`);
+  ElMessage.success(`原型：已对 ${list.length} 个项目执行「${op}」`);
   load();
 }
 

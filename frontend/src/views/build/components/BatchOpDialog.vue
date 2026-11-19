@@ -240,8 +240,8 @@
           <!-- 兜底 -->
           <el-input v-else v-model="form[f.key]" :placeholder="f.placeholder" />
 
-          <!-- 字段级说明：接口字段名 + 取值限制 -->
-          <div v-if="f.apiField" class="bo-field-meta">
+          <!-- 字段级说明：接口字段名 + 取值限制（项目层级不展示接口原始字段） -->
+          <div v-if="f.apiField && !isProject" class="bo-field-meta">
             <span class="bo-api-field">{{ f.apiField }}</span>
             <span v-if="f.rule" class="bo-rule-text">{{ f.rule }}</span>
             <span v-if="f.apiRef" class="bo-rule-text">取值来源：{{ f.apiRef }}</span>
@@ -253,8 +253,8 @@
       <div v-if="hasSchedule" class="bo-schedule">
         <div class="bo-schedule-title">
           <span class="bo-sched-label">{{ scheduleField ? scheduleField.label : '投放时段' }}</span>
-          <span v-if="scheduleField && scheduleField.apiField" class="bo-api-field">{{ scheduleField.apiField }}</span>
-          <span v-if="scheduleField && scheduleField.rule" class="bo-rule-text">{{ scheduleField.rule }}</span>
+          <span v-if="scheduleField && scheduleField.apiField && !isProject" class="bo-api-field">{{ scheduleField.apiField }}</span>
+          <span v-if="scheduleField && scheduleField.rule && !isProject" class="bo-rule-text">{{ scheduleField.rule }}</span>
         </div>
         <div class="bo-schedule-head">
           <span class="bo-corner"></span>
@@ -271,7 +271,7 @@
           />
         </div>
         <div class="bo-schedule-foot">
-          <span class="bo-tip">半小时为最小粒度（每天 48 段），对应 schedule_time 的 48×7 位 0/1 字符串</span>
+          <span class="bo-tip">{{ isProject ? '半小时为最小粒度（每天 48 段）' : '半小时为最小粒度（每天 48 段），对应 schedule_time 的 48×7 位 0/1 字符串' }}</span>
           <a class="bo-link" @click="clearSchedule">清空选择</a>
         </div>
       </div>

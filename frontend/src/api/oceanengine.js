@@ -640,7 +640,7 @@ export const PROJECT_BATCH_OPS = {
     title: '批量修改定向包',
     desc: (n) => `已选中 ${n} 个项目`,
     api: { method: 'POST', path: '/open_api/v3.0/project/update/', name: '更新项目（audience.audience_package_id）', scope: AUTH_PROJECT },
-    notes: ['若需通过人群定向参数修改定向信息，需将原创建时传入的定向包 ID 清空（audience_package_id = 0）。'],
+    notes: ['若需通过人群定向参数修改定向信息，需将原创建时传入的定向包 ID 清空。'],
     fields: [
       { key: 'audience_package_id', label: '定向包', type: 'select', apiField: 'audience.audience_package_id', required: true, placeholder: '请选择定向包', options: [], apiRef: '/open_api/v3.0/audience_package/get/', rule: '定向包 ID 由【工具-定向包管理-获取定向包】获取；ad_type = SEARCH 时仅支持搜索定向包；delivery_mode = PROCEDURAL 且 landing_type = APP/MICRO_GAME 时不支持定向包' },
       { key: 'gender', label: '受众性别', type: 'radio', apiField: 'audience.gender', required: false, default: 'NONE', options: ENUMS.gender },
