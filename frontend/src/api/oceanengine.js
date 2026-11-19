@@ -59,6 +59,7 @@ export const ENUMS = {
   scheduleScene: [
     { label: '立即生效', value: 'REALTIME' },
     { label: '次日0点生效', value: 'NEXT_DAY' },
+    { label: '自定义时间', value: 'CUSTOM_TIME' },
   ],
   downloadMode: [
     { label: '优先商店下载', value: 'APP_STORE_DELIVERY' },
@@ -558,19 +559,23 @@ export const PROJECT_BATCH_OPS = {
     }),
   },
   修改项目排期: {
-    title: '批量修改项目排期',
-    desc: (n) => `已选中 ${n} 个项目`,
-    api: { method: 'POST', path: '/open_api/v3.0/project/schedule_time/update/ + /open_api/v3.0/project/week_schedule/update/', name: '批量更新项目投放时间 + 批量更新项目投放时段', scope: AUTH_PROJECT },
+    title: '批量修改时段',
+    desc: (n) => `已选 ${n} 条可操作项目`,
+    api: { method: 'POST', path: '/open_api/v3.0/project/week_schedule/update/', name: '批量更新项目投放时段', scope: AUTH_PROJECT },
+    // 线上「修改项目排期」走独立弹窗 ProjectScheduleDialog：修改规则 / 生效时间 / 投放时段栅格
     fields: [
-      { key: 'schedule_type', label: '投放时间类型', type: 'radio', apiField: 'data[].schedule_type', required: true, default: 'SCHEDULE_FROM_NOW', options: ENUMS.scheduleType, rule: 'SCHEDULE_FROM_NOW 从今天起长期投放（默认）/ SCHEDULE_START_END 设置开始和结束日期；不支持在批量更新接口中修改为其他投放时间类型' },
-      { key: 'end_time', label: '结束投放时间', type: 'datetime', apiField: 'data[].end_time', required: true, placeholder: '请选择结束日期', visibleWhen: { schedule_type: 'SCHEDULE_START_END' }, rule: '当 schedule_type = SCHEDULE_START_END 时必填，时间必须到秒级' },
+      { key: 'schedule_scene', label: '修改规则', type: 'radio', apiField: 'data[].schedule_scene', required: true, default: 'REALTIME', options: ENUMS.scheduleScene, rule: 'REALTIME 立即生效 / NEXT_DAY 次日 0 点生效 / CUSTOM_TIME 自定义时间（需配合 effective_time）' },
+      { key: 'effective_time', label: '生效时间', type: 'datetime', apiField: 'data[].effective_time', placeholder: '请选择生效时间', visibleWhen: { schedule_scene: 'CUSTOM_TIME' }, rule: 'schedule_scene = CUSTOM_TIME 时必填' },
       { key: 'schedule_time', label: '投放时段', type: 'schedule', apiField: 'data[].schedule_time', required: true, rule: '格式是 48×7 位字符串（每天 48 个半小时区段）；修改项目投放时段后，新时段会覆盖项目下全部单元' },
-      { key: 'schedule_scene', label: '生效方式', type: 'radio', apiField: 'data[].schedule_scene', required: true, default: 'REALTIME', options: ENUMS.scheduleScene, rule: 'NEXT_DAY 次日 0 点生效 / REALTIME 立即生效（默认）' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      schedule_time_payload: { advertiser_id: '{advertiser_id}', data: rows.map((r) => ({ project_id: r.id, schedule_type: form.schedule_type, end_time: form.end_time })) },
-      week_schedule_payload: { advertiser_id: '{advertiser_id}', data: rows.map((r) => ({ project_id: r.id, schedule_time: form.schedule_time, schedule_scene: form.schedule_scene })) },
+      data: rows.map((r) => ({
+        project_id: r.id,
+        schedule_scene: form.schedule_scene,
+        effective_time: form.schedule_scene === 'CUSTOM_TIME' ? form.effective_time : undefined,
+        schedule_time: form.schedule_time,
+      })),
     }),
   },
   批量修改投放时间: {

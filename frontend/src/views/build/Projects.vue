@@ -223,6 +223,9 @@
 
     <!-- 批量修改项目日预算（版式对齐线上：修改规则 / 预算 / 项目列表） -->
     <ProjectBudgetDialog v-model="budgetVisible" :projects="batchRows" @confirm="onBudgetConfirm" />
+
+    <!-- 批量修改时段（版式对齐线上：修改规则 / 生效时间 / 投放时段栅格） -->
+    <ProjectScheduleDialog v-model="scheduleVisible" :projects="batchRows" @confirm="onScheduleConfirm" />
   </div>
 </template>
 
@@ -239,6 +242,7 @@ import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
 import ProjectBudgetDialog from './components/ProjectBudgetDialog.vue';
+import ProjectScheduleDialog from './components/ProjectScheduleDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -264,6 +268,7 @@ const batchOpName = ref('');
 const batchRows = ref([]);
 const batchVisible = ref(false);
 const budgetVisible = ref(false);
+const scheduleVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -616,11 +621,21 @@ async function onBatchOp(op) {
     budgetVisible.value = true;
     return;
   }
+  // 「修改项目排期」按线上版式单独成「批量修改时段」弹窗（修改规则 / 生效时间 / 投放时段栅格）
+  if (op === '修改项目排期') {
+    scheduleVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
 /** 批量修改项目日预算提交 */
 function onBudgetConfirm() {
+  load();
+}
+
+/** 批量修改时段提交 */
+function onScheduleConfirm() {
   load();
 }
 
