@@ -280,6 +280,9 @@
 
     <!-- 素材一键起量（版式对齐线上：起量素材范围 / 起量预算 / 起量结束时间 + 项目列表） -->
     <ProjectOneClickRaiseDialog v-model="oneClickRaiseVisible" :projects="batchRows" @confirm="onOneClickRaiseConfirm" />
+
+    <!-- 批量修改ROI系数（列表形式：左侧项目名称，右侧每个项目单独填写 ROI 系数） -->
+    <ProjectRoiCoefficientDialog v-model="roiCoefficientVisible" :projects="batchRows" @confirm="onRoiCoefficientConfirm" />
   </div>
 </template>
 
@@ -308,6 +311,7 @@ import ProjectTargetingDialog from './components/ProjectTargetingDialog.vue';
 import ProjectRenameDialog from './components/ProjectRenameDialog.vue';
 import ProjectNegativeWordDialog from './components/ProjectNegativeWordDialog.vue';
 import ProjectOneClickRaiseDialog from './components/ProjectOneClickRaiseDialog.vue';
+import ProjectRoiCoefficientDialog from './components/ProjectRoiCoefficientDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -344,6 +348,7 @@ const targetingVisible = ref(false);
 const renameVisible = ref(false);
 const negativeWordVisible = ref(false);
 const oneClickRaiseVisible = ref(false);
+const roiCoefficientVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -793,6 +798,11 @@ async function onBatchOp(op) {
     oneClickRaiseVisible.value = true;
     return;
   }
+  // 「修改ROI系数」按列表形式单独成弹窗（左侧项目名称 / 右侧每个项目单独填写 ROI 系数）
+  if (op === '修改ROI系数') {
+    roiCoefficientVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -853,6 +863,11 @@ function onNegativeWordConfirm() {
 
 /** 素材一键起量提交 */
 function onOneClickRaiseConfirm() {
+  load();
+}
+
+/** 批量修改ROI系数提交 */
+function onRoiCoefficientConfirm() {
   load();
 }
 

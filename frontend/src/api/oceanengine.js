@@ -538,10 +538,14 @@ export const PROJECT_BATCH_OPS = {
     title: '批量修改ROI系数',
     desc: (n) => `已选中 ${n} 个项目`,
     api: { method: 'POST', path: '/open_api/v3.0/project/roigoal/update/', name: '批量修改项目ROI系数', scope: AUTH_PROJECT },
+    // 线上「修改ROI系数」走独立弹窗 ProjectRoiCoefficientDialog：项目列表逐行填写，每个项目单独设置 ROI 系数
     fields: [
       { key: 'roi_goal', label: 'ROI系数', type: 'number', apiField: 'data[].roi_goal', required: true, placeholder: '请输入ROI系数', rule: '深度转化ROI系数：应用 / 自动投放项目范围 [0.01,5]，电商投放 / 自动投放项目范围 [0.01,100]，均仅支持最多 4 位小数；电商投放、自动投放、周期稳投项目只允许调小，新建 7 天内每自然日最多成功修改 1 次' },
     ],
-    build: (rows, form) => ({ advertiser_id: '{advertiser_id}', data: rows.map((r) => ({ project_id: r.id, roi_goal: num(form.roi_goal) })) }),
+    build: (rows, form) => ({
+      advertiser_id: '{advertiser_id}',
+      data: rows.map((r) => ({ project_id: r.id, roi_goal: num(r.roi_goal !== undefined && r.roi_goal !== '' ? r.roi_goal : form.roi_goal) })),
+    }),
   },
   修改预算: {
     title: '批量修改预算',
