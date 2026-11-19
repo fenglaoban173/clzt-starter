@@ -106,8 +106,8 @@
       <div class="op-row">
         <div class="op-left">
           <el-button @click="onAddAccount"><el-icon><Plus /></el-icon>添加账户</el-button>
-          <el-dropdown trigger="click" @command="onBatchOp">
-            <el-button>批量操作<el-icon class="el-icon--right"><CaretBottom /></el-icon></el-button>
+          <el-dropdown trigger="click" :disabled="!selected.length" @command="onBatchOp">
+            <el-button :disabled="!selected.length">批量操作<el-icon class="el-icon--right"><CaretBottom /></el-icon></el-button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="rename">批量修改账户名称</el-dropdown-item>
@@ -117,7 +117,7 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <span class="sel-tip">已选择{{ selected.length }}个媒体账户</span>
+          <span v-if="selected.length" class="sel-tip">已选择{{ selected.length }}个媒体账户</span>
           <el-button type="primary" @click="onCreativeClean">创意清理</el-button>
         </div>
         <div class="op-right">
@@ -656,6 +656,11 @@ function delTemplate(tpl) {
 // 以下均为原型占位：不触发真实增删改
 function onAddAccount() { ElMessage.info('原型：对接巨量 OAuth 添加账户'); }
 function onBatchOp(cmd) {
+  // 与线上一致：必须先勾选至少一条账户才能执行批量操作
+  if (!selected.value.length) {
+    ElMessage.warning('请先选择媒体账户');
+    return;
+  }
   if (cmd === 'rename') { renameVisible.value = true; return; }
   if (cmd === 'budget') { budgetVisible.value = true; return; }
   if (cmd === 'blockword') { blockVisible.value = true; return; }

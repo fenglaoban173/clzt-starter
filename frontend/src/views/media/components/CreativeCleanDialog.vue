@@ -133,8 +133,9 @@
       <div class="cc-row">
         <span class="cc-label"></span>
         <div class="cc-content cc-field">
-          <el-checkbox v-model="condCost.on">账户内累积消耗小于</el-checkbox>
-          <el-input v-model="condCost.value" class="cc-num" placeholder="请输入" :disabled="!condCost.on" />
+          <!-- 与线上一致：该条件为必选项，勾选后不允许取消（阻止原生勾选行为） -->
+          <el-checkbox :model-value="true" class="cc-locked" title="该条件必选，不允许取消勾选" @click.prevent @change="onCostChange">账户内累积消耗小于</el-checkbox>
+          <el-input v-model="condCost.value" class="cc-num" placeholder="请输入" />
           <span class="cc-txt">元的素材</span>
         </div>
       </div>
@@ -183,6 +184,11 @@ const dataRange = ref([
 ]);
 const condConvert = reactive({ on: false, value: '' });
 const condCost = reactive({ on: true, value: '200' });
+
+// 「账户内累积消耗」为必选条件：线上为禁用态（灰底勾选且不可取消），本地保持可读、不可取消
+function onCostChange() {
+  condCost.on = true;
+}
 
 // 同质化两类需要额外的「累积转化数」条件
 const showConvert = computed(() => opType.value !== 'low');

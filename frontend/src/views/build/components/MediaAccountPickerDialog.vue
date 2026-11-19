@@ -11,19 +11,13 @@
     @open="init"
   >
     <div class="mp-body">
-      <!-- 第一行：创量项目 / 账户主体 / 开发者 -->
+      <!-- 第一行：智投项目 / 账户主体 -->
       <div class="mp-frow">
-        <el-select v-model="f.clProject" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
-          <template #prefix><span class="mp-pre">创量项目：</span></template>
+        <el-select v-model="f.clProject" class="mp-f-select mp-f-mid" placeholder="智投项目" clearable>
           <el-option v-for="o in clProjects" :key="o" :label="o" :value="o" />
         </el-select>
-        <el-select v-model="f.subject" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
-          <template #prefix><span class="mp-pre">账户主体：</span></template>
+        <el-select v-model="f.subject" class="mp-f-select mp-f-mid" placeholder="账户主体" clearable>
           <el-option v-for="o in subjects" :key="o" :label="o" :value="o" />
-        </el-select>
-        <el-select v-model="f.developer" class="mp-f-select mp-f-mid" placeholder="全部" clearable>
-          <template #prefix><span class="mp-pre">开发者：</span></template>
-          <el-option v-for="o in developers" :key="o" :label="o" :value="o" />
         </el-select>
       </div>
 
@@ -44,7 +38,7 @@
 
       <!-- 账户列表 + 已选 -->
       <div class="mp-content">
-        <el-table :data="pageRows" size="small" border class="mp-table" max-height="360">
+        <el-table :data="pageRows" size="small" border class="mp-table" max-height="420">
           <el-table-column width="46" align="center">
             <template #header>
               <el-checkbox
@@ -66,17 +60,12 @@
               </span>
             </template>
             <template #default="{ row }">
-              <div class="mp-acc-line">
-                <span class="mp-acc-name" :title="row.name">{{ row.name }}</span>
-                <span v-if="hasFixTag(row)" class="mp-acc-tag">
-                  <el-icon><InfoFilled /></el-icon>防出错
-                </span>
-              </div>
+              <div class="mp-acc-name" :title="row.name">{{ row.name }}</div>
               <div class="mp-acc-id">ID: {{ row.advertiser_id }}</div>
             </template>
           </el-table-column>
 
-          <el-table-column width="170">
+          <el-table-column width="180">
             <template #header>
               <span class="mp-th-sort" :class="{ active: sortKey === 'subject' }" @click="toggleSort('subject')">
                 账户主体
@@ -88,21 +77,27 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="账户备注(创建)" width="150">
-            <template #default="{ row }">
-              <span class="mp-ellipsis" :title="row.remark_cy">{{ row.remark_cy || '--' }}</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="账户备注(巨量)" width="150">
+          <el-table-column label="账户备注(巨量)" width="170">
             <template #default="{ row }">
               <span class="mp-ellipsis" :title="row.remark_jl">{{ row.remark_jl || '--' }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="创建项目" width="90" align="right">
+          <el-table-column label="智投项目" width="130">
             <template #default="{ row }">
-              {{ projectCounts[row.name] || '--' }}
+              <span class="mp-ellipsis" :title="row.project">{{ row.project || '--' }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column width="110" align="right">
+            <template #header>
+              <span class="mp-th-sort" :class="{ active: sortKey === 'balance' }" @click="toggleSort('balance')">
+                账户余额
+                <el-icon v-if="sortKey === 'balance'"><CaretTop v-if="sortAsc" /><CaretBottom v-else /></el-icon>
+              </span>
+            </template>
+            <template #default="{ row }">
+              {{ Number(row.balance || 0).toFixed(2) }}
             </template>
           </el-table-column>
         </el-table>
@@ -126,7 +121,7 @@
       <div class="mp-pager">
         <span class="mp-total">共 {{ total }} 条</span>
         <el-select v-model="pageSize" class="mp-size-select" size="small">
-          <el-option v-for="s in [20, 50, 100]" :key="s" :label="`${s}条/页`" :value="s" />
+          <el-option v-for="s in [20, 50, 100]" :key="s" :label="`${s}条每页`" :value="s" />
         </el-select>
         <el-pagination
           v-model:current-page="page"
@@ -149,7 +144,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { CaretBottom, CaretTop, Close, InfoFilled, Search } from '@element-plus/icons-vue';
+import { CaretBottom, CaretTop, Close, Search } from '@element-plus/icons-vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -157,17 +152,15 @@ const props = defineProps({
   accounts: { type: Array, default: () => [] },
   // 已选账户（advertiser_id）
   selectedIds: { type: Array, default: () => [] },
-  // 账户名 → 项目数（创建项目列）
-  projectCounts: { type: Object, default: () => ({}) },
 });
 const emit = defineEmits(['update:modelValue', 'submit']);
 
-const MAX = 500;
+// 已选上限（与线上一致：50）
+const MAX = 50;
 
 const f = reactive({
   clProject: '',
   subject: '',
-  developer: '',
   searchField: '账户ID',
   keyword: '',
 });
@@ -180,14 +173,12 @@ const picked = ref([]);
 // 候选项（取自本地模拟账户数据）
 const clProjects = computed(() => [...new Set(props.accounts.map((a) => a.project).filter(Boolean))]);
 const subjects = computed(() => [...new Set(props.accounts.map((a) => a.subject).filter(Boolean))]);
-const developers = computed(() => [...new Set(props.accounts.map((a) => a.developer_name).filter(Boolean))]);
 
 const filtered = computed(() => {
   const kw = f.keyword.trim().toLowerCase();
   let list = props.accounts.filter((a) => {
     if (f.clProject && a.project !== f.clProject) return false;
     if (f.subject && a.subject !== f.subject) return false;
-    if (f.developer && a.developer_name !== f.developer) return false;
     if (kw) {
       const target = f.searchField === '账户名称' ? a.name : a.advertiser_id;
       if (!String(target || '').toLowerCase().includes(kw)) return false;
@@ -196,7 +187,10 @@ const filtered = computed(() => {
   });
   if (sortKey.value) {
     const dir = sortAsc.value ? 1 : -1;
-    list = [...list].sort((x, y) => String(x[sortKey.value] || '').localeCompare(String(y[sortKey.value] || ''), 'zh-CN') * dir);
+    list = [...list].sort((x, y) => {
+      if (sortKey.value === 'balance') return ((Number(x.balance) || 0) - (Number(y.balance) || 0)) * dir;
+      return String(x[sortKey.value] || '').localeCompare(String(y[sortKey.value] || ''), 'zh-CN') * dir;
+    });
   }
   return list;
 });
@@ -212,7 +206,6 @@ const pageHalfChecked = computed(() => !pageAllChecked.value && pageRows.value.s
 function init() {
   f.clProject = '';
   f.subject = '';
-  f.developer = '';
   f.searchField = '账户ID';
   f.keyword = '';
   page.value = 1;
@@ -262,18 +255,12 @@ function clearSelection() {
 function resetFilters() {
   f.clProject = '';
   f.subject = '';
-  f.developer = '';
   f.keyword = '';
   page.value = 1;
 }
 
 function onSearch() {
   page.value = 1;
-}
-
-/** 防出错标签：账户开启了自动纠错 */
-function hasFixTag(row) {
-  return !!(row.auto_fix_on || row.auto_fix);
 }
 
 function close() {
@@ -295,9 +282,8 @@ function confirm() {
 }
 .mp-frow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .mp-f-select { flex: none; }
-.mp-f-short { width: 160px; }
-.mp-f-mid { width: 200px; }
-.mp-pre { color: #4e5969; font-size: 13px; }
+.mp-f-short { width: 130px; }
+.mp-f-mid { width: 220px; }
 .mp-search-group { display: flex; align-items: center; }
 .mp-f-input { width: 220px; }
 .mp-f-input :deep(.el-input__wrapper) { border-radius: 4px 0 0 4px; }
@@ -317,27 +303,14 @@ function confirm() {
 .mp-table { flex: 1; min-width: 0; }
 .mp-th-sort { display: inline-flex; align-items: center; gap: 2px; cursor: pointer; }
 .mp-th-sort.active { color: #165dff; }
-.mp-acc-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.mp-acc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mp-acc-tag {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 4px;
-  border: 1px solid #c9cdd4;
-  border-radius: 2px;
-  color: #86909c;
-  font-size: 12px;
-  line-height: 16px;
-}
+.mp-acc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-acc-id { font-size: 13px; color: #86909c; margin-top: 2px; }
 .mp-ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 已选 */
 .mp-selected {
   flex: none;
-  width: 200px;
+  width: 184px;
   border: 1px solid #e5e6eb;
   border-radius: 4px;
   background: #fff;
@@ -351,7 +324,7 @@ function confirm() {
   border-bottom: 1px solid #e5e6eb;
   color: #1d2129;
 }
-.mp-selected-body { max-height: 300px; overflow-y: auto; padding: 4px 0; }
+.mp-selected-body { max-height: 380px; overflow-y: auto; padding: 4px 0; }
 .mp-selected-item {
   display: flex;
   align-items: center;

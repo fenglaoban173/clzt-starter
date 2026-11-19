@@ -228,7 +228,6 @@
       v-model="accountVisible"
       :accounts="accountList"
       :selected-ids="accountIds"
-      :project-counts="accountProjectCounts"
       @submit="onAccountSubmit"
     />
 
@@ -490,15 +489,6 @@ async function applyAccountQuery() {
     accountNames.value = [acc.name];
   }
 }
-
-// 账户名 → 项目数（选择媒体账户弹窗「创建项目」列）
-const accountProjectCounts = computed(() => {
-  const map = {};
-  all.value.forEach((p) => {
-    if (p.account_name) map[p.account_name] = (map[p.account_name] || 0) + 1;
-  });
-  return map;
-});
 
 async function load() {
   loading.value = true;
