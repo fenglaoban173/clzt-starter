@@ -271,6 +271,9 @@
 
     <!-- 修改定向（版式对齐线上：运营商定向 + 修改后定向包） -->
     <ProjectTargetingDialog v-model="targetingVisible" :projects="batchRows" @confirm="onTargetingConfirm" />
+
+    <!-- 批量修改项目名称（版式对齐线上：自定义 / 关键词替换 / 表格导入） -->
+    <ProjectRenameDialog v-model="renameVisible" :projects="batchRows" @confirm="onRenameConfirm" />
   </div>
 </template>
 
@@ -296,6 +299,7 @@ import ProjectAppStoreDialog from './components/ProjectAppStoreDialog.vue';
 import ProjectDirectLinkDialog from './components/ProjectDirectLinkDialog.vue';
 import ProjectThirdTrackDialog from './components/ProjectThirdTrackDialog.vue';
 import ProjectTargetingDialog from './components/ProjectTargetingDialog.vue';
+import ProjectRenameDialog from './components/ProjectRenameDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
   ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
@@ -329,6 +333,7 @@ const appStoreVisible = ref(false);
 const directLinkVisible = ref(false);
 const thirdTrackVisible = ref(false);
 const targetingVisible = ref(false);
+const renameVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -763,6 +768,11 @@ async function onBatchOp(op) {
     targetingVisible.value = true;
     return;
   }
+  // 「批量修改项目名称」按线上版式单独成弹窗（自定义 / 关键词替换 / 表格导入）
+  if (op === '批量修改项目名称') {
+    renameVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -808,6 +818,11 @@ function onThirdTrackConfirm() {
 
 /** 修改定向提交 */
 function onTargetingConfirm() {
+  load();
+}
+
+/** 批量修改项目名称提交 */
+function onRenameConfirm() {
   load();
 }
 

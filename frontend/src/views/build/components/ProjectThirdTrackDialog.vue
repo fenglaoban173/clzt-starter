@@ -82,7 +82,7 @@ const LINKS = [
   { key: 'active', toggle: '修改激活监测链接', label: '激活监测链接', ph: '请输入激活监测链接', field: 'active_track_url' },
 ];
 
-// 各链接「开启 / 不开启」（默认全部开启，与线上一致）
+// 各链接「开启 / 不开启」（默认全部不开启，与线上一致）
 const on = reactive({});
 // 各链接地址
 const val = reactive({});
@@ -92,7 +92,7 @@ const rows = computed(() => (props.projects || []).filter((p) => !p.__total));
 
 function init() {
   LINKS.forEach((f) => {
-    on[f.key] = true;
+    on[f.key] = false;
     val[f.key] = '';
   });
 }
