@@ -28,6 +28,22 @@
             <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
           </div>
 
+          <!-- 媒体账户：与线上一致，点击打开「选择媒体账户」弹窗 -->
+          <div v-else-if="d.kind === 'account'" class="f-item">
+            <el-input
+              v-model="filters[d.key]"
+              class="f-box f-input f-account"
+              :style="{ '--f-w': d.width + 'px' }"
+              :placeholder="d.def"
+              :title="filters[d.key]"
+              readonly
+              @click="openAccountPicker"
+            >
+              <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+            </el-input>
+            <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+          </div>
+
           <!-- 创意素材：与线上一致，点击打开「素材查询」弹窗 -->
           <div v-else-if="d.kind === 'material'" class="f-item">
             <el-input
@@ -207,6 +223,15 @@
       @submit="onMaterialSubmit"
     />
 
+    <!-- 选择媒体账户（媒体账户查询条件选择器，版式对齐线上） -->
+    <MediaAccountPickerDialog
+      v-model="accountVisible"
+      :accounts="accountList"
+      :selected-ids="accountIds"
+      :project-counts="accountProjectCounts"
+      @submit="onAccountSubmit"
+    />
+
     <!-- 手动同步：同步项目与广告 -->
     <SyncProjectDialog v-model="syncVisible" @confirm="onSyncConfirm" />
 
@@ -244,6 +269,7 @@ import dayjs from 'dayjs';
 import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
+import MediaAccountPickerDialog from './components/MediaAccountPickerDialog.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import ProjectDetailDrawer from './components/ProjectDetailDrawer.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
@@ -296,7 +322,7 @@ const FILTER_DEFS = [
   { key: 'deepGoal', label: '深度优化目标', kind: 'select', def: '所有', width: 220, source: 'deep_goal', options: DEEP_OPT_GOALS },
   { key: 'deepMode', label: '深度优化方式', kind: 'select', def: '所有', width: 220, source: 'deep_mode', options: DEEP_OPT_MODES },
   { key: 'subject', label: '账户主体', kind: 'select', def: '所有主体', width: 240, source: 'subject', options: ACCOUNT_SUBJECTS },
-  { key: 'account', label: '媒体账户', kind: 'select', def: '所有账户', width: 240, source: 'account_name' },
+  { key: 'account', label: '媒体账户', kind: 'account', def: '所有账户', width: 240 },
   { key: 'purpose', label: '推广目的', kind: 'select', def: '所有推广目的', width: 240, source: 'purpose', options: PURPOSES },
   { key: 'deliveryMode', label: '投放模式', kind: 'select', def: '全部', width: 200, source: 'delivery_mode', options: PROJECT_DELIVERY_MODES },
   { key: 'status', label: '状态', kind: 'select', def: '不限', width: 180, source: 'status', options: PROJECT_STATUSES },
@@ -313,7 +339,7 @@ const filters = reactive({
   nameType: 'name', keyword: '',
   clProject: '全部', optimizer: '所有',
   optGoal: '所有', deepGoal: '所有', deepMode: '所有',
-  subject: '所有主体', account: '所有账户', purpose: '所有推广目的',
+  subject: '所有主体', account: '', purpose: '所有推广目的',
   deliveryMode: '全部', status: '不限', createTime: [], adType: '不限',
   star: '全部', starTaskId: '', platform: '不限', material: '', goods: '全部商品',
 });
@@ -322,6 +348,12 @@ const filters = reactive({
 const materialVisible = ref(false);
 const materialIds = ref([]);
 const materialNames = ref([]);
+
+// 选择媒体账户弹窗 + 已选媒体账户
+const accountVisible = ref(false);
+const accountIds = ref([]);
+const accountNames = ref([]);
+const accountList = ref([]);
 
 // 状态：线上「未投放」下还有二级菜单（已暂停 / 项目超出预算 / 未达投放时间 / 不在投放时段）
 const STATUS_MATCH = { 启用中: 'enabled', 未投放: 'disabled' };
@@ -336,7 +368,11 @@ function filterOptions(def) {
 
 function clearFilter(def) {
   if (def.kind === 'select') filters[def.key] = def.def;
-  else if (def.kind === 'material') {
+  else if (def.kind === 'account') {
+    filters[def.key] = '';
+    accountIds.value = [];
+    accountNames.value = [];
+  } else if (def.kind === 'material') {
     filters[def.key] = '';
     materialIds.value = [];
     materialNames.value = [];
@@ -388,6 +424,10 @@ function applyFilter() {
   if (materialNames.value.length) {
     list = list.filter((p) => materialNames.value.includes(p.material));
   }
+  // 媒体账户（选择媒体账户弹窗选择）
+  if (accountNames.value.length) {
+    list = list.filter((p) => accountNames.value.includes(p.account_name));
+  }
   // 排序
   if (sortState.prop && sortState.order) {
     const dir = sortState.order === 'ascending' ? 1 : -1;
@@ -429,20 +469,41 @@ function buildTotal(list) {
 }
 
 // ---------- 数据 ----------
+// 媒体账户列表（选择媒体账户弹窗用）
+async function loadAccounts() {
+  if (accountList.value.length) return;
+  const res = await mediaApi.accounts();
+  accountList.value = (res.data?.list || []).filter((a) => (a.media || 'upgrade') === media.value);
+}
+
 // 「查看项目」跳转过来时：URL 携带 account_id，自动定位到该媒体账户并过滤
 const accountQueryDone = ref(false);
 async function applyAccountQuery() {
   const id = route.query.account_id;
   if (!id || accountQueryDone.value) return;
   accountQueryDone.value = true;
-  const res = await mediaApi.accounts();
-  const acc = (res.data?.list || []).find((a) => String(a.advertiser_id) === String(id));
-  if (acc) filters.account = acc.name;
+  await loadAccounts();
+  const acc = accountList.value.find((a) => String(a.advertiser_id) === String(id));
+  if (acc) {
+    filters.account = acc.name;
+    accountIds.value = [acc.advertiser_id];
+    accountNames.value = [acc.name];
+  }
 }
+
+// 账户名 → 项目数（选择媒体账户弹窗「创建项目」列）
+const accountProjectCounts = computed(() => {
+  const map = {};
+  all.value.forEach((p) => {
+    if (p.account_name) map[p.account_name] = (map[p.account_name] || 0) + 1;
+  });
+  return map;
+});
 
 async function load() {
   loading.value = true;
   try {
+    await loadAccounts();
     await applyAccountQuery();
     const res = await buildApi.projects({ media: media.value });
     all.value = (res.data?.list || []).map((p) => ({ ...p, enabled: p.status === 'enabled' }));
@@ -541,7 +602,11 @@ function delTemplate(tpl) {
 function resetFilters() {
   FILTER_DEFS.forEach((d) => {
     if (d.kind === 'select') filters[d.key] = d.def;
-    else if (d.kind === 'material') {
+    else if (d.kind === 'account') {
+      filters[d.key] = '';
+      accountIds.value = [];
+      accountNames.value = [];
+    } else if (d.kind === 'material') {
       filters[d.key] = '';
       materialIds.value = [];
       materialNames.value = [];
@@ -550,6 +615,18 @@ function resetFilters() {
   });
   filters.nameType = 'name';
   filters.keyword = '';
+  page.value = 1;
+  load();
+}
+
+// ---------- 选择媒体账户 ----------
+function openAccountPicker() {
+  accountVisible.value = true;
+}
+function onAccountSubmit(picked) {
+  accountIds.value = picked.map((a) => a.advertiser_id);
+  accountNames.value = picked.map((a) => a.name);
+  filters.account = accountNames.value.length ? accountNames.value.join('、') : '';
   page.value = 1;
   load();
 }

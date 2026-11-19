@@ -534,20 +534,6 @@ export const PROJECT_BATCH_OPS = {
       data: rows.map((r) => ({ project_id: r.id, deepbid: num(r.__deepbid) })),
     }),
   },
-  修改出价与深度出价: {
-    title: '批量修改出价与深度出价',
-    desc: (n) => `已选中 ${n} 个项目`,
-    api: { method: 'POST', path: '/open_api/v3.0/project/cpa_bid/update/ + /open_api/v3.0/project/deep_cpa_bid/update/', name: '批量更新项目出价 + 批量更新深层项目出价', scope: AUTH_PROJECT },
-    fields: [
-      { key: 'cpa_bid', label: '出价', type: 'number', apiField: 'data[].cpa_bid', required: true, unit: '元', placeholder: '请输入出价', rule: '目标转化出价 / 预期成本，取值范围 0.01～10000 元' },
-      { key: 'deepbid', label: '深度出价', type: 'number', apiField: 'data[].deepbid', required: true, unit: '元', placeholder: '请输入深度出价', rule: '深度出价，单位「元」，精度两位小数' },
-    ],
-    build: (rows, form) => ({
-      advertiser_id: '{advertiser_id}',
-      cpa_bid_payload: { advertiser_id: '{advertiser_id}', data: rows.map((r) => ({ project_id: r.id, cpa_bid: num(form.cpa_bid) })) },
-      deepbid_payload: { advertiser_id: '{advertiser_id}', data: rows.map((r) => ({ project_id: r.id, deepbid: num(form.deepbid) })) },
-    }),
-  },
   修改ROI系数: {
     title: '批量修改ROI系数',
     desc: (n) => `已选中 ${n} 个项目`,
