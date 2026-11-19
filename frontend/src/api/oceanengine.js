@@ -510,7 +510,7 @@ export const PROJECT_BATCH_OPS = {
     api: { method: 'POST', path: '/open_api/v3.0/project/cpa_bid/update/', name: '批量更新项目出价', scope: AUTH_PROJECT },
     // 线上「修改出价」走独立弹窗 ProjectBidDialog：修改规则 / 出价批量 / 项目列表（分别修改出价）
     fields: [
-      { key: 'bid_mode', label: '出价修改方式', type: 'radio', apiField: '-', required: true, default: 'set', options: [{ label: '修改为', value: 'set' }, { label: '提高', value: 'inc' }, { label: '降低', value: 'dec' }, { label: '按 % 提高', value: 'incPct' }, { label: '按 % 降低', value: 'decPct' }, { label: '不限', value: 'none' }], rule: '弹窗内「出价」下拉，决定各项目「分别修改出价」的换算方式（提高 / 降低均基于当前出价）' },
+      { key: 'bid_mode', label: '出价修改方式', type: 'radio', apiField: '-', required: true, default: 'set', options: [{ label: '修改为', value: 'set' }, { label: '提高', value: 'inc' }, { label: '降低', value: 'dec' }, { label: '按 % 提高', value: 'incPct' }, { label: '按 % 降低', value: 'decPct' }], rule: '弹窗内「出价」下拉，决定各项目「分别修改出价」的换算方式（提高 / 降低均基于当前出价）' },
       { key: 'cpa_bid', label: '出价', type: 'number', apiField: 'data[].cpa_bid', required: true, unit: '元', placeholder: '请输入出价', rule: '目标转化出价 / 预期成本，单位「元」，精度两位小数；取值范围 0.01～10000 元' },
       { key: 'each', label: '分别修改出价', type: 'table', apiField: 'data[].cpa_bid', columns: [{ key: 'cpa_bid', label: '分别修改出价', placeholder: '请输入出价' }], rule: '按「出价修改方式」换算后写入各项目的目标出价' },
     ],

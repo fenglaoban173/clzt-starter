@@ -32,9 +32,8 @@
           <el-option label="降低" value="dec" />
           <el-option label="按 % 提高" value="incPct" />
           <el-option label="按 % 降低" value="decPct" />
-          <el-option label="不限" value="none" />
         </el-select>
-        <el-input v-if="bidOp !== 'none'" v-model="amount" class="amount-input">
+        <el-input v-model="amount" class="amount-input" @input="onAmountInput">
           <template #suffix>元</template>
         </el-input>
         <el-button type="primary" @click="applyBid">应用</el-button>
@@ -50,7 +49,11 @@
         </el-table-column>
         <el-table-column label="分别修改出价" min-width="260">
           <template #default="{ row }">
-            <el-input v-model="row.target" placeholder="请输入出价" />
+            <el-input
+              :model-value="row.target"
+              placeholder="请输入出价"
+              @input="(v) => (row.target = toNumStr(v))"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -64,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getBatchOpConfig } from '@/api/oceanengine';
 
@@ -95,10 +98,24 @@ function init() {
   }));
 }
 
-// 切换到「不限」时清空金额输入（输入框已隐藏）
-watch(bidOp, (v) => {
-  if (v === 'none') amount.value = '';
-});
+/** 仅允许数字（最多两位小数），过滤掉字母 / 符号等非法字符 */
+function toNumStr(v) {
+  let s = String(v == null ? '' : v).replace(/[^\d.]/g, '');
+  const dot = s.indexOf('.');
+  if (dot !== -1) {
+    const int = s.slice(0, dot);
+    const dec = s.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+    // 保留末尾小数点，便于继续输入小数位
+    s = dec ? `${int}.${dec}` : `${int}.`;
+  }
+  if (s.startsWith('.')) s = `0${s}`;
+  return s;
+}
+
+/** 金额输入框：只留数字 */
+function onAmountInput(v) {
+  amount.value = toNumStr(v);
+}
 
 /** 按所选规则把出价应用到所有项目（写入「分别修改出价」列） */
 function applyBid() {
@@ -120,10 +137,7 @@ function applyBid() {
       case 'decPct':
         r.target = amount.value === '' ? '' : String(Math.round(r.bid * (1 - val / 100)));
         break;
-      case 'none':
       default:
-        // 「不限」直接写入输入框，用户可清空后改填具体出价
-        r.target = '不限';
         break;
     }
   });
@@ -140,7 +154,7 @@ function confirm() {
   const cfg = getBatchOpConfig('project', OP);
   let payload = null;
   if (cfg && typeof cfg.build === 'function') {
-    const buildRows = rows.value.map((r) => ({ ...r, __cpa_bid: r.target === '不限' ? '' : r.target }));
+    const buildRows = rows.value.map((r) => ({ ...r, __cpa_bid: r.target }));
     try {
       payload = cfg.build(buildRows, form);
     } catch (e) {
