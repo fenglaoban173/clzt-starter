@@ -153,7 +153,8 @@ const sideMenuConfig = {
         { title: '巨量广告·智擎', name: 'accounts', query: { media: 'oc' }, hidden: true },
       ],
     },
-    { title: '账户管理', children: [{ title: '媒体账户', name: 'accounts-manage', admin: true }] },
+    // 「账户管理 / 媒体账户」按需求在左侧隐藏（hidden 的分组不渲染）
+    { title: '账户管理', children: [{ title: '媒体账户', name: 'accounts-manage', admin: true }], hidden: true },
     { title: '任务中心', name: 'tasks' },
   ],
   report: [
@@ -211,7 +212,7 @@ const sideMenuConfig = {
 
 const sideMenus = computed(() => {
   const list = sideMenuConfig[module.value] || [];
-  return list.map((g) => {
+  return list.filter((g) => !g.hidden).map((g) => {
     if (g.children) {
       return { ...g, children: g.children.filter((c) => !c.hidden && (!c.admin || auth.role === 'admin')) };
     }
