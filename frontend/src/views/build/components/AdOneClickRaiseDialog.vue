@@ -63,7 +63,10 @@
       <!-- 起量方案：每个方案 = 一个矩形模块（重复周期 + 起量时间 + 该方案自己的广告列表） -->
       <div v-if="timeMode === 'appoint'" ref="plansBox" class="mcr-plans">
         <div v-for="(plan, pi) in plans" :key="plan.id" class="mcr-plan" :data-plan="plan.id">
-          <div class="mcr-plan-head">起量方案 {{ pi + 1 }}</div>
+          <div class="mcr-plan-head">
+            <span>起量方案 {{ pi + 1 }}</span>
+            <button v-if="pi > 0" type="button" class="mcr-plan-del" @click="removePlan(plan)">删除</button>
+          </div>
           <div class="mcr-plan-body">
             <div class="mcr-item">
               <span class="mcr-label">重复周期</span>
@@ -276,12 +279,13 @@ function init() {
     bid: Number(r.bid) || 0,
     raiseBudget: '',
   }));
+  plans.value = [];
   plans.value = [newPlan()];
 }
 
 /** 新建一个起量方案（自带一份广告列表，预算互相独立） */
 function newPlan() {
-  return {
+  const plan = {
     id: Date.now() + Math.random(),
     repeat: 'once',
     weekdays: ['EVERY_DAY'],
@@ -291,6 +295,25 @@ function newPlan() {
     // 分别设置：每条广告一个预算
     rows: rows.value.map((r) => ({ ...r, raiseBudget: '' })),
   };
+  // 新增方案自动继承「上一个方案」已填的起量预算（统一设置取整表值，分别设置取逐行值）
+  const prev = plans.value[plans.value.length - 1];
+  if (prev) {
+    plan.raiseBudget = prev.raiseBudget || '';
+    plan.rows = plan.rows.map((r, i) => ({
+      ...r,
+      raiseBudget: (prev.rows[i] && prev.rows[i].raiseBudget) || '',
+    }));
+  }
+  return plan;
+}
+
+/** 删除起量方案（至少保留一个方案） */
+function removePlan(plan) {
+  if (plans.value.length <= 1) {
+    ElMessage.warning('至少保留一个起量方案');
+    return;
+  }
+  plans.value = plans.value.filter((p) => p.id !== plan.id);
 }
 
 /** 周几多选：选「每天」清空其它星期；选具体星期则取消「每天」 */
@@ -446,6 +469,9 @@ function confirm() {
 .mcr-plan { margin-bottom: 16px; border: 1px solid #e8eaec; }
 .mcr-plan:last-child { margin-bottom: 16px; }
 .mcr-plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid #e8eaec;
   background: #fff;
@@ -453,6 +479,17 @@ function confirm() {
   font-weight: 700;
   color: #333;
 }
+.mcr-plan-del {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #f56c6c;
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.mcr-plan-del:hover { color: #ff4d4f; text-decoration: underline; }
+
 .mcr-plan-body { padding: 18px 16px 16px; }
 .mcr-plan-body .mcr-item:last-of-type { margin-bottom: 18px; }
 
