@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="同步项目与广告"
-    width="880px"
+    width="1004px"
     top="10vh"
     class="sp-dialog"
     :close-on-click-modal="false"
@@ -191,7 +191,8 @@ function confirm() {
 .sp-cols { flex: 1; min-width: 0; display: flex; gap: 16px; }
 
 .sp-panel { border: 1px solid #e5e6eb; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
-.sp-left { width: 320px; flex: none; }
+/* R80：左侧账户列表加宽，保证「账户名--账户ID」一行显示完整；右侧「已选」宽度保持不变 */
+.sp-left { width: 444px; flex: none; }
 .sp-right { flex: 1; min-width: 0; }
 .sp-panel-head { padding: 12px 14px; border-bottom: 1px solid #f2f3f5; font-size: 15px; color: #1d2129; }
 .sp-head-selected { display: flex; align-items: center; justify-content: space-between; }
@@ -236,4 +237,9 @@ function confirm() {
 .sp-range { flex: 1; }
 .sp-date { width: 340px !important; }
 .sp-tip { margin-top: 8px; color: #86909c; font-size: 13px; }
+</style>
+
+<style>
+/* R80：弹窗加宽后避免小屏溢出 */
+.sp-dialog { max-width: calc(100vw - 40px); }
 </style>

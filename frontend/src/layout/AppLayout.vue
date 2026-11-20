@@ -75,6 +75,8 @@
                 :index="c.title"
                 :disabled="c.placeholder"
               >
+                <!-- R80：媒体图标（左侧菜单「巨量广告·标准」等） -->
+                <img v-if="c.icon" :src="c.icon" class="side-item-icon" alt="" />
                 <span>{{ c.title }}</span>
                 <el-tag v-if="c.placeholder" size="small" type="info" effect="plain" class="side-tag">待开通</el-tag>
               </el-menu-item>
@@ -148,7 +150,8 @@ const sideMenuConfig = {
   promo: [
     {
       title: '广告管理', children: [
-        { title: '巨量广告·标准', name: 'accounts', query: { media: 'upgrade' } },
+        // R80：菜单左侧加媒体图标（头条面板图标）
+        { title: '巨量广告·标准', name: 'accounts', query: { media: 'upgrade' }, icon: 'https://tos.mobgi.com/web/image/panel/toutiao-panel-icon.png' },
         { title: '巨量广告·全域', name: 'accounts', query: { media: 'uni' }, hidden: true },
         { title: '巨量广告·智擎', name: 'accounts', query: { media: 'oc' }, hidden: true },
       ],
@@ -454,6 +457,8 @@ async function onUserMenu(command) {
 .side-menu { border-right: none; --el-menu-item-font-size: 15px; }
 .side-menu :deep(.el-menu-item [class^=el-icon]),
 .side-menu :deep(.el-sub-menu [class^=el-icon]) { font-size: 19px; }
+/* R80：菜单项左侧的媒体图标 */
+.side-item-icon { flex: none; width: 18px; height: 18px; margin-right: 8px; object-fit: contain; }
 .side-tag { margin-left: 6px; transform: scale(0.9); font-size: 13px; }
 
 .app-content { padding: 0; overflow: auto; background: #f7f8fa; }

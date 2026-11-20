@@ -21,7 +21,7 @@
     </template>
 
     <div class="ate-body">
-      <!-- 分类 + AI助手（仅「新建标题 / 编辑标题」有） -->
+      <!-- 分类（仅「新建标题 / 编辑标题」有；R80 起无「AI助手」按钮） -->
       <div v-if="showCategory" class="ate-row">
         <!-- R79：线上分类为「可搜索 + 可新建」的下拉面板（初始无数据） -->
         <el-popover
@@ -66,7 +66,6 @@
             </div>
           </div>
         </el-popover>
-        <el-button class="ate-ai" @click="onAi">AI助手</el-button>
       </div>
 
       <!-- 标题输入（线上为一个带边框的整块：标题行 + 提示行 + 输入框 + 错误提示） -->
@@ -124,7 +123,6 @@
 
 <script setup>
 import { computed, nextTick, ref } from 'vue';
-import { ElMessage } from 'element-plus';
 import { ArrowDown, Search, WarningFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -233,10 +231,6 @@ function init() {
   text.value = props.titleText || '';
   submitted.value = false;
   savedRange.value = null;
-}
-
-function onAi() {
-  ElMessage.info('原型：AI 助手生成文案（不接入真实模型）');
 }
 
 /** 点击「+ 插入动态词包」：先记住光标位置，再由父级打开词包弹窗 */
@@ -384,16 +378,6 @@ function confirm() {
 }
 .ate-nc-input :deep(.el-input__inner) { font-size: 14px; }
 
-.ate-ai {
-  margin-left: 12px;
-  height: 32px;
-  padding: 0 16px;
-  color: #fff;
-  font-size: 12px;
-  border: none;
-  background: linear-gradient(90deg, #7b5cff 0%, #2f8bff 100%);
-}
-.ate-ai:hover { opacity: 0.88; color: #fff; }
 .ate-textarea { width: 100%; }
 .ate-textarea :deep(.el-textarea__inner) {
   padding: 10px 12px;

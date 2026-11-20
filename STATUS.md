@@ -2978,3 +2978,50 @@
 - **测试脚本同步调整**（均在 `C:/tmp/`，不在仓库内）：`verify_r77.py` / `verify_r78.py` / `shot_r77.py` 中 `.atm-tag` → `.atm-title-item`、`.atm-link-add` → `.atm-title-item .atm-link-add`（取 first）、`.ate-select` → `.ate-cat-trigger`。
 
 - **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
+
+---
+
+## 九十五、左侧菜单加媒体图标、手动同步弹窗左侧账户列表加宽、移除「AI助手」按钮与「修改附加创意组件」（2026-11-20，需求 R80）
+
+（配图 1 张：图 手动同步弹窗（线上参考）。）
+
+### ① 线上对照与改动结论
+
+| 项 | 线上形态 | 本地落地 |
+| --- | --- | --- |
+| 1. 左侧菜单图标 | 「巨量广告·标准」左侧带媒体图标（头条面板图标 `toutiao-panel-icon.png`） | `AppLayout.vue` 的 `sideMenuConfig.promo` 中为该项加 `icon` 字段（`https://tos.mobgi.com/web/image/panel/toutiao-panel-icon.png`），菜单项渲染 `<img class="side-item-icon">`（18×18，`object-fit:contain`），位于文字左侧 |
+| 2. 手动同步弹窗 | 左侧「媒体账户」列表较宽，账户名 + 账户 ID 一行可见；右侧「已选」区域保持自身宽度 | 弹窗宽度 880 → **1004px**；左侧面板 320 → **444px**（含边框 446px），实测最长的「账户名--账户ID」（391px，如「央广-看客天下二分-知乎-APP内引导-0112--1879831230099464」）**一行完整显示、无省略号**；右侧「已选」面板宽度实测保持 **434px 不变**（弹窗整体加宽来容纳左侧）；另加 `max-width: calc(100vw - 40px)` 防小屏溢出 |
+| 3. AI助手按钮 | 「修改广告标题和素材」弹窗链路（标题库 → 新建/编辑标题）内不再有「AI助手」 | `AdTitleEditorDialog.vue` 移除「AI助手」按钮、`onAi` 方法、`.ate-ai` 样式与 `ElMessage` 引用；分类下拉改为占满整行 |
+| 4. 修改附加创意组件 | 批量操作下拉中无此项 | `mock/adFilters.js` 的 `AD_BATCH_OPS` 移除该项（20 → **19 项**）；`api/oceanengine.js` 的 `PROMOTION_BATCH_OPS` 同步删除该 op 的整段配置 |
+
+### ② 改动明细
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/layout/AppLayout.vue` | ① `sideMenuConfig.promo` 的「巨量广告·标准」新增 `icon` 字段（头条面板图标 URL）；② `el-menu-item` 渲染 `<img v-if="c.icon" class="side-item-icon">`；③ 新增 `.side-item-icon` 样式（18×18，flex 不可压缩，右间距 8px）。 |
+| `frontend/src/views/build/components/SyncProjectDialog.vue` | ① 弹窗宽度 880 → 1004px；② `.sp-left` 宽度 320 → 444px；③ 新增全局 `.sp-dialog { max-width: calc(100vw - 40px) }`。 |
+| `frontend/src/views/build/components/AdTitleEditorDialog.vue` | 移除「AI助手」按钮及其 `onAi` 方法、`.ate-ai` 样式、`ElMessage` 引入。 |
+| `frontend/src/mock/adFilters.js` | `AD_BATCH_OPS` 移除「修改附加创意组件」（19 项），注释同步更新。 |
+| `frontend/src/api/oceanengine.js` | `PROMOTION_BATCH_OPS` 删除「修改附加创意组件」的整段配置（标题 / desc / api / fields / build）。 |
+
+> 说明：本轮按需求改动了 `layout/AppLayout.vue`（菜单图标）与 `api/oceanengine.js`（移除批量操作项）；未改动 `mock/data.js`、`main.js`。
+
+### ③ 验证
+
+- **构建**：`npm run build` 通过（11.16s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（`/build/ads`，`C:/tmp/verify_r80.py`）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 汇总 | `total: 26 ok: 26 fail: 0`，`PAGEERRORS: []` |
+| 左侧菜单图标 | 「巨量广告·标准」含 1 个 `<img class="side-item-icon">`；`src` = `https://tos.mobgi.com/web/image/panel/toutiao-panel-icon.png`；渲染尺寸 18×18；图片实际加载成功（`naturalWidth=48`，原始 48×48 PNG）；图标右边缘 ≤ 文字左边缘（位于文字左侧） |
+| 手动同步弹窗 | 左侧「媒体账户」面板 **446px**（≥430）；10 条账户**均无截断**（`scrollWidth ≤ clientWidth`，最长的「央广-看客天下二分-知乎-APP内引导-0112--1879831230099464」一行看全）；右侧「已选」面板 **434px**（与改版前一致，勾选后仍为 434px）；弹窗宽度 1004px；勾选账户后已选区出现 1 条 |
+| 批量操作下拉 | 共 **19** 项；不含「修改附加创意组件」；仍含「修改广告标题和素材」 |
+| AI助手按钮 | 主弹窗与「编辑标题」弹窗文本中均无「AI助手」；`.ate-ai` 元素数为 0；分类下拉仍存在（`.ate-cat-trigger` = 1） |
+
+- **回归**：`verify_r79.py` 52/52、`verify_r78.py` 61/61、`verify_r77.py` 60/60、`verify_r76.py` 7/7、`verify_r75.py` 11/11、`verify_r74.py` 4/4、`verify_r73.py` 9/9、`verify_r72.py` 12/12、`verify_r72b.py` 12/12、`verify_r72c.py` 12/12、`verify_r71.py` 6/6（clean 6/6）、`verify_r71b.py`、`verify_r71c.py`、`verify_r70.py`、`verify_r68.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r57.py`、`r32_check.py`、`r32_live.py` 全部通过，`PAGEERRORS` 均为空。
+
+- **测试脚本同步调整**（均在 `C:/tmp/`，不在仓库内）：`verify_r77.py` / `verify_r78.py` 的批量操作期望 20 → 19 项；`verify_r77.py` 的「新建标题含 AI助手」改为「不含 AI助手」；`verify_r71.py` 的 OPS 列表移除「修改附加创意组件」（7 → 6 项）。
+
+- **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。

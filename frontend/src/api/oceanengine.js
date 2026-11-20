@@ -362,19 +362,6 @@ export const PROMOTION_BATCH_OPS = {
       })),
     }),
   },
-  修改附加创意组件: {
-    title: '修改附加创意组件',
-    desc: (n) => `已选择${n}广告`,
-    api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（component_material_list）', scope: AUTH_PROMOTION },
-    fields: [
-      { key: 'components', label: '创意组件', type: 'components', apiField: 'component_material_list[].component_id', required: true, rule: '创意组件信息，数量上限 1 个；component_id 通过【查询组件列表】获取；支持素材类型为横版视频、竖版视频' },
-    ],
-    build: (rows, form) => ({
-      advertiser_id: '{advertiser_id}',
-      promotion_id: '{promotion_id}',
-      component_material_list: (form.components || []).map((c) => ({ component_id: c.component_id })),
-    }),
-  },
   修改广告否定词: {
     title: '批量修改否定词',
     api: { method: 'POST', path: '/open_api/v3.0/tools/privative_word/promotion/update/', name: '批量更新营销否定词', scope: AUTH_PROMOTION },
