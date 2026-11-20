@@ -155,7 +155,7 @@ const sideMenuConfig = {
     },
     // 「账户管理 / 媒体账户」按需求在左侧隐藏（hidden 的分组不渲染）
     { title: '账户管理', children: [{ title: '媒体账户', name: 'accounts-manage', admin: true }], hidden: true },
-    { title: '任务中心', name: 'tasks' },
+    // 「任务中心」按需求从推广模块的左侧菜单移除（顶部「任务」模块仍保留）
   ],
   report: [
     {

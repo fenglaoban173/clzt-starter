@@ -189,7 +189,7 @@
         <el-table-column label="广告" fixed="left" width="220">
           <template #default="{ row }">
             <div class="ad-cell">
-              <p v-if="row.__summary" class="ad-summary">合计(缓存时间：{{ cacheTime }})</p>
+              <p v-if="row.__summary" class="ad-summary">合计</p>
               <template v-else>
                 <p class="ad-name" :title="row.name">{{ row.name }}</p>
                 <p class="ad-id" :title="row.ad_id">ID：{{ row.ad_id }}</p>
@@ -347,9 +347,7 @@ const filters = reactive({
   material: '',
 });
 
-// ---------- 合计行（对齐线上「合计(缓存时间：HH:mm:ss)」） ----------
-const cacheTime = ref('');
-
+// ---------- 合计行 ----------
 const summaryVals = computed(() => {
   const list = rows.value;
   const sum = (k) => list.reduce((s, r) => s + (Number(r[k]) || 0), 0);
@@ -516,7 +514,6 @@ async function load() {
     rows.value = filtered
       .slice((page.value - 1) * pagination.pageSize, page.value * pagination.pageSize)
       .map((a) => ({ ...a }));
-    cacheTime.value = new Date().toTimeString().slice(0, 8);
   } finally {
     loading.value = false;
   }

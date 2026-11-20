@@ -274,7 +274,6 @@
         </div>
         <div class="mp-toolbar-right">
           <el-button v-if="tab === 'media'" type="primary" plain class="mp-sync-btn" @click="onSyncMedia">同步素材</el-button>
-          <el-button @click="onCustomMetric"><el-icon><Operation /></el-icon>自定义指标与排序</el-button>
           <el-button link type="primary" class="mp-refresh" @click="onRefresh">刷新</el-button>
         </div>
       </div>
@@ -379,7 +378,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-  CircleClose, Grid, Menu, MoreFilled, Operation, QuestionFilled, Search, VideoPlay, WarningFilled,
+  CircleClose, Grid, Menu, MoreFilled, QuestionFilled, Search, VideoPlay, WarningFilled,
 } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import { mediaApi } from '@/api/media';
@@ -539,7 +538,6 @@ function resetFilters() {
 
 function onSearch() { page.value = 1; ElMessage.info('原型：按条件筛选素材'); }
 function onRefresh() { page.value = 1; ElMessage.info('原型：已刷新素材列表'); }
-function onCustomMetric() { ElMessage.info('原型：自定义指标与排序'); }
 function onSyncMedia() { ElMessage.warning('请选择账户'); }
 function onDetail(m) { ElMessage.info(`原型：查看素材「${m.name}」详情`); }
 

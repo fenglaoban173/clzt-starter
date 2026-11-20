@@ -8,6 +8,17 @@ const t = (key, label, extra = {}) => ({ key, label, ...extra });
 // 未采集到本地数据的指标统一按「--」展示
 const dash = (label) => [label, { type: 'dash', align: 'right' }];
 
+// 表头列宽：保证「字段名 + 排序组件」在同一行完整展示（不换行、不被省略号截断）
+// 表头字号 15px（中文 15px/字，西文 8px/字）；排序组件 24px；单元格左右内边距 12px × 2；列边框 1px
+const HEAD_FONT = 15;
+const HEAD_SORT_W = 24;
+const HEAD_PAD = 24;
+
+function headWidth(label, sortable) {
+  const textW = [...String(label || '')].reduce((w, ch) => w + (ch.charCodeAt(0) > 255 ? HEAD_FONT : 8), 0);
+  return Math.ceil(textW + (sortable ? HEAD_SORT_W : 0) + HEAD_PAD) + 1;
+}
+
 // 基本信息
 const BASE = [
   t('subject', '账户主体', { type: 'text', prop: 'subject', width: 200 }),
@@ -210,11 +221,23 @@ AD_METRIC_GROUPS.forEach((g) => {
   g.items = g.items.map((it, i) => {
     // 已是对象（t() 构造）
     if (it && !Array.isArray(it) && typeof it === 'object') {
-      return { key: it.key || `${g.key}_${i}`, label: it.label, ...it };
+      const label = it.label;
+      return {
+        key: it.key || `${g.key}_${i}`,
+        label,
+        ...it,
+        // 列宽取「原宽度」与「表头完整展示所需宽度」的较大值
+        width: Math.max(it.width || 0, headWidth(label, it.sortable)),
+      };
     }
     // [label, extra] 形式
     const [label, extra = {}] = Array.isArray(it) ? it : [it, {}];
-    return { key: extra.key || `${g.key}_${i}`, label, ...extra };
+    return {
+      key: extra.key || `${g.key}_${i}`,
+      label,
+      ...extra,
+      width: Math.max(extra.width || 0, headWidth(label, extra.sortable)),
+    };
   });
 });
 

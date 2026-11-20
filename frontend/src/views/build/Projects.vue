@@ -158,7 +158,7 @@
         <!-- 项目名称 + 项目ID -->
         <el-table-column label="项目" fixed="left" min-width="250">
           <template #default="{ row }">
-            <div v-if="row.__total" class="total-label">合计(缓存时间：{{ cacheTime }})</div>
+            <div v-if="row.__total" class="total-label">合计</div>
             <div v-else class="proj-cell">
               <a class="link ellipsis" :title="row.name" @click="onDetail(row)">{{ row.name }}</a>
               <div class="proj-id">ID：{{ row.campaign_id }}</div>
@@ -296,7 +296,6 @@ import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CaretBottom, Close, Delete, Operation, Search } from '@element-plus/icons-vue';
-import dayjs from 'dayjs';
 import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
@@ -360,7 +359,6 @@ const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
 const sortState = reactive({ prop: '', order: '' });
-const cacheTime = ref(dayjs().format('HH:mm:ss'));
 
 // ---------- 筛选项定义（顺序与线上一致） ----------
 // kind: select 下拉 / input 输入框 / daterange 日期区间
@@ -553,7 +551,6 @@ async function load() {
     pagination.total = filtered.length;
     const pageRows = filtered.slice((page.value - 1) * pagination.pageSize, page.value * pagination.pageSize)
       .map((p) => ({ ...p }));
-    cacheTime.value = dayjs().format('HH:mm:ss');
     rows.value = [buildTotal(filtered), ...pageRows];
   } finally {
     loading.value = false;

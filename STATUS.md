@@ -2369,3 +2369,33 @@
 - **回归**：`verify_r48_ads.py`（广告批量修改时段弹窗）、`verify_r52_regress.py`（批量操作 6 个弹窗 + 广告页）、`verify_r53b.py`（项目查询条件 / 媒体账户弹窗 / 累积转化数）、`verify_r54b.py`（媒体账户弹窗 / 账户页筛选前缀）、`verify_r56c.py`（批量操作下拉 17 项）、`verify_r63.py`（项目查询条件「创建时间」）、`verify_r64.py`（左侧菜单隐藏账户管理）、`verify_r66.py`（关键词弹窗 7 列）全部通过。
 
 - **备注**：线上 `C:/tmp/oe_auth.json` 保存的登录态已过期（跳转登录页），本轮未能与线上 DOM 逐项比对，交互按项目页既有实现复用。
+
+## 八十三、移除推广侧栏「任务中心」、合计行改为「合计」、广告表头列宽自适应、素材弹窗移除「自定义指标与排序」（2026-11-20，需求 R68）
+
+**本轮目标**：① 推广导航下面移除「任务中心」菜单；② 项目和广告列表的「合计(缓存时间：09:31:20)」改为「**合计**」；③ 广告列表表头字段的列宽增大，保证字段和排序组件完整展示在同一行、不换行；④ 项目和广告列表的创意素材弹窗（素材库 tab / 媒体素材 tab）**移除「自定义指标与排序」按钮**。
+
+### ① 改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/layout/AppLayout.vue` | `sideMenuConfig.promo` 中删除 `{ title: '任务中心', name: 'tasks' }`——推广模块左侧菜单不再显示「任务中心」（顶部「任务」模块与其侧栏「任务中心」保留，`/build/tasks` 路由不变）。 |
+| `frontend/src/views/build/Ads.vue` | 合计行首列由「合计(缓存时间：{{ cacheTime }})」改为「**合计**」，同时删除已无用的 `cacheTime` ref 与赋值。 |
+| `frontend/src/views/build/Projects.vue` | 合计行首列由「合计(缓存时间：{{ cacheTime }})」改为「**合计**」，同时删除已无用的 `cacheTime` ref、`dayjs` 引入与赋值。 |
+| `frontend/src/views/build/adMetrics.js` | 新增 `headWidth(label, sortable)`：按表头实际排版计算列宽（表头字号 15px，中文 15px/字、西文 8px/字；排序组件 24px；单元格左右内边距 12px × 2；列边框 1px），在指标归一化时取 `max(原宽度, 表头完整展示所需宽度)`——保证「字段名 + 排序组件」同行完整展示，既不换行也不被省略号截断。 |
+| `frontend/src/views/build/components/MaterialPickerDialog.vue` | 工具条移除「**自定义指标与排序**」按钮（素材库 / 媒体素材两个 tab 共用同一工具条），并删除 `onCustomMetric()` 与 `Operation` 图标引入。项目页与广告页复用同一组件，一次改动两处生效。 |
+
+### ② 验证
+
+- **构建**：`npm run build` 通过（8.35s；仅 chunk 体积告警）。
+
+- **Playwright 实测**：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| ① 推广侧栏 | `/build/ads` 侧栏 = 「广告管理 / 巨量广告·标准」，**不含「任务中心」**；点击顶部「任务」模块 → 跳转 `/build/tasks`，侧栏仍为「任务中心」（功能未受影响） |
+| ② 合计行 | 广告列表首行第 3 列 = **「合计」**；项目列表首行第 3 列 = **「合计」**（均已无「(缓存时间：…)」） |
+| ③ 广告表头 | 16 个表头列全部 `scrollWidth == clientWidth`（**无截断**）、`white-space: nowrap`、行高 23px（**单行不换行**）、排序组件与标题**垂直居中同行**（`caretSameRow: true`）；列宽按需增大：广告预算（元）150→**154**、广告出价（元）150→**154**、深度转化出价（元）150→**184**、平均千次展现费用 150→**169**；表格 `scrollWidth == clientWidth == 1332`（无横向滚动） |
+| ④ 素材弹窗 | 广告页 + 项目页 × 素材库 tab / 媒体素材 tab 共 4 种组合：工具条按钮分别为 网格 / 列表 / 刷新 与 网格 / 列表 / 同步素材 / 刷新，**均不含「自定义指标与排序」**（页面 `innerText` 亦不含该文案） |
+| pageerror | 空（`PAGEERRORS: []`） |
+
+- **回归**：`verify_r63.py`（项目查询条件「创建时间」）、`verify_r64.py` / `verify_r64b.py`（左侧菜单隐藏账户管理、各模块侧栏）、`verify_r67.py` / `verify_r67b.py`（广告页媒体账户 / 创意素材弹窗、移除按钮断言）、`verify_r48_ads.py`（广告批量修改时段弹窗）、`verify_r52_regress.py`（批量操作弹窗）、`verify_r53b.py` / `verify_r54b.py`（媒体账户弹窗、账户页筛选前缀）、`verify_r56c.py`（批量操作下拉 17 项）全部通过。
