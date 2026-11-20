@@ -202,16 +202,17 @@ function openEdit(row) {
   editorVisible.value = true;
 }
 
-function onEditorConfirm({ text }) {
+function onEditorConfirm({ text, category }) {
   const row = LIB.find((r) => r.id === editingId.value);
   if (row) {
     row.text = text;
+    if (category) row.category = category;
     ElMessage.success('标题已更新（原型：仅本地生效）');
   } else {
     LIB.unshift({
       id: `T${2000 + LIB.length}`,
       text,
-      category: '通用',
+      category: category || '通用',
       creator: '杨语檬',
       d3click: 0,
       d3cost: 0,

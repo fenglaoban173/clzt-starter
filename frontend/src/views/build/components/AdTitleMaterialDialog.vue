@@ -32,18 +32,26 @@
         <div class="atm-content">
           <div class="atm-title-box">
             <div class="atm-title-line">
-              <el-button size="small" class="atm-btn" @click="libVisible = true">选择标题</el-button>
+              <el-button
+                size="small"
+                class="atm-btn"
+                :disabled="titles.length >= 10"
+                @click="libVisible = true"
+              >选择标题</el-button>
               <span class="atm-count">已选: {{ titles.length }}/10</span>
             </div>
-            <div v-if="titles.length" class="atm-tags">
-              <span v-for="(t, i) in titles" :key="t.id + i" class="atm-tag">
-                <span class="atm-tag-text">{{ t.text }}</span>
-                <span class="atm-tag-len">{{ titleLen(t.text) }}/55</span>
-                <el-icon class="atm-tag-x" @click="removeTitle(i)"><Close /></el-icon>
-              </span>
-            </div>
-            <div class="atm-link-row">
-              <a class="atm-link atm-link-add" @click="openWordpack('main')">+ 插入动态词包</a>
+            <!-- R79：线上为「每条标题独占一行」，删除图标在输入框右侧，词包入口在每条标题下方 -->
+            <div v-if="titles.length" class="atm-title-list">
+              <div v-for="(t, i) in titles" :key="t.id + i" class="atm-title-item">
+                <div class="atm-title-row">
+                  <div class="atm-title-input">
+                    <span class="atm-title-text">{{ t.text }}</span>
+                    <span class="atm-title-len">{{ titleLen(t.text) }}/55</span>
+                  </div>
+                  <el-icon class="atm-title-x" @click="removeTitle(i)"><Close /></el-icon>
+                </div>
+                <a class="atm-link atm-link-add" @click="openWordpack('main', i)">+插入动态词包</a>
+              </div>
             </div>
             <el-button class="atm-add-text" @click="openAddText">+ 点击添加文案</el-button>
           </div>
@@ -260,6 +268,8 @@ const advConfirmVisible = ref(false);
 const editorRef = ref(null);
 /** 词包插入目标：main 主弹窗已选标题 / editor 添加文案输入框 */
 const wordpackTarget = ref('main');
+/** R79：词包插入到第几条已选标题（-1 = 最后一条） */
+const wordpackIndex = ref(-1);
 
 const currentMaterials = computed(() => (matTab.value === 'video' ? videos.value : images.value));
 
@@ -326,28 +336,29 @@ function onAddText({ text }) {
   titles.value = [...titles.value, { id: `T${Date.now()}`, text }];
 }
 
-/** 打开公共词包弹窗：main 插到已选标题尾部，editor 插到文案输入框光标处 */
-function openWordpack(target) {
+/** 打开公共词包弹窗：main 插到指定已选标题，editor 插到文案输入框光标处 */
+function openWordpack(target, index = -1) {
   wordpackTarget.value = target;
+  wordpackIndex.value = index;
   wordpackVisible.value = true;
 }
 
 /**
  * 插入动态词包：
  * - editor：占位符 {词包名} 插入到「添加文案」输入框的光标位置（线上图4）
- * - main：占位符追加到最后一条已选标题（线上图5，字数同步变化）
+ * - main：占位符追加到指定（或最后一条）已选标题末尾（线上图5，字数同步变化）
  */
 function onWordPackInsert(pack) {
   if (wordpackTarget.value === 'editor') {
     editorRef.value?.insertWordPack(pack);
     return;
   }
-  if (!titles.value.length) {
+  const idx = wordpackIndex.value >= 0 ? wordpackIndex.value : titles.value.length - 1;
+  if (idx < 0 || !titles.value[idx]) {
     ElMessage.warning('请先选择标题');
     return;
   }
   const token = `{${pack.name}}`;
-  const idx = titles.value.length - 1;
   const next = [...titles.value];
   next[idx] = { ...next[idx], text: `${next[idx].text}${token}` };
   titles.value = next;
@@ -475,9 +486,35 @@ function confirm() {
 .atm-tag-x { color: #c0c4cc; cursor: pointer; }
 .atm-tag-x:hover { color: #909399; }
 
+/* R79：线上每条标题独占一行（输入框 + 右侧删除图标 + 下方「+插入动态词包」） */
+.atm-title-list { margin: 16px 0 8px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
+.atm-title-item { margin-bottom: 14px; }
+.atm-title-row { display: flex; align-items: center; gap: 12px; }
+.atm-title-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 554px;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 2px;
+  background: #fff;
+  font-size: 13px;
+  color: #333;
+}
+.atm-title-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atm-title-len { flex: none; color: #c0c4cc; font-size: 12px; }
+.atm-title-x { flex: none; color: #c0c4cc; cursor: pointer; font-size: 14px; }
+.atm-title-x:hover { color: #909399; }
+.atm-title-item .atm-link-add { display: inline-block; margin-top: 8px; font-size: 13px; }
+
 .atm-add-text {
   display: block;
-  width: 420px;
+  width: 554px;
+  max-width: 100%;
   height: 34px;
   padding: 0;
   font-size: 13px;
