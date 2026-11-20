@@ -684,11 +684,9 @@ function onBatchConfirm({ op, rows: list }) {
 }
 
 // 「批量修改预算」弹窗确认
-function onAdBudgetConfirm({ rows: list, form }) {
+function onAdBudgetConfirm({ rows: list }) {
   const c = getBatchOpConfig('promotion', '修改预算');
-  ElMessage.success(
-    `原型：已对 ${list.length} 条广告执行「修改预算」→ ${c ? c.api.name : ''}（${form.scope === 'each' ? '分别修改' : '统一修改'}）`
-  );
+  ElMessage.success(`原型：已对 ${list.length} 条广告执行「修改预算」→ ${c ? c.api.name : ''}`);
   load();
 }
 
