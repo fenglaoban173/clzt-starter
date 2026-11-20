@@ -2643,3 +2643,50 @@
   - `verify_r48.py`、`verify_r48_ads.py`、`verify_r52_regress.py`、`verify_r53b.py`、`verify_r54b.py`、`verify_r56c.py`、`verify_r63.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r67.py`、`verify_r67b.py`、`verify_r68.py`、`verify_r69.py`、`verify_r69c.py`、`verify_r70.py` 全部通过。
 
 - **遗留失败（非本轮引入，沿用 R71/R72 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关（`.abd-dialog .bo-payload-head .bo-link`）；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
+## 八十九、一键起量弹窗：方案模块化、星期多选、新增方案走纵向滚动条不撑大弹窗（2026-11-20，需求 R74）
+
+### ① 需求来源（用户原话）
+
+> 1、一键起量， 添加方案 是按截图中板块 算做一个模块；
+> 2、星期支持多选， 选每天以后 清空勾选的多个星期；
+> 3、新增方案是在第一个方案 下面新增一个模块，通过垂直滚动条 往下滑动，不是撑大弹窗。
+
+（配图：线上「设置一键起量」弹窗的「起量方案1」板块，周一 ~ 周日 呈多选高亮态。）
+
+### ② 改动明细
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/AdOneClickRaiseDialog.vue` | ① **方案模块化**：起量方案区由模板片段改为独立容器 `.mcr-plans`（固定高 256px + `overflow-y:auto` + `scrollbar-gutter:stable`），每个方案仍是一个带标题条（「起量方案 N」）的边框板块 `.mcr-plan`，板块之间以 16px 间距纵向排列；板块标题改为线上样式（16px / 700 / #333 / 白底 + 1px #e8eaec 下边框）。② **星期多选**：`plan.weekday`（单值）改为 `plan.weekdays`（数组），按钮高亮改为 `plan.weekdays.includes(w.value)`；新增 `toggleWeekday(plan, value)`——点「每天」即清空其它已勾选星期并只留「每天」，点具体星期则取消「每天」并按数组增删，支持多选。③ **不撑大弹窗**：弹窗壳改为 `display:flex; flex-direction:column; max-height:95vh`，`.el-dialog__body` 设 `flex:1 1 auto; min-height:0; overflow-y:auto`；起量方案区高度固定，新增方案时区域内部出现纵向滚动条（新增后自动滚动到新板块），弹窗整体高度不变。 |
+| `frontend/src/api/oceanengine.js` | 「开启一键起量」`build` 的 `repeated_day` 支持多选：`(p.repeated_day && p.repeated_day.length ? p.repeated_day : undefined)`（空数组不下发）；`fields` 中「重复周期」规则文案补充「星期支持多选，EVERY_DAY（每天）与其它星期不可同时传入」。 |
+
+> 说明：本轮为 R73 的一键起量弹窗细节跟进，仅改动上述两个文件；未新增文件，未改动 `mock/data.js`、`layouts/AppLayout.vue`、`main.js`。
+
+### ③ 验证
+
+- **构建**：`npm run build` 通过（9.47s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（`/build/ads`，勾选 3 条广告 → 批量操作 → 开启一键起量，`C:/tmp/verify_r74.py`）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 汇总 | `total: 4 ok: 4 fail: 0`，`PAGEERRORS: []` |
+| 星期多选 | 周几按钮 8 个（每天 / 每周一 ~ 每周日）；点「每周一」→ 高亮 `["每周一"]`；再点「每周二」→ 高亮 `["每周一","每周二"]`（多选生效）；点「每天」→ 高亮 `["每天"]`（**已勾选的多个星期被清空**）；再点「每周一」→ 高亮 `["每周一"]`（「每天」被取消，与其它星期互斥） |
+| 新增方案模块化 | 方案数 1 → 2；板块标题 `["起量方案 1","起量方案 2"]`；第二个板块位于第一个板块下方；方案区 `clientHeight 256 < scrollHeight 434` → **区域内出现纵向滚动条** |
+| 弹窗高度不变 | 新增前弹窗高 `893px`，新增后 `893px`（差值 0）→ **不撑大弹窗** |
+| 提交起量任务 | 两个方案的起量时间均写入后提交成功，提示「原型：已提交设置一键起量任务（3 条广告，起量方案 2 个）」，弹窗关闭 |
+
+- **尺寸实测**（`C:/tmp/measure_r74.py`，视口 1400×1000）：
+
+| 区块 | 仅一次 | 每周重复 |
+| --- | --- | --- |
+| 单个方案板块高 | 166px | 252px |
+| 起量方案区（固定） | 256px | 256px |
+| 广告表格 | 300px | 300px |
+| 弹窗 body（clientH / scrollH） | 792 / 792（不滚动） | 792 / 792（不滚动） |
+
+- **payload 映射实测**（`C:/tmp/test_build_r74.mjs`）：多选星期 → `raise_info[].appointed_time.repeated_day = ["PER_MONDAY","PER_TUESDAY"]`；另一方案 `["EVERY_DAY"]`；「立即生效」方案不生成 `appointed_time`；空数组不下发。
+
+- **回归**：`verify_r73.py` 9/9、`verify_r72.py` 12/12、`verify_r72b.py` 12/12、`verify_r72c.py` 12/12、`verify_r71.py` 11/11、`verify_r71c.py` 通过、`verify_r48_ads.py`、`verify_r52_regress.py`、`verify_r53b.py`、`verify_r54b.py`、`verify_r69c.py`、`verify_r70.py` 全部通过。
+
+- **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关（`.abd-dialog .bo-payload-head .bo-link`）；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。

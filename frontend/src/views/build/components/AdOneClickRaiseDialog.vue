@@ -60,9 +60,9 @@
         </div>
       </div>
 
-      <!-- 起量方案 -->
-      <template v-if="timeMode === 'appoint'">
-        <div v-for="(plan, pi) in plans" :key="plan.id" class="mcr-plan">
+      <!-- 起量方案：每个方案为一个板块；方案增多时在区域内纵向滚动，弹窗高度不变 -->
+      <div v-if="timeMode === 'appoint'" ref="plansBox" class="mcr-plans">
+        <div v-for="(plan, pi) in plans" :key="plan.id" class="mcr-plan" :data-plan="plan.id">
           <div class="mcr-plan-head">起量方案 {{ pi + 1 }}</div>
           <div class="mcr-plan-body">
             <div class="mcr-item">
@@ -86,8 +86,8 @@
                       :key="w.value"
                       type="button"
                       class="mcr-weekday"
-                      :class="{ 'is-active': plan.weekday === w.value }"
-                      @click="plan.weekday = w.value"
+                      :class="{ 'is-active': (plan.weekdays || []).includes(w.value) }"
+                      @click="toggleWeekday(plan, w.value)"
                     >
                       {{ w.label }}
                     </button>
@@ -116,7 +116,7 @@
             </div>
           </div>
         </div>
-      </template>
+      </div>
 
       <!-- 广告列表 -->
       <el-table :data="rows" border size="small" class="mcr-table" height="300">
@@ -160,7 +160,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Clock } from '@element-plus/icons-vue';
 import { getBatchOpConfig } from '@/api/oceanengine';
@@ -208,8 +208,10 @@ const budgetOp = ref('lower');
 const budget = ref('');
 // 起量生效时间：now 立即生效 / appoint 指定时间
 const timeMode = ref('appoint');
-// 起量方案列表
+// 起量方案列表（每个方案为一个板块）
 const plans = ref([]);
+// 起量方案区域（多方案时区域内纵向滚动）
+const plansBox = ref(null);
 
 /** 周期起量任务默认结束日期（今天 + 56 天） */
 const weeklyEndDate = computed(() => {
@@ -252,12 +254,32 @@ function init() {
 
 /** 新建一个起量方案 */
 function newPlan() {
-  return { id: Date.now() + Math.random(), repeat: 'once', weekday: 'EVERY_DAY', time: '' };
+  return { id: Date.now() + Math.random(), repeat: 'once', weekdays: ['EVERY_DAY'], time: '' };
 }
 
-/** 添加起量方案 */
-function addPlan() {
-  plans.value = [...plans.value, newPlan()];
+/** 周几多选：选「每天」清空其它星期；选具体星期则取消「每天」 */
+function toggleWeekday(plan, value) {
+  const cur = plan.weekdays || [];
+  if (value === 'EVERY_DAY') {
+    // 「每天」与其它星期互斥：选中即清空已勾选的多个星期
+    plan.weekdays = cur.length === 1 && cur[0] === 'EVERY_DAY' ? [] : ['EVERY_DAY'];
+    return;
+  }
+  const next = cur.filter((v) => v !== 'EVERY_DAY');
+  const i = next.indexOf(value);
+  if (i >= 0) next.splice(i, 1);
+  else next.push(value);
+  plan.weekdays = next;
+}
+
+/** 添加起量方案：在最后一个方案下方新增一个板块，并滚动到新板块 */
+async function addPlan() {
+  const plan = newPlan();
+  plans.value = [...plans.value, plan];
+  await nextTick();
+  const box = plansBox.value;
+  const el = box && box.querySelector(`[data-plan="${plan.id}"]`);
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
 }
 
 /** 起量预算应用到所有广告 */
@@ -298,7 +320,7 @@ function confirm() {
       raise_budget: budget.value || rows.value[0]?.raiseBudget || '',
       is_effective_now: timeMode.value === 'now' ? '立即生效' : '指定时间',
       raise_time: p.time,
-      repeated_day: p.repeat === 'weekly' ? p.weekday : undefined,
+      repeated_day: p.repeat === 'weekly' ? (p.weekdays || []) : undefined,
     })),
   };
   const cfg = getBatchOpConfig('promotion', OP);
@@ -364,14 +386,24 @@ function confirm() {
   line-height: 16px;
 }
 
+/* 起量方案区域：每个方案为一个板块；区域高度固定，方案增多时在区域内纵向滚动，弹窗高度不变 */
+.mcr-plans {
+  height: 256px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+
 /* 起量方案卡片 */
-.mcr-plan { margin-bottom: 16px; border: 1px solid #ebeef5; }
+.mcr-plan { margin-bottom: 16px; border: 1px solid #e8eaec; }
+.mcr-plan:last-child { margin-bottom: 0; }
 .mcr-plan-head {
-  padding: 10px 16px;
-  border-bottom: 1px solid #ebeef5;
-  background: #fafafa;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8eaec;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 700;
   color: #333;
 }
 .mcr-plan-body { padding: 18px 16px 0; }
@@ -476,12 +508,17 @@ function confirm() {
 </style>
 
 <style>
-/* 弹窗外壳：与线上一致（标题 16px 700 #333 / body 20px 24px） */
-.mcr-dialog { padding: 0; }
-.mcr-dialog .el-dialog__header { margin-right: 0; padding: 14px 24px; border-bottom: 1px solid #e8eaec; }
+/* 弹窗外壳：与线上一致（标题 16px 700 #333 / body 20px 24px）；高度固定，内容纵向滚动 */
+.mcr-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 95vh;
+  padding: 0;
+}
+.mcr-dialog .el-dialog__header { flex: none; margin-right: 0; padding: 14px 24px; border-bottom: 1px solid #e8eaec; }
 .mcr-dialog .el-dialog__title { font-size: 16px; font-weight: 700; line-height: 18px; color: #333; }
-.mcr-dialog .el-dialog__body { padding: 20px 24px; }
-.mcr-dialog .el-dialog__footer { padding: 0 24px 20px; }
+.mcr-dialog .el-dialog__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px 24px; }
+.mcr-dialog .el-dialog__footer { flex: none; padding: 0 24px 20px; }
 .mcr-dialog .el-dialog__footer .el-button { height: 32px; }
 .mcr-dialog .el-dialog__footer .el-button + .el-button { margin-left: 16px; }
 

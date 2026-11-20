@@ -265,7 +265,7 @@ export const PROMOTION_BATCH_OPS = {
       { key: 'raise_budget_batch', label: '起量预算批量', type: 'number', apiField: 'raise_info[].raise_budget', unit: '元', placeholder: '请输入起量预算', rule: '起量预算需大于等于计划出价、小于等于计划预算，允许小数点后两位' },
       { key: 'is_effective_now', label: '起量生效时间', type: 'radio', apiField: 'raise_info[].is_effective_now', required: true, default: '指定时间', options: [{ label: '立即生效', value: '立即生效' }, { label: '指定时间', value: '指定时间' }], rule: '仅支持营销状态为「投放中」的营销立即生效；仅支持 1 个方案设置「立即生效」' },
       { key: 'raise_time', label: '起量时间', type: 'datetime', apiField: 'raise_info[].appointed_time.raise_time', placeholder: '请选择起量时间', rule: '方案之间起量时间最少间隔 6 小时' },
-      { key: 'repeated_day', label: '重复周期', type: 'select', apiField: 'raise_info[].appointed_time.repeated_day', options: ENUMS.repeatedDay.filter((o) => o.value), rule: '仅生效一次；传重复周期时 raise_time 格式为 HH:MM；EVERY_DAY 与其他允许值不可同时传入' },
+      { key: 'repeated_day', label: '重复周期', type: 'select', apiField: 'raise_info[].appointed_time.repeated_day', options: ENUMS.repeatedDay.filter((o) => o.value), rule: '仅生效一次；传重复周期时 raise_time 格式为 HH:MM；星期支持多选，EVERY_DAY（每天）与其它星期不可同时传入' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
@@ -276,7 +276,12 @@ export const PROMOTION_BATCH_OPS = {
         appointed_time:
           p.is_effective_now === '立即生效'
             ? undefined
-            : { raise_time: p.raise_time, repeated_day: p.repeated_day || undefined },
+            : {
+                raise_time: p.raise_time,
+                // 星期支持多选
+                repeated_day:
+                  p.repeated_day && p.repeated_day.length ? p.repeated_day : undefined,
+              },
       })),
     }),
   },
