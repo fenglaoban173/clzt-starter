@@ -30,21 +30,22 @@
         <el-button class="ate-ai" @click="onAi">AI助手</el-button>
       </div>
 
-      <!-- 标题输入 -->
-      <div class="ate-row ate-row-block">
+      <!-- 标题输入（线上为一个带边框的整块：标题行 + 提示行 + 输入框 + 错误提示） -->
+      <div class="ate-title-block">
         <div class="ate-label-row">
           <span class="ate-label">标题</span>
-          <a class="ate-link" @click="emit('wordpack')">+ 插入动态词包</a>
+          <a class="ate-link" @click="onWordPack">+ 插入动态词包</a>
         </div>
+        <div class="ate-hint">标题长度范围为5~55个字，添加多个标题请换行</div>
         <el-input
+          ref="inputRef"
           v-model="text"
           type="textarea"
-          :rows="8"
+          :rows="10"
           class="ate-textarea"
-          placeholder="标题长度范围为5~55个字，添加多个标题请换行"
         />
-        <p v-if="error" class="ate-error">{{ error }}</p>
-        <p class="ate-count">{{ lenText }}</p>
+        <!-- R78：线上仅在长度不合法时给出红色提示（无字数计数） -->
+        <p v-if="errorText" class="ate-error">{{ errorText }}</p>
       </div>
     </div>
 
@@ -56,7 +57,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { WarningFilled } from '@element-plus/icons-vue';
 
@@ -72,29 +73,92 @@ const CATEGORIES = ['通用', '短剧', '小说', '游戏', '电商', '教育', 
 
 const category = ref('');
 const text = ref('');
-const error = ref('');
+/** 是否点过「确定」——空标题的错误提示在点击确定后才出现 */
+const submitted = ref(false);
+/** el-input 组件实例（取内部 textarea，做光标定位） */
+const inputRef = ref(null);
+/** 打开词包弹窗前记录的光标位置 */
+const savedRange = ref(null);
 
 const showCategory = computed(() => props.mode === 'create' || props.mode === 'edit');
 const dialogTitle = computed(() => (props.mode === 'edit' ? '编辑标题' : '添加标题'));
 
+/** 动态词包占位符 {词包名}：不计入标题长度校验（线上口径） */
+function stripPack(str) {
+  return String(str || '').replace(/\{[^{}]*\}/g, '');
+}
+
 /** 字数：两个英文字符占 1 字 */
-const len = computed(() => {
-  const s = String(text.value || '');
+function charLen(str) {
   let n = 0;
-  for (const ch of s) n += /[\x00-\xff]/.test(ch) ? 0.5 : 1;
+  for (const ch of stripPack(str)) n += /[\x00-\xff]/.test(ch) ? 0.5 : 1;
   return Math.floor(n);
+}
+
+/** 逐行长度校验：第 N 行标题长度范围为 5-55个字 */
+const badLine = computed(() => {
+  const lines = String(text.value || '').split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!lines[i].trim()) continue;
+    const n = charLen(lines[i]);
+    if (n < 5 || n > 55) return { no: i + 1, len: n };
+  }
+  return null;
 });
-const lenText = computed(() => `${len.value}/55`);
+
+const errorText = computed(() => {
+  if (submitted.value && !String(text.value || '').trim()) return '输入的标题不能为空';
+  if (badLine.value) return `第${badLine.value.no}行标题长度范围为 5-55个字`;
+  return '';
+});
 
 function init() {
   category.value = '';
   text.value = props.titleText || '';
-  error.value = '';
+  submitted.value = false;
+  savedRange.value = null;
 }
 
 function onAi() {
   ElMessage.info('原型：AI 助手生成文案（不接入真实模型）');
 }
+
+/** 点击「+ 插入动态词包」：先记住光标位置，再由父级打开词包弹窗 */
+function onWordPack() {
+  const ta = inputRef.value?.textarea;
+  savedRange.value = ta ? { start: ta.selectionStart, end: ta.selectionEnd } : null;
+  emit('wordpack');
+}
+
+/**
+ * 插入动态词包占位符 {词包名}（线上效果：占位符插入到光标处，行尾可继续输入）
+ * 由父级在公共词包弹窗点击「插入」后调用
+ */
+function insertWordPack(pack) {
+  const token = `{${pack && pack.name ? pack.name : '词包'}}`;
+  const ta = inputRef.value?.textarea;
+  let start = savedRange.value ? savedRange.value.start : ta ? ta.selectionStart : null;
+  let end = savedRange.value ? savedRange.value.end : ta ? ta.selectionEnd : null;
+  if (start === null || start === undefined) {
+    start = String(text.value || '').length;
+    end = start;
+  }
+  const next = `${String(text.value || '').slice(0, start)}${token}${String(text.value || '').slice(end)}`;
+  text.value = next;
+  savedRange.value = null;
+  nextTick(() => {
+    if (!ta) return;
+    const pos = start + token.length;
+    ta.focus();
+    try {
+      ta.setSelectionRange(pos, pos);
+    } catch (e) {
+      /* 部分浏览器不支持，忽略 */
+    }
+  });
+}
+
+defineExpose({ insertWordPack });
 
 function close() {
   emit('update:modelValue', false);
@@ -102,11 +166,9 @@ function close() {
 
 function confirm() {
   const t = String(text.value || '').trim();
-  if (!t) {
-    error.value = '输入的标题不能为空';
-    return;
-  }
-  error.value = '';
+  submitted.value = true;
+  if (!t) return;
+  if (badLine.value) return;
   emit('confirm', { text: t, category: category.value });
   emit('update:modelValue', false);
 }
@@ -115,9 +177,23 @@ function confirm() {
 <style scoped>
 .ate-body { --el-font-size-base: 14px; font-size: 14px; color: #606266; }
 .ate-row { display: flex; align-items: center; margin-bottom: 18px; }
-.ate-row-block { display: block; margin-bottom: 0; }
-.ate-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.ate-label { width: 60px; font-size: 14px; color: #666; }
+/* 标题整块（线上：标题行 + 灰色提示行 + 输入框 + 红色错误提示，同在一个边框容器内） */
+.ate-title-block { border: 1px solid #e5e6eb; }
+.ate-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e6eb;
+}
+.ate-hint {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #999;
+  background: #f4f6f9;
+  border-bottom: 1px solid #e5e6eb;
+}
+.ate-label { font-size: 14px; color: #333; }
 .ate-select { width: 240px; }
 .ate-ai {
   margin-left: 12px;
@@ -130,9 +206,16 @@ function confirm() {
 }
 .ate-ai:hover { opacity: 0.88; color: #fff; }
 .ate-textarea { width: 100%; }
-.ate-textarea :deep(.el-textarea__inner) { font-size: 14px; line-height: 22px; color: #333; }
-.ate-error { margin: 6px 0 0; font-size: 12px; color: #f56c6c; }
-.ate-count { margin: 6px 0 0; font-size: 12px; color: #999; text-align: right; }
+.ate-textarea :deep(.el-textarea__inner) {
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 22px;
+  color: #333;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.ate-error { margin: 0; padding: 6px 12px 12px; font-size: 12px; color: #f56c6c; }
 .ate-link { color: #197afb; cursor: pointer; font-size: 13px; }
 .ate-head { display: flex; align-items: center; gap: 12px; }
 .ate-title { font-size: 16px; font-weight: 700; color: #333; }

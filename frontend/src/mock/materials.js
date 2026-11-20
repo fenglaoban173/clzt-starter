@@ -67,27 +67,9 @@ export const MATERIAL_LIBRARY = BASE_NAMES.map((name, i) => {
 export const MATERIAL_MEDIA = [];
 
 // ---------------------------------------------------------------------------
-// R77：线上「创意素材」选择器除 素材库 / 媒体素材 外，还有
-// 鹰剪 / 收藏夹 / 组织素材 / 组织素材-实时 四个页签，这里补齐本地 mock
+// R77：线上「创意素材」选择器还有 组织素材 / 组织素材-实时 两个页签，这里补齐本地 mock
+// R78：按线上移除「鹰剪」「收藏夹」页签
 // ---------------------------------------------------------------------------
-
-// 鹰剪：智能剪辑生成的素材
-export const MATERIAL_YINGJIAN = BASE_NAMES.slice(0, 12).map((name, i) => ({
-  ...MATERIAL_LIBRARY[i],
-  id: 71001 + i,
-  name: `鹰剪-${name}`,
-  remark: '智能剪辑生成',
-  ad_count: 0,
-  today_ad_count: 0,
-  status: '未使用',
-}));
-
-// 收藏夹：用户收藏的素材
-export const MATERIAL_FAVORITE = BASE_NAMES.slice(4, 14).map((name, i) => ({
-  ...MATERIAL_LIBRARY[i + 4],
-  id: 72001 + i,
-  remark: '已收藏',
-}));
 
 // 组织素材：组织账户共享的素材
 export const MATERIAL_ORG = BASE_NAMES.slice(0, 16).map((name, i) => ({

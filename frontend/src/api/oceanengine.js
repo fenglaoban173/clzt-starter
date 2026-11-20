@@ -31,8 +31,6 @@ const num = (v) => (v === '' || v === null || v === undefined ? undefined : Numb
 export const ONLINE_ONLY_TOAST = {
   修改深度出价: '所选广告不支持修改深度转化出价！',
   修改ROI系数: '所选广告无ROI系数，操作取消！',
-  '修改字节小程序/小游戏链接': '所选广告全部不支持修改字节小程序/小游戏链接，操作取消',
-  修改短剧专辑链接: '所选广告全部不支持修改短剧专辑链接，操作取消',
 };
 
 // ---------------------------------------------------------------- 公共枚举
@@ -395,15 +393,15 @@ export const PROMOTION_BATCH_OPS = {
     title: '修改产品名称',
     desc: (n) => `已选中${n}个广告`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（product_info.titles）', scope: AUTH_PROMOTION },
-    notes: ['修改对象为 广告层级 - 产品信息模块 - 产品名称'],
+    // R78：线上「修改产品名称」为独立弹窗（仅一个产品名称输入框），见 AdProductNameDialog
+    notes: ['修改对象为广告层级-产品信息模块-产品名称'],
     fields: [
-      { key: 'product_name_type', label: '产品名称类型', type: 'radio', apiField: 'product_info.product_name_type', required: true, default: 'CUSTOM', options: [{ label: '自定义', value: 'CUSTOM' }, { label: 'DPA产品库名称', value: 'DPA' }] },
-      { key: 'titles', label: '产品名称', type: 'links', apiField: 'product_info.titles[]', required: true, placeholder: '请输入产品名称', visibleWhen: { product_name_type: 'CUSTOM' }, rule: '产品名称，字数限制 1～20，数组上限为 1' },
+      { key: 'titles', label: '产品名称', type: 'input', apiField: 'product_info.titles[]', required: true, placeholder: '1-20个字符', rule: '产品名称，字数限制 1～20，数组上限为 1' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
       promotion_id: '{promotion_id}',
-      product_info: { product_name_type: form.product_name_type, titles: form.titles || [] },
+      product_info: { product_name_type: 'CUSTOM', titles: form.titles ? [form.titles] : [] },
     }),
   },
   修改产品主图: {
@@ -440,38 +438,6 @@ export const PROMOTION_BATCH_OPS = {
       { key: 'ulink', label: '直达备用链接', type: 'input', apiField: 'ulink', required: true, placeholder: '请输入直达备用链接', rule: '直达备用链接，支持穿山甲和站内投放版位；landing_type = LINK 销售线索投放时有效' },
     ],
     build: (rows, form) => ({ advertiser_id: '{advertiser_id}', promotion_id: '{promotion_id}', ulink: form.ulink }),
-  },
-  '修改字节小程序/小游戏链接': {
-    title: '修改字节小程序/小游戏链接',
-    desc: (n) => `已选中${n}个广告`,
-    api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（小程序调起链接）', scope: AUTH_PROMOTION },
-    notes: ['所选广告全部不支持修改字节小程序/小游戏链接时，线上会直接提示「操作取消」。'],
-    fields: [
-      { key: 'urls', label: '小程序调起链接', type: 'links', apiField: 'urls[]', required: true, placeholder: '请输入小程序调起链接', rule: '字节小程序调起链接，支持传入 1 条以上 url，会检查每条 url 正确性；urls + auto 合计上限 5 个（短剧行业白名单）' },
-      { key: 'app_id', label: '小程序ID', type: 'input', apiField: 'auto[].app_id', placeholder: '请输入小程序ID', rule: 'auto 参数下，仅支持传入同一 app_id' },
-      { key: 'start_path', label: '启动路径', type: 'input', apiField: 'auto[].start_path', placeholder: '请输入启动路径', rule: '仅限小程序' },
-      { key: 'params', label: '页面监测参数', type: 'input', apiField: 'auto[].params', placeholder: '请输入页面监测参数' },
-    ],
-    build: (rows, form) => ({
-      advertiser_id: '{advertiser_id}',
-      promotion_id: '{promotion_id}',
-      urls: form.urls || [],
-      auto: form.app_id ? [{ app_id: form.app_id, start_path: form.start_path, params: form.params }] : undefined,
-    }),
-  },
-  修改短剧专辑链接: {
-    title: '修改短剧专辑链接',
-    desc: (n) => `已选中${n}个广告`,
-    api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（playlet_series_url_list）', scope: AUTH_PROMOTION },
-    notes: ['所选广告全部不支持修改短剧专辑链接时，线上会直接提示「操作取消」。'],
-    fields: [
-      { key: 'playlet_series_url_list', label: '短剧专辑链接', type: 'links', apiField: 'playlet_series_url_list[]', required: true, placeholder: '请输入短剧专辑链接', rule: '短剧合集链接 url，暂仅支持设置 1 个，需前往「内容合作平台」获取短剧专辑链接后传入' },
-    ],
-    build: (rows, form) => ({
-      advertiser_id: '{advertiser_id}',
-      promotion_id: '{promotion_id}',
-      playlet_series_url_list: form.playlet_series_url_list || [],
-    }),
   },
   批量修改广告名称: {
     title: '批量修改广告名称',

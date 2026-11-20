@@ -81,6 +81,7 @@
 
     <!-- 新建 / 编辑标题 -->
     <AdTitleEditorDialog
+      ref="editorRef"
       v-model="editorVisible"
       :mode="editorMode"
       :title-text="editorText"
@@ -145,6 +146,8 @@ const editorMode = ref('create');
 const editorText = ref('');
 const editingId = ref('');
 const wordpackVisible = ref(false);
+/** 新建/编辑标题弹窗实例（R78：词包占位符插入到输入框光标处） */
+const editorRef = ref(null);
 
 const filtered = computed(() => {
   const kw = String(f.value.keyword || '').trim();
@@ -221,8 +224,9 @@ function onEditorConfirm({ text }) {
   }
 }
 
+/** 插入动态词包：占位符 {词包名} 插入到新建/编辑标题输入框的光标处 */
 function onWordPackInsert(pack) {
-  ElMessage.info(`原型：已插入动态词包「${pack.name}」`);
+  editorRef.value?.insertWordPack(pack);
 }
 
 function close() {

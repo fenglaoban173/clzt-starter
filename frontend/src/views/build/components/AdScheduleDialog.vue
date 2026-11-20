@@ -29,10 +29,9 @@
         />
       </el-form-item>
 
-      <!-- 投放时段 -->
+      <!-- 投放时段（R78：按线上移除「不限」选项，仅保留「指定时间段」） -->
       <el-form-item label="投放时段">
         <el-radio-group v-model="slotType" size="small" class="ps-radio">
-          <el-radio-button border value="all">不限</el-radio-button>
           <el-radio-button border value="specified">指定时间段</el-radio-button>
         </el-radio-group>
 
@@ -112,7 +111,7 @@ const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五
 
 const rule = ref('now'); // now 立即生效 / next_day 次日0时生效 / scheduled 自定义时间
 const effectiveTime = ref('');
-const slotType = ref('specified'); // all 不限 / specified 指定时间段
+const slotType = ref('specified'); // R78：线上已移除「不限」，仅保留 specified 指定时间段
 const slots = ref([]); // 7 天 × 48 个半小时
 
 /** 可操作广告（去掉合计行） */
@@ -199,7 +198,6 @@ function clearSlots() {
 
 /** 时段序列化为 48×7 位 0/1 字符串（每天 48 个半小时区段） */
 function scheduleTimeString() {
-  if (slotType.value === 'all') return weekdays.map(() => '1'.repeat(48)).join('');
   return slots.value.map((day) => day.map((b) => (b ? '1' : '0')).join('')).join('');
 }
 
@@ -223,9 +221,7 @@ function confirm() {
     }
   }
   ElMessage.success(
-    `原型：已提交批量修改广告时段任务（${rows.value.length} 条广告，${ruleText.value}${
-      slotType.value === 'specified' ? `，已选 ${slotCount.value} 个半小时时段` : ''
-    }）`
+    `原型：已提交批量修改广告时段任务（${rows.value.length} 条广告，${ruleText.value}，已选 ${slotCount.value} 个半小时时段）`
   );
   emit('confirm', { op: OP, rows: rows.value, form, payload });
   close();

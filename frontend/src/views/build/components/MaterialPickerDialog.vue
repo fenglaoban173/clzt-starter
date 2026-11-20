@@ -365,7 +365,7 @@
           <el-icon class="mp-help"><QuestionFilled /></el-icon>
         </div>
         <div class="mp-foot-right">
-          <el-button link type="primary" @click="clearSelection">清空选择</el-button>
+          <el-button class="mp-clear" @click="clearSelection">清空选择</el-button>
           <el-button @click="close">取消</el-button>
           <el-button type="primary" @click="submit">提交</el-button>
         </div>
@@ -383,8 +383,7 @@ import {
 import dayjs from 'dayjs';
 import { mediaApi } from '@/api/media';
 import {
-  MATERIAL_LIBRARY, MATERIAL_MEDIA,
-  MATERIAL_YINGJIAN, MATERIAL_FAVORITE, MATERIAL_ORG, MATERIAL_ORG_LIVE,
+  MATERIAL_LIBRARY, MATERIAL_MEDIA, MATERIAL_ORG, MATERIAL_ORG_LIVE,
   MATERIAL_FILTER_OPTIONS as OPTS,
   MATERIAL_FILTER_RULE_DEFAULT,
   MATERIAL_FILTER_RULE_MEDIA_DEFAULT,
@@ -397,10 +396,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'submit']);
 
 // 页签：素材库 / 媒体素材（线上另有「魔剪 / 收藏夹」，按需求移除）
+// R78：按线上移除「鹰剪」「收藏夹」两个页签
 const TABS = [
   { key: 'library', label: '素材库', data: MATERIAL_LIBRARY },
-  { key: 'yingjian', label: '鹰剪', data: MATERIAL_YINGJIAN },
-  { key: 'favorite', label: '收藏夹', data: MATERIAL_FAVORITE },
   { key: 'media', label: '媒体素材', data: MATERIAL_MEDIA },
   { key: 'org', label: '组织素材', data: MATERIAL_ORG },
   { key: 'orgLive', label: '组织素材-实时', data: MATERIAL_ORG_LIVE },
@@ -792,7 +790,15 @@ function submit() {
 /* 底部操作 */
 .mp-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .mp-foot-left { display: flex; align-items: center; gap: 8px; color: #4e5969; font-size: 14px; }
-.mp-foot-right { display: flex; align-items: center; gap: 12px; }</style>
+.mp-foot-right { display: flex; align-items: center; gap: 12px; }
+/* R78：清空选择改为蓝色按钮（白字），与线上一致 */
+.mp-foot .mp-clear {
+  color: #fff;
+  background: #197afb;
+  border-color: #197afb;
+}
+.mp-foot .mp-clear:hover { color: #fff; background: #4a9bff; border-color: #4a9bff; }
+</style>
 
 <style>
 /* 弹窗外壳：与线上一致（无内边距头部、body 自行排版） */
@@ -807,4 +813,15 @@ function submit() {
 .mp-dialog .el-cascader.mp-f-mid { width: 219px; }
 /* 级联面板与线上保持一致的高度 */
 .mp-dialog .el-cascader__dropdown { max-height: 320px; }
+/* R78：「清空选择」为蓝底白字按钮（需盖过外层弹窗 footer 按钮的默认灰色） */
+.mp-dialog .el-dialog__footer .el-button.mp-clear:not(.el-button--primary) {
+  width: auto;
+  min-width: 88px;
+  height: 32px;
+  padding: 0 16px;
+  color: #fff;
+  background: #197afb;
+  border-color: #197afb;
+}
+.mp-dialog .el-dialog__footer .el-button.mp-clear:not(.el-button--primary):hover { color: #fff; background: #4a9bff; border-color: #4a9bff; }
 </style>

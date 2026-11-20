@@ -43,7 +43,7 @@
               </span>
             </div>
             <div class="atm-link-row">
-              <a class="atm-link atm-link-add" @click="wordpackVisible = true">+ 插入动态词包</a>
+              <a class="atm-link atm-link-add" @click="openWordpack('main')">+ 插入动态词包</a>
             </div>
             <el-button class="atm-add-text" @click="openAddText">+ 点击添加文案</el-button>
           </div>
@@ -69,7 +69,7 @@
         <div class="atm-content">
           <div class="atm-line">
             <span class="atm-line-label">视频上传至</span>
-            <el-radio-group v-model="uploadScope" class="atm-radio atm-radio-sm">
+            <el-radio-group v-model="uploadPick" class="atm-radio atm-radio-sm" @change="onUploadPick">
               <el-radio-button value="org">升级版工作台组织</el-radio-button>
               <el-radio-button value="adv">广告主账户</el-radio-button>
             </el-radio-group>
@@ -89,14 +89,20 @@
           </div>
 
           <div class="atm-alert">
-            <el-icon class="atm-alert-icon"><WarningFilled /></el-icon>
+            <span class="atm-alert-icon">!</span>
             <span>请在升级版工作台 素材-视频管理处操作共享，避免组织下账户无法使用。</span>
-            <a class="atm-link" @click="onDoc">如图所示</a>
+            <!-- R78：鼠标移入「如图所示」即展示线上「升级版工作台 素材-视频管理」截图 -->
+            <el-popover placement="top" :width="620" trigger="hover" popper-class="atm-guide-pop">
+              <template #reference>
+                <a class="atm-link">如图所示</a>
+              </template>
+              <img :src="guideImg" class="atm-guide-img" alt="升级版工作台 素材-视频管理" />
+            </el-popover>
           </div>
 
           <div class="atm-line atm-line-doc">
             <span>若企业内无组织账户，请</span>
-            <a class="atm-link" @click="onDoc">阅读文档</a>
+            <a class="atm-link atm-link-doc" :href="DOC_URL" target="_blank" rel="noopener">阅读文档</a>
             <span>操作</span>
           </div>
 
@@ -148,10 +154,11 @@
 
     <!-- 添加文案 -->
     <AdTitleEditorDialog
+      ref="editorRef"
       v-model="editorVisible"
       mode="plain"
       @confirm="onAddText"
-      @wordpack="wordpackVisible = true"
+      @wordpack="openWordpack('editor')"
     />
 
     <!-- 公共词包 -->
@@ -163,14 +170,38 @@
       :selected-ids="currentMaterials.map((m) => m.id)"
       @submit="onMaterialSubmit"
     />
+
+    <!-- 确认上传到广告主账户？（线上二次确认弹窗） -->
+    <el-dialog
+      :model-value="advConfirmVisible"
+      title="确认上传到广告主账户？"
+      width="440px"
+      align-center
+      class="atm-adv-dialog"
+      :close-on-click-modal="false"
+      destroy-on-close
+      @update:model-value="(v) => { if (!v) onKeepOrg(); }"
+    >
+      <div class="atm-adv-body">
+        <span class="atm-adv-icon">!</span>
+        <p class="atm-adv-text">
+          上传到广告主账户的素材仅该账户可用，账号维度不可共享。其他账户需要使用同一素材时须重复上传，会影响广告下发速度。
+        </p>
+      </div>
+      <template #footer>
+        <el-button @click="onConfirmAdv">继续（账户上传）</el-button>
+        <el-button type="primary" @click="onKeepOrg">保持组织上传</el-button>
+      </template>
+    </el-dialog>
   </el-dialog>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Close, Plus, WarningFilled } from '@element-plus/icons-vue';
+import { Close, Plus } from '@element-plus/icons-vue';
 import { getBatchOpConfig } from '@/api/oceanengine';
+import guideImg from '@/assets/guide-video-share.png';
 import AdTitleLibraryDialog from './AdTitleLibraryDialog.vue';
 import AdTitleEditorDialog from './AdTitleEditorDialog.vue';
 import AdWordPackDialog from './AdWordPackDialog.vue';
@@ -183,6 +214,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'confirm']);
 
 const OP = '修改广告标题和素材';
+
+/** 线上「阅读文档」跳转地址 */
+const DOC_URL = 'https://support.oceanengine.com/support/content/251947?spaceId=377';
 
 /** 组织账户（线上「*组织账户」下拉，含一个未授权的禁用项） */
 const ORG_ACCOUNTS = [
@@ -204,8 +238,10 @@ const titleMode = ref('on');
 const titles = ref([]);
 /** 修改创意素材：不启用 / 启用 */
 const materialMode = ref('on');
-/** 视频上传至：org 升级版工作台组织 / adv 广告主账户 */
+/** 视频上传至：org 升级版工作台组织 / adv 广告主账户（已确认生效的值） */
 const uploadScope = ref('org');
+/** 分段按钮当前选中值（选「广告主账户」需二次确认，未确认前不生效） */
+const uploadPick = ref('org');
 /** 组织账户 */
 const orgAccount = ref('ORG1');
 /** 素材页签：video / image */
@@ -218,6 +254,12 @@ const libVisible = ref(false);
 const editorVisible = ref(false);
 const wordpackVisible = ref(false);
 const materialVisible = ref(false);
+/** 「确认上传到广告主账户？」二次确认弹窗 */
+const advConfirmVisible = ref(false);
+/** 添加文案弹窗实例（R78：词包占位符插入到文案输入框光标处） */
+const editorRef = ref(null);
+/** 词包插入目标：main 主弹窗已选标题 / editor 添加文案输入框 */
+const wordpackTarget = ref('main');
 
 const currentMaterials = computed(() => (matTab.value === 'video' ? videos.value : images.value));
 
@@ -230,16 +272,32 @@ function init() {
   titles.value = [];
   materialMode.value = 'on';
   uploadScope.value = 'org';
+  uploadPick.value = 'org';
   orgAccount.value = 'ORG1';
   matTab.value = 'video';
   videos.value = [];
   images.value = [];
 }
 
-/** 字数：两个英文字符占 1 字 */
+/**
+ * 字数：两个英文字符占 1 字；动态词包占位符 {词包名} 的大括号各占 1 字
+ * 例：「火爆短剧来袭好看又上头的短剧{地点}」= 14 + 4 = 18（线上图5 为 18/55）
+ */
 function titleLen(s) {
+  const str = String(s || '');
   let n = 0;
-  for (const ch of String(s || '')) n += /[\x00-\xff]/.test(ch) ? 0.5 : 1;
+  const re = /\{[^{}]*\}/g;
+  let last = 0;
+  let m = re.exec(str);
+  while (m) {
+    for (const ch of str.slice(last, m.index)) n += /[\x00-\xff]/.test(ch) ? 0.5 : 1;
+    // 大括号各计 1 字，中间词包名按常规规则计
+    n += 2;
+    for (const ch of m[0].slice(1, -1)) n += /[\x00-\xff]/.test(ch) ? 0.5 : 1;
+    last = m.index + m[0].length;
+    m = re.exec(str);
+  }
+  for (const ch of str.slice(last)) n += /[\x00-\xff]/.test(ch) ? 0.5 : 1;
   return Math.floor(n);
 }
 
@@ -268,12 +326,55 @@ function onAddText({ text }) {
   titles.value = [...titles.value, { id: `T${Date.now()}`, text }];
 }
 
-function onWordPackInsert(pack) {
-  ElMessage.info(`原型：已插入动态词包「${pack.name}」`);
+/** 打开公共词包弹窗：main 插到已选标题尾部，editor 插到文案输入框光标处 */
+function openWordpack(target) {
+  wordpackTarget.value = target;
+  wordpackVisible.value = true;
 }
 
-function onDoc() {
-  ElMessage.info('原型：打开线上文档（升级版工作台 素材-视频管理）');
+/**
+ * 插入动态词包：
+ * - editor：占位符 {词包名} 插入到「添加文案」输入框的光标位置（线上图4）
+ * - main：占位符追加到最后一条已选标题（线上图5，字数同步变化）
+ */
+function onWordPackInsert(pack) {
+  if (wordpackTarget.value === 'editor') {
+    editorRef.value?.insertWordPack(pack);
+    return;
+  }
+  if (!titles.value.length) {
+    ElMessage.warning('请先选择标题');
+    return;
+  }
+  const token = `{${pack.name}}`;
+  const idx = titles.value.length - 1;
+  const next = [...titles.value];
+  next[idx] = { ...next[idx], text: `${next[idx].text}${token}` };
+  titles.value = next;
+}
+
+/** 视频上传至：选「广告主账户」需二次确认 */
+function onUploadPick(v) {
+  if (v === 'adv') {
+    advConfirmVisible.value = true;
+    return;
+  }
+  uploadScope.value = v;
+  uploadPick.value = v;
+}
+
+/** 继续（账户上传）：素材上传到广告主账户 */
+function onConfirmAdv() {
+  uploadScope.value = 'adv';
+  uploadPick.value = 'adv';
+  advConfirmVisible.value = false;
+}
+
+/** 保持组织上传：仍上传到升级版工作台组织 */
+function onKeepOrg() {
+  uploadScope.value = 'org';
+  uploadPick.value = 'org';
+  advConfirmVisible.value = false;
 }
 
 function onMaterialSubmit(picked) {
@@ -404,7 +505,18 @@ function confirm() {
   color: #e6a23c;
   font-size: 12px;
 }
-.atm-alert-icon { color: #e6a23c; }
+.atm-alert-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e6a23c;
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  text-align: center;
+}
 .atm-alert .atm-link { margin-left: 4px; }
 
 /* 素材区 */
@@ -445,6 +557,25 @@ function confirm() {
 .atm-mat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .atm-mat-x { color: #c0c4cc; cursor: pointer; }
 .atm-empty { margin: 0; font-size: 13px; color: #c0c4cc; }
+
+/* 「如图所示」悬浮引导图 */
+.atm-guide-img { display: block; width: 100%; border-radius: 4px; }
+
+/* 确认上传到广告主账户 */
+.atm-adv-body { display: flex; align-items: center; gap: 10px; }
+.atm-adv-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e6a23c;
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+.atm-adv-text { margin: 0; font-size: 14px; line-height: 22px; color: #606266; }
 </style>
 
 <style>
@@ -480,4 +611,19 @@ function confirm() {
   box-shadow: none;
 }
 .atm-dialog .atm-radio-sm .el-radio-button__inner { min-width: 110px; }
+
+/* 「如图所示」引导图气泡 */
+.atm-guide-pop { padding: 8px; }
+
+/* 确认上传到广告主账户弹窗 */
+.atm-adv-dialog { padding: 0; }
+.atm-adv-dialog .el-dialog__header { margin-right: 0; padding: 14px 20px; border-bottom: 1px solid #e8eaec; }
+.atm-adv-dialog .el-dialog__title { font-size: 15px; font-weight: 700; line-height: 18px; color: #333; }
+.atm-adv-dialog .el-dialog__body { padding: 18px 20px 8px; }
+.atm-adv-dialog .el-dialog__footer { padding: 8px 20px 20px; }
+.atm-adv-dialog .el-dialog__footer .el-button { width: auto; min-width: 120px; height: 32px; padding: 0 16px; font-size: 13px; }
+.atm-adv-dialog .el-dialog__footer .el-button + .el-button { margin-left: 12px; }
+.atm-adv-dialog .el-dialog__footer .el-button--primary { background: #197afb; border-color: #197afb; }
+.atm-adv-dialog .el-dialog__footer .el-button--primary:hover { background: #4a9bff; border-color: #4a9bff; }
+.atm-adv-dialog .el-dialog__footer .el-button:not(.el-button--primary) { border-color: #d0d0d0; color: #666; }
 </style>
