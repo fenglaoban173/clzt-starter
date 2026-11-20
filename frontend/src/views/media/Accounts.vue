@@ -7,11 +7,14 @@
           v-model="filters.subject"
           class="f-box f-w-subject"
           :style="{ '--f-w': subjectWidth + 'px' }"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
           filterable
           :filter-method="(q) => setQuery('subject', q)"
           clearable
           placeholder="全部"
-          :title="filters.subject || ''"
+          :title="multiText(filters.subject)"
         >
           <template #prefix><span class="f-prefix">账户主体：</span></template>
           <el-option v-for="s in matchOptions(subjectOptions, queries.subject, filters.subject)" :key="s" :value="s" :label="s" />
@@ -21,11 +24,14 @@
           v-model="filters.project"
           class="f-box f-w-project"
           :style="{ '--f-w': projectWidth + 'px' }"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
           filterable
           :filter-method="(q) => setQuery('project', q)"
           clearable
           placeholder="全部"
-          :title="filters.project || ''"
+          :title="multiText(filters.project)"
         >
           <template #prefix><span class="f-prefix">智投项目：</span></template>
           <el-option v-for="p in matchOptions(projectOptions, queries.project, filters.project)" :key="p" :value="p" :label="p" />
@@ -35,11 +41,14 @@
           v-model="filters.optimizer"
           class="f-box f-w-optimizer"
           :style="{ '--f-w': optimizerWidth + 'px' }"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
           filterable
           :filter-method="(q) => setQuery('optimizer', q)"
           clearable
           placeholder="全部"
-          :title="filters.optimizer || ''"
+          :title="multiText(filters.optimizer)"
         >
           <template #prefix><span class="f-prefix">优化师：</span></template>
           <el-option v-for="o in matchOptions(optimizerOptions, queries.optimizer, filters.optimizer)" :key="o" :value="o" :label="o" />
@@ -64,19 +73,20 @@
           <el-button class="f-search-btn" title="搜索" @click="onSearch"><el-icon><Search /></el-icon></el-button>
         </div>
 
-        <el-select
+        <!-- 部门：线上为树形选择器（可搜索），5 个职能部门（R84） -->
+        <el-tree-select
           v-model="filters.dept"
           class="f-box f-w-dept"
           :style="{ '--f-w': deptWidth + 'px' }"
+          :data="deptTree"
           filterable
-          :filter-method="(q) => setQuery('dept', q)"
+          check-strictly
           clearable
           placeholder="请选择部门"
           :title="filters.dept || ''"
         >
           <template #prefix><span class="f-prefix">部门：</span></template>
-          <el-option v-for="d in matchOptions(deptOptions, queries.dept, filters.dept)" :key="d" :value="d" :label="d" />
-        </el-select>
+        </el-tree-select>
 
         <template v-if="!isUpgrade">
           <el-select
@@ -350,7 +360,7 @@ const sortState = reactive({ prop: '', order: '' });
 const today = dayjs().format('YYYY-MM-DD');
 
 const filters = reactive({
-  subject: '', project: '', optimizer: '', dept: '', status: '',
+  subject: [], project: [], optimizer: [], dept: '', status: '',
   keyword: '', nameType: 'name',
 });
 
@@ -359,6 +369,23 @@ const subjectOptions = computed(() => [...new Set(mediaAccounts.value.map((a) =>
 const projectOptions = computed(() => [...new Set(mediaAccounts.value.map((a) => a.project).filter(Boolean))]);
 const optimizerOptions = computed(() => [...new Set(mediaAccounts.value.map((a) => a.optimizer).filter(Boolean))]);
 const deptOptions = computed(() => [...new Set(mediaAccounts.value.map((a) => a.dept).filter(Boolean))]);
+
+// 部门：线上为树形选择器（可搜索），5 个职能部门（R84 实测：编导 / 剪辑 / 默认部门 / 优化 / 技术）
+const deptTree = [
+  { value: '编导', label: '编导' },
+  { value: '剪辑', label: '剪辑' },
+  { value: '默认部门', label: '默认部门' },
+  { value: '优化', label: '优化' },
+  { value: '技术', label: '技术' },
+];
+// 本地账户部门（业务线）→ 线上职能部门
+const DEPT_MAP = {
+  网服一部: '编导', 短剧一部: '剪辑', 网服二部: '优化',
+  全域运营部: '默认部门', 智擎运营部: '技术',
+};
+function deptOf(a) {
+  return DEPT_MAP[a.dept] || '默认部门';
+}
 
 // 关键词检索维度：账户名称 / 账户ID / 账户备注（巨量）
 const nameTypeOptions = [
@@ -380,7 +407,7 @@ function autoWidth(label, options, min = 180) {
 const subjectWidth = computed(() => autoWidth('账户主体：', subjectOptions.value, 220));
 const projectWidth = computed(() => autoWidth('智投项目：', projectOptions.value, 200));
 const optimizerWidth = computed(() => autoWidth('优化师：', optimizerOptions.value, 180));
-const deptWidth = computed(() => autoWidth('部门：', deptOptions.value, 180));
+const deptWidth = computed(() => autoWidth('部门：', deptTree.map((d) => d.label), 180));
 const statusWidth = computed(() => autoWidth('账户状态：', ['正常', '授权失效', '已解绑'], 190));
 const nameTypeWidth = computed(() => autoWidth('', nameTypeOptions.map((t) => t.label), 150));
 
@@ -410,7 +437,13 @@ function fuzzyMatch(query, text) {
 // 始终保留当前选中项，避免选中项被过滤卸载后回显成原始值
 function matchOptions(list, query, current) {
   if (!query) return list;
-  return list.filter((o) => o === current || fuzzyMatch(query, o));
+  const cur = Array.isArray(current) ? current : (current ? [current] : []);
+  return list.filter((o) => cur.includes(o) || fuzzyMatch(query, o));
+}
+
+// 多选筛选项回显文案
+function multiText(v) {
+  return Array.isArray(v) ? v.join('、') : (v || '');
 }
 
 // ---------- 账户状态（按余额推导） ----------
@@ -452,10 +485,10 @@ function fmtMetric(row, key, digits = 0) {
 function applyFilter() {
   // 按媒体类型（标准 / 全域 / 智擎）区分账户
   let rows = all.value.filter((a) => (a.media || 'upgrade') === media.value);
-  if (filters.subject) rows = rows.filter((a) => (a.subject || '北京央广时代文化传播有限公司') === filters.subject);
-  if (filters.project) rows = rows.filter((a) => a.project === filters.project);
-  if (filters.optimizer) rows = rows.filter((a) => a.optimizer === filters.optimizer);
-  if (filters.dept) rows = rows.filter((a) => a.dept === filters.dept);
+  if (filters.subject.length) rows = rows.filter((a) => filters.subject.includes(a.subject || '北京央广时代文化传播有限公司'));
+  if (filters.project.length) rows = rows.filter((a) => filters.project.includes(a.project));
+  if (filters.optimizer.length) rows = rows.filter((a) => filters.optimizer.includes(a.optimizer));
+  if (filters.dept) rows = rows.filter((a) => deptOf(a) === filters.dept);
   if (filters.status) rows = rows.filter((a) => a.status === filters.status);
   if (filters.keyword) {
     const kw = filters.keyword.toLowerCase();
@@ -522,7 +555,7 @@ function onSearch() { page.value = 1; load(); }
 
 function resetFilters() {
   Object.assign(filters, {
-    subject: '', project: '', optimizer: '', dept: '', status: '',
+    subject: [], project: [], optimizer: [], dept: '', status: '',
     keyword: '', nameType: 'name',
   });
   page.value = 1;

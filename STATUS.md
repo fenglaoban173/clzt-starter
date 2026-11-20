@@ -3126,3 +3126,83 @@
 - **线上地址**：<https://fenglaoban173.github.io/clzt-starter/>
 - **线上复验**（`C:/tmp/verify_r82_live.py`，Playwright 直连线上站点）：`total: 19 ok: 19 fail: 0`，`PAGEERRORS: []` —— 顶栏央广时代 logo 加载成功；资产菜单 7 项且被移除的 9 项均不在；项目表头含「项目启停」、广告表头含「广告启停」；账户列表手动同步已选 2 行、灰底 `rgb(247,248,250)`、每行带移除按钮。
 - **线上截图**：`C:/tmp/r82_live_sync.png`。
+
+---
+
+## 九十八、账户 / 项目 / 广告三个页面的查询条件按线上校准（A7、A8、B5–B13、C3–C9）（2026-11-20，需求 R84）
+
+### ① 线上对照与改动结论
+
+需求 R84 基于 R83 的线上逐页比对清单（账户 A1–A8、项目 B1–B13、广告 C1–C11），本轮只处理点名的 17 项。
+
+| 序号 | 页面 | 筛选项 | 线上形态 | 本地改动前 → 改动后 |
+| --- | --- | --- | --- | --- |
+| A7 | 账户列表 | 部门 | **树形选择器**（`el-tree-select`，可搜索），5 个职能部门：编导 / 剪辑 / 默认部门 / 优化 / 技术 | 平铺下拉 3 项 → 树形选择器 5 项（`check-strictly`、可搜索、占位「请选择部门」） |
+| A8 | 账户列表 | 账户主体 / 创量项目（智投项目） / 优化师 | **多选** | 单选 → 多选（`multiple` + `collapse-tags` + `collapse-tags-tooltip`） |
+| B5 | 项目列表 | 优化目标 / 深度优化目标 | **163 项全集**（线上首屏 10 项 + 「搜索更多(153)…」逐级展开抓取） | 各 10 项 → 各 163 项 |
+| B6 | 项目列表 | 深度优化方式 | **10 项**（含 ROI三出价、支付ROI） | 8 项 → 10 项 |
+| B8 | 项目列表 | 投放模式 | 含 **「全部」** 共 3 项 | 2 项 → 3 项 |
+| B9 | 项目列表 | 状态 | **级联**：一级 6 项（不限 / 已删除 / 已完成 / 未投放 / 启用中 / 不限(包含已删除)），「未投放」二级 4 项（已暂停 / 项目超出预算 / 未达投放时间 / 不在投放时段） | 平铺 6 项 → 级联选择器 |
+| B10 | 项目列表 | 广告类型 | 不限 / 通投广告 / 搜索广告 | 通用广告 / 搜索广告 → 不限 / 通投广告 / 搜索广告 |
+| B11 | 项目列表 | 平台 | 不限 / Android / IOS / 鸿蒙 | 缺「不限」→ 补齐 4 项 |
+| B12 | 项目列表 | 关联商品 | **远程搜索多选**（输入关键字才出候选） | 单选 → 可搜索多选（`filter-method` 远程检索） |
+| B13 | 项目列表 | 智投项目 / 优化师 / 优化目标 / 深度优化目标 / 深度优化方式 / 账户主体 | 线上多数维度为**多选** | 全部单选 → 全部多选 |
+| C3 | 广告列表 | 创建日期 | 线上标签为 **「创建时间」** | 「创建日期」→ 「创建时间」 |
+| C4 | 广告列表 | 学习期状态 | **3 项多选**：学习期中 / 学习期结束 / 学习期失败（无线上「不限」候选项） | 4 项单选（含「不限」）→ 3 项多选 |
+| C5 | 广告列表 | 优化目标 / 深度优化目标 | **163 项全集** | 各 10 项 → 各 163 项 |
+| C6 | 广告列表 | 状态 | **级联**：一级 7 项（不限 / 投放中 / 未投放 / 已终止 / 已完成 / 已删除 / 不限(包含已删除)），「未投放」二级 **16 项**（审核不通过 / 新建审核中 / 修改审核中 / 已暂停 / 已暂停（配额达限）/ 项目已被暂停 / 不在投放时段 / 未到达投放时间 / 账户余额不足 / 账户超出预算 / 项目超出预算 / 广告超出预算 / 直播间不可投 / 商品不可投 / 抖音账号不可投 / 锚点不可投） | 平铺 7 项 → 级联选择器 |
+| C7 | 广告列表 | 策略组 | **远程搜索多选**（线上无预置候选，检索才返回） | 预置 1 项多选 → 可搜索远程多选 |
+| C8 | 广告列表 | 广告类型 | 未选择时显示 **「所有广告类型」** | 「不限」→ 「所有广告类型」 |
+| C9 | 广告列表 | 平台 | 未选择时显示 **「全部」** | 「不限」→ 「全部」 |
+
+### ② 改动明细
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/mock/projectFilters.js` | ① `OPT_GOALS` 由 10 项补齐为 **163 项全集**，`DEEP_OPT_GOALS` 同步；② `DEEP_OPT_MODES` 补 `ROI三出价`、`支付ROI` 共 10 项；③ `PROJECT_DELIVERY_MODES` 前置「全部」；④ `PROJECT_STATUSES` 文案改为线上「不限(包含已删除)」，新增 `PROJECT_STATUS_SUB`（4 项）与 `PROJECT_STATUS_TREE`（级联树）；⑤ `PROJECT_AD_TYPES` 改为 不限 / 通投广告 / 搜索广告；⑥ `PLATFORMS` 前置「不限」。 |
+| `frontend/src/mock/adFilters.js` | ① `AD_OPT_GOALS` / `AD_DEEP_OPT_GOALS` 补齐 **163 项全集**；② 新增 `AD_STATUS_SUB`（**16 项**）与 `AD_STATUS_TREE`（级联树），`AD_STATUSES` 保持一级 7 项；③ `AD_LEARN_STATUSES` 去掉「不限」，只留 3 项；④ `AD_FILTER_DEFS`：`status` → `kind:'cascader'`、`strategy` → `kind:'remote'`、`learn` → `kind:'multi'`、`createTime` 标签 → 「创建时间」、`adType` 默认文案 → 「所有广告类型」、`platform` 默认文案 → 「全部」。 |
+| `frontend/src/views/media/Accounts.vue` | ① 部门由 `el-select` 改为 **`el-tree-select`**（`:data="deptTree"`、`filterable`、`check-strictly`、`clearable`、占位「请选择部门」），新增 `DEPT_MAP` 把本地业务线部门映射到线上 5 个职能部门；② 账户主体 / 智投项目 / 优化师三项加 `multiple`+`collapse-tags`+`collapse-tags-tooltip`，`filters` 初值改数组，新增 `multiText()` 拼接回显标题；③ `matchOptions()`、`applyFilter()`、`resetFilters()` 同步按数组匹配。 |
+| `frontend/src/views/build/Projects.vue` | ① 模板新增 **multi / cascader / remote** 三种筛选分支，单选分支补 `:placeholder="d.def"`；② `FILTER_DEFS`：智投项目 / 优化师 / 优化目标 / 深度优化目标 / 深度优化方式 / 账户主体 → `kind:'multi'`，状态 → `kind:'cascader'`（`PROJECT_STATUS_TREE`），关联商品 → `kind:'remote'`，广告类型默认文案 → 「所有广告类型」，平台默认文案 → 「全部」；③ `filters` 初值对应改数组；④ 新增 `projectStatusDetail()` 给出「未投放」二级明细，`applyFilter()` 增加 multi / remote / cascader 三个分支（级联取叶子节点，`启用中` → `enabled`，其余二级按明细匹配）；⑤ 新增 `remoteQueries` / `setRemoteQuery()` / `remoteOptions()` / `multiTitle()`。 |
+| `frontend/src/views/build/Ads.vue` | ① 模板新增 **cascader / remote** 分支，单选分支补 `:placeholder="d.def"`；② `filters` 初值：单选项改空串（改由 placeholder 展示线上默认文案），状态 / 学习期状态改数组；③ 新增 `adStatusDetail()` 生成「未投放」二级明细与已终止 / 已完成 / 已删除；④ 新增 `STRATEGY_POOL` + `remoteQueries` / `setRemoteQuery()` / `remoteOptions()` 实现策略组远程搜索多选；⑤ `applyFilter()` 增加 remote / cascader 分支；⑥ `clearFilter()` 对 multi / remote / cascader 置空数组。 |
+
+> 说明：本轮仅改动 `mock/adFilters.js`、`mock/projectFilters.js`、`views/media/Accounts.vue`、`views/build/Projects.vue`、`views/build/Ads.vue`；**未改动** `mock/data.js`、`api/*`、`layouts/AppLayout.vue`、`main.js`（符合「资产页相关工作不得改共享文件」的约束）。
+> 线上抓取来源：`C:/tmp/h_project.json`、`C:/tmp/h_ad.json`、`C:/tmp/h_media.json`、`C:/tmp/casc.b64`（项目状态级联）、`C:/tmp/casc_ad.b64`（广告状态级联）、`C:/tmp/goals_all.json`（优化目标全集）、`C:/tmp/dept.b64`（部门树）。
+
+### ③ 验证
+
+- **构建**：`npm run build` 通过（9.20s；仅 chunk 体积告警）。
+
+- **Playwright 结构校验**（`C:/tmp/verify_r84.py`，本地预览 `http://localhost:4173`）：**17 项全部通过，失败项：无**。
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| A7 部门 | 树形下拉 `.el-tree-select__popper` 可见；候选项 = 编导 / 剪辑 / 默认部门 / 优化 / 技术；输入框可编辑、占位「请选择部门」 |
+| A8 三个多选 | 账户主体 / 智投项目 / 优化师 选两项后下拉保持打开、回显 `xxx + 1` |
+| B5 / C5 优化目标 | 项目页、广告页的优化目标与深度优化目标均为 **163 项** |
+| B6 深度优化方式 | 10 项（无 / 留存天数 / 自动优化 / 自定义双出价 / 自动优化 / ROI系数 / 每次付费 / ROI直投（ROI系数）/ ROI三出价 / 支付ROI） |
+| B8 投放模式 | 全部 / 手动投放 / 自动投放(UBMax) |
+| B9 项目状态级联 | 一级 6 项；「未投放」二级 4 项 |
+| B10 / B11 | 广告类型 = 不限 / 通投广告 / 搜索广告；平台 = 不限 / Android / IOS / 鸿蒙 |
+| B12 关联商品 | `.el-select__wrapper` 带 `is-filterable`；可多选（回显 `会员月卡 + 1`） |
+| B13 六个维度 | 智投项目 / 优化师 / 优化目标 / 深度优化目标 / 深度优化方式 / 账户主体 均回显 `+ 1` 且下拉保持打开 |
+| C3 标签 | 广告页标签含「创建时间：」，不含「创建日期：」 |
+| C4 学习期状态 | 3 项（学习期中 / 学习期结束 / 学习期失败）且为多选 |
+| C6 广告状态级联 | 一级 7 项；「未投放」二级 **16 项**（与线上 `casc_ad.b64` 逐项一致） |
+| C7 策略组 | `is-filterable`；可多选（回显 `通用投放策略组 + 1`） |
+| C8 / C9 | 占位文案分别为「所有广告类型」「全部」 |
+
+- **功能校验**（`C:/tmp/func_r84.py`，真实点选 + 点「查询」后看总条数）：
+
+| 用例 | 结果 |
+| --- | --- |
+| 账户页 优化师多选 | 共 20 条 → **共 8 条** |
+| 项目页 状态级联（未投放 > 已暂停） | 共 84 条 → **共 9 条** |
+| 项目页 广告类型（通投广告） | 共 9 条 → **共 3 条** |
+| 广告页 状态（投放中） | 共 24 条 → **共 21 条** |
+| 广告页 策略组 | 共 21 条 → **共 6 条** |
+
+> 备注：首轮功能校验曾报「项目页筛选取效数不变」，排查后确认是**测试脚本点错了按钮**——项目页 `.filter-actions` 的第一个按钮是「清空」，脚本误点了清空导致筛选被重置；改为按文案定位「查询」后 5 个用例全部通过，页面代码本身无缺陷。
+
+- **截图**：`C:/tmp/r84_accounts_filter.png`、`C:/tmp/r84_projects_filter.png`、`C:/tmp/r84_ads_filter.png`（三页筛选区布局无错位）。
+
+- **遗留项**：`verify_r69b.py` / `verify_r48_regress.py` 的既有失败项沿用 R71/R72/R73 结论，非本轮引入。

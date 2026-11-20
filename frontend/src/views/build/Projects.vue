@@ -15,15 +15,72 @@
 
         <!-- 筛选项（顺序与线上一致） -->
         <template v-for="d in FILTER_DEFS" :key="d.key">
+          <!-- 单选下拉 -->
           <div v-if="d.kind === 'select'" class="f-item">
             <el-select
               v-model="filters[d.key]"
               class="f-box"
               :style="{ '--f-w': d.width + 'px' }"
+              :placeholder="d.def"
               :title="filters[d.key]"
             >
               <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
               <el-option v-for="o in filterOptions(d)" :key="o" :label="o" :value="o" />
+            </el-select>
+            <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+          </div>
+
+          <!-- 多选下拉（R84：线上多数维度为多选） -->
+          <div v-else-if="d.kind === 'multi'" class="f-item">
+            <el-select
+              v-model="filters[d.key]"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              class="f-box"
+              :style="{ '--f-w': d.width + 'px' }"
+              :placeholder="d.def"
+              :title="multiTitle(d)"
+            >
+              <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+              <el-option v-for="o in filterOptions(d)" :key="o" :label="o" :value="o" />
+            </el-select>
+            <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+          </div>
+
+          <!-- 状态：级联（一级 + 「未投放」二级），与线上一致（R84） -->
+          <div v-else-if="d.kind === 'cascader'" class="f-item">
+            <el-cascader
+              v-model="filters[d.key]"
+              class="f-box f-cascader"
+              :style="{ '--f-w': d.width + 'px' }"
+              :options="d.options"
+              :placeholder="d.def"
+              :props="{ expandTrigger: 'hover' }"
+              clearable
+              filterable
+            >
+              <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+            </el-cascader>
+            <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+          </div>
+
+          <!-- 远程搜索多选（关联商品）：线上为可搜索多选（R84） -->
+          <div v-else-if="d.kind === 'remote'" class="f-item">
+            <el-select
+              v-model="filters[d.key]"
+              multiple
+              filterable
+              collapse-tags
+              collapse-tags-tooltip
+              :filter-method="(q) => setRemoteQuery(d.key, q)"
+              class="f-box"
+              :style="{ '--f-w': d.width + 'px' }"
+              :placeholder="d.def"
+              :title="multiTitle(d)"
+            >
+              <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+              <el-option v-for="o in remoteOptions(d)" :key="o" :label="o" :value="o" />
             </el-select>
             <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
           </div>
@@ -319,7 +376,7 @@ import ProjectRoiCoefficientDialog from './components/ProjectRoiCoefficientDialo
 import ProjectSearchKeywordDialog from './components/ProjectSearchKeywordDialog.vue';
 import {
   CL_PROJECTS, OPTIMIZERS, OPT_GOALS, DEEP_OPT_GOALS, DEEP_OPT_MODES,
-  ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_AD_TYPES,
+  ACCOUNT_SUBJECTS, PURPOSES, PROJECT_DELIVERY_MODES, PROJECT_STATUSES, PROJECT_STATUS_TREE, PROJECT_AD_TYPES,
   STAR_FLAGS, PLATFORMS, BATCH_OPS,
 } from '@/mock/projectFilters';
 import {
@@ -361,36 +418,37 @@ const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
 const sortState = reactive({ prop: '', order: '' });
 
 // ---------- 筛选项定义（顺序与线上一致） ----------
-// kind: select 下拉 / input 输入框 / daterange 日期区间
+// kind: select 单选下拉 / multi 多选下拉 / cascader 级联 / remote 远程搜索多选
+//       / account 媒体账户选择器 / material 素材选择器 / daterange 日期区间 / input 输入框
 // def：未选择时的默认展示文案（与线上一致，如「所有产品」「不限」）
 // options：候选项（与创量项目列表页下拉内容一致）；缺省时从当前列表数据中去重取值
 const FILTER_DEFS = [
-  { key: 'clProject', label: '智投项目', kind: 'select', def: '全部', width: 200, source: 'project', options: CL_PROJECTS },
-  { key: 'optimizer', label: '优化师', kind: 'select', def: '所有', width: 180, source: 'optimizer', options: OPTIMIZERS },
-  { key: 'optGoal', label: '优化目标', kind: 'select', def: '所有', width: 200, source: 'opt_goal', options: OPT_GOALS },
-  { key: 'deepGoal', label: '深度优化目标', kind: 'select', def: '所有', width: 220, source: 'deep_goal', options: DEEP_OPT_GOALS },
-  { key: 'deepMode', label: '深度优化方式', kind: 'select', def: '所有', width: 220, source: 'deep_mode', options: DEEP_OPT_MODES },
-  { key: 'subject', label: '账户主体', kind: 'select', def: '所有主体', width: 240, source: 'subject', options: ACCOUNT_SUBJECTS },
+  { key: 'clProject', label: '智投项目', kind: 'multi', def: '全部', width: 200, source: 'project', options: CL_PROJECTS },
+  { key: 'optimizer', label: '优化师', kind: 'multi', def: '所有', width: 180, source: 'optimizer', options: OPTIMIZERS },
+  { key: 'optGoal', label: '优化目标', kind: 'multi', def: '所有', width: 200, source: 'opt_goal', options: OPT_GOALS },
+  { key: 'deepGoal', label: '深度优化目标', kind: 'multi', def: '所有', width: 220, source: 'deep_goal', options: DEEP_OPT_GOALS },
+  { key: 'deepMode', label: '深度优化方式', kind: 'multi', def: '所有', width: 220, source: 'deep_mode', options: DEEP_OPT_MODES },
+  { key: 'subject', label: '账户主体', kind: 'multi', def: '所有主体', width: 240, source: 'subject', options: ACCOUNT_SUBJECTS },
   { key: 'account', label: '媒体账户', kind: 'account', def: '所有账户', width: 240 },
   { key: 'purpose', label: '推广目的', kind: 'select', def: '所有推广目的', width: 240, source: 'purpose', options: PURPOSES },
   { key: 'deliveryMode', label: '投放模式', kind: 'select', def: '全部', width: 200, source: 'delivery_mode', options: PROJECT_DELIVERY_MODES },
-  { key: 'status', label: '状态', kind: 'select', def: '不限', width: 180, source: 'status', options: PROJECT_STATUSES },
+  { key: 'status', label: '状态', kind: 'cascader', def: '不限', width: 180, source: 'status', options: PROJECT_STATUS_TREE },
   { key: 'createTime', label: '创建时间', kind: 'daterange', width: 300 },
-  { key: 'adType', label: '广告类型', kind: 'select', def: '不限', width: 200, source: 'ad_type', options: PROJECT_AD_TYPES },
+  { key: 'adType', label: '广告类型', kind: 'select', def: '所有广告类型', width: 200, source: 'ad_type', options: PROJECT_AD_TYPES },
   { key: 'star', label: '星广联投', kind: 'select', def: '全部', width: 180, source: 'star', options: STAR_FLAGS },
   { key: 'starTaskId', label: '星广联任务ID', kind: 'input', placeholder: '请输入星广联任务ID', width: 220 },
-  { key: 'platform', label: '平台', kind: 'select', def: '不限', width: 180, source: 'platform', options: PLATFORMS },
+  { key: 'platform', label: '平台', kind: 'select', def: '全部', width: 180, source: 'platform', options: PLATFORMS },
   { key: 'material', label: '创意素材', kind: 'material', def: '请选择素材', placeholder: '请选择素材', width: 200, source: 'material' },
-  { key: 'goods', label: '关联商品', kind: 'select', def: '全部商品', width: 200, source: 'goods' },
+  { key: 'goods', label: '关联商品', kind: 'remote', def: '全部商品', width: 200, source: 'goods' },
 ];
 
 const filters = reactive({
   nameType: 'name', keyword: '',
-  clProject: '全部', optimizer: '所有',
-  optGoal: '所有', deepGoal: '所有', deepMode: '所有',
-  subject: '所有主体', account: '', purpose: '所有推广目的',
-  deliveryMode: '全部', status: '不限', createTime: [], adType: '不限',
-  star: '全部', starTaskId: '', platform: '不限', material: '', goods: '全部商品',
+  clProject: [], optimizer: [],
+  optGoal: [], deepGoal: [], deepMode: [],
+  subject: [], account: '', purpose: '',
+  deliveryMode: '', status: [], createTime: [], adType: '',
+  star: '', starTaskId: '', platform: '', material: '', goods: [],
 });
 
 // 素材查询弹窗 + 已选素材
@@ -405,18 +463,50 @@ const accountNames = ref([]);
 const accountList = ref([]);
 
 // 状态：线上「未投放」下还有二级菜单（已暂停 / 项目超出预算 / 未达投放时间 / 不在投放时段）
-const STATUS_MATCH = { 启用中: 'enabled', 未投放: 'disabled' };
+const STATUS_MATCH = { 启用中: 'enabled' };
 const STATUS_EMPTY = ['已删除', '已完成'];
 // 星广联投：是 / 否
 const STAR_MATCH = { 是: 'yes', 否: 'no' };
+
+// 状态明细：项目「未投放」的二级原因，以及「已完成 / 已删除」
+const PROJECT_DETAIL_POOL = ['已暂停', '项目超出预算', '未达投放时间', '不在投放时段'];
+function projectStatusDetail(p) {
+  if (p.status === 'enabled') return '';
+  const i = Math.abs(Number(p.id) || 0) % 8;
+  if (i === 7) return '已删除';
+  if (i === 6) return '已完成';
+  return PROJECT_DETAIL_POOL[i % PROJECT_DETAIL_POOL.length];
+}
 
 function filterOptions(def) {
   if (def.options) return def.options;
   return [...new Set(all.value.map((p) => p[def.source]).filter((v) => v != null && v !== ''))];
 }
 
+// ---------- 远程搜索多选（关联商品）：线上为远程检索，本地取模拟商品 ----------
+const remoteQueries = reactive({});
+
+function setRemoteQuery(key, query) {
+  remoteQueries[key] = query || '';
+}
+
+function remoteOptions(def) {
+  const list = def.options?.length
+    ? def.options
+    : [...new Set(all.value.map((p) => p[def.source]).filter(Boolean))];
+  const q = String(remoteQueries[def.key] || '').trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((o) => String(o).toLowerCase().includes(q));
+}
+
+function multiTitle(def) {
+  const v = filters[def.key];
+  return Array.isArray(v) && v.length ? v.join('、') : def.def;
+}
+
 function clearFilter(def) {
-  if (def.kind === 'select') filters[def.key] = def.def;
+  if (def.kind === 'multi' || def.kind === 'remote' || def.kind === 'cascader') filters[def.key] = [];
+  else if (def.kind === 'select') filters[def.key] = '';
   else if (def.kind === 'account') {
     filters[def.key] = '';
     accountIds.value = [];
@@ -434,14 +524,31 @@ function applyFilter() {
   let list = all.value;
   // 下拉类筛选
   FILTER_DEFS.forEach((d) => {
-    if (d.kind !== 'select') return;
-    const v = filters[d.key];
-    if (!v || v === d.def) return;
-    if (d.source === 'status') {
-      if (STATUS_MATCH[v]) list = list.filter((p) => p.status === STATUS_MATCH[v]);
-      else if (STATUS_EMPTY.includes(v)) list = [];
+    // 多选 / 远程搜索多选
+    if (d.kind === 'multi' || d.kind === 'remote') {
+      const v = filters[d.key];
+      if (!Array.isArray(v) || !v.length) return;
+      list = list.filter((p) => v.includes(p[d.source] || p[d.key]));
       return;
     }
+    // 状态：级联（一级 + 「未投放」二级）
+    if (d.kind === 'cascader') {
+      const v = filters[d.key];
+      if (!Array.isArray(v) || !v.length) return;
+      const leaf = v[v.length - 1];
+      if (d.source === 'status') {
+        if (STATUS_MATCH[leaf]) { list = list.filter((p) => p.status === STATUS_MATCH[leaf]); return; }
+        if (leaf === '未投放') {
+          list = list.filter((p) => p.status === 'disabled' && !STATUS_EMPTY.includes(p.status_detail));
+          return;
+        }
+        list = list.filter((p) => p.status_detail === leaf);
+      }
+      return;
+    }
+    if (d.kind !== 'select') return;
+    const v = filters[d.key];
+    if (!v || v === d.def || v === '不限') return;
     if (d.source === 'star') {
       if (STAR_MATCH[v]) list = list.filter((p) => p.star === STAR_MATCH[v]);
       return;
@@ -546,7 +653,7 @@ async function load() {
     await loadAccounts();
     await applyAccountQuery();
     const res = await buildApi.projects({ media: media.value });
-    all.value = (res.data?.list || []).map((p) => ({ ...p, enabled: p.status === 'enabled' }));
+    all.value = (res.data?.list || []).map((p) => ({ ...p, enabled: p.status === 'enabled', status_detail: projectStatusDetail(p) }));
     const filtered = applyFilter();
     pagination.total = filtered.length;
     const pageRows = filtered.slice((page.value - 1) * pagination.pageSize, page.value * pagination.pageSize)
@@ -640,7 +747,8 @@ function delTemplate(tpl) {
 // ---------- 其他 ----------
 function resetFilters() {
   FILTER_DEFS.forEach((d) => {
-    if (d.kind === 'select') filters[d.key] = d.def;
+    if (d.kind === 'select') filters[d.key] = '';
+    else if (d.kind === 'multi' || d.kind === 'remote' || d.kind === 'cascader') filters[d.key] = [];
     else if (d.kind === 'account') {
       filters[d.key] = '';
       accountIds.value = [];

@@ -42,10 +42,48 @@
                 v-model="filters[d.key]"
                 class="f-box"
                 :style="{ '--f-w': d.width + 'px' }"
+                :placeholder="d.def"
                 :title="filters[d.key]"
               >
                 <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
                 <el-option v-for="o in filterOptions(d)" :key="o" :label="o" :value="o" />
+              </el-select>
+              <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+            </div>
+
+            <!-- 状态：级联（一级 + 「未投放」二级），与线上一致（R84） -->
+            <div v-else-if="d.kind === 'cascader'" class="f-item">
+              <el-cascader
+                v-model="filters[d.key]"
+                class="f-box f-cascader"
+                :style="{ '--f-w': d.width + 'px' }"
+                :options="d.options"
+                :placeholder="d.def"
+                :props="{ expandTrigger: 'hover' }"
+                clearable
+                filterable
+              >
+                <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+              </el-cascader>
+              <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+            </div>
+
+            <!-- 远程搜索多选（策略组）：线上为「可搜索 + 多选」，与线上一致（R84） -->
+            <div v-else-if="d.kind === 'remote'" class="f-item">
+              <el-select
+                v-model="filters[d.key]"
+                multiple
+                filterable
+                collapse-tags
+                collapse-tags-tooltip
+                :filter-method="(q) => setRemoteQuery(d.key, q)"
+                class="f-box"
+                :style="{ '--f-w': d.width + 'px' }"
+                :placeholder="d.def"
+                :title="multiTitle(d)"
+              >
+                <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+                <el-option v-for="o in remoteOptions(d)" :key="o" :label="o" :value="o" />
               </el-select>
               <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
             </div>
@@ -364,7 +402,7 @@ const sortState = reactive({ prop: '', order: '' });
 // 全部展示的筛选项（默认全部 21 项，与线上一致）
 const visibleFilters = computed(() => AD_FILTER_DEFS);
 
-// 多选筛选项的初值
+// 多选筛选项的初值（R84：单选类初值改为空串，改由 placeholder 展示线上的默认文案）
 const filters = reactive({
   nameType: 'name',
   keyword: '',
@@ -372,18 +410,18 @@ const filters = reactive({
   optimizer: [],
   account: '',
   subject: [],
-  purpose: '所有推广目的',
-  deliveryMode: '全部',
+  purpose: '',
+  deliveryMode: '',
   campaign: [],
-  status: '不限',
+  status: [],
   diagnosis: [],
   strategy: [],
   createTime: [],
-  adType: '不限',
-  learn: '不限',
-  star: '全部',
+  adType: '',
+  learn: [],
+  star: '',
   starTaskId: '',
-  platform: '不限',
+  platform: '',
   optGoal: [],
   deepGoal: [],
   deepMode: [],
@@ -425,11 +463,39 @@ function rowClassName({ row }) {
   return row.__summary ? 'ad-summary-row' : '';
 }
 
-// 状态：线上「投放中 / 未投放」为启停状态
-const STATUS_MATCH = { 投放中: 'enabled', 未投放: 'disabled' };
+// 状态：线上「投放中 / 未投放」为启停状态；R84 起状态改为级联（一级 + 「未投放」二级）
+const STATUS_MATCH = { 投放中: 'enabled' };
 const STATUS_EMPTY = ['已终止', '已完成', '已删除'];
 // 星广联投：是 / 否
 const STAR_MATCH = { 是: 'yes', 否: 'no' };
+
+// 状态明细：线上「未投放」下还有 16 项二级原因，另有「已终止 / 已完成 / 已删除」
+const AD_DETAIL_POOL = ['已暂停', '审核不通过', '项目超出预算', '账户余额不足', '不在投放时段', '广告超出预算'];
+function adStatusDetail(a) {
+  if (a.status === 'enabled') return '投放中';
+  const i = Math.abs(Number(a.id) || 0) % 12;
+  if (i === 9) return '已终止';
+  if (i === 10) return '已完成';
+  if (i === 11) return '已删除';
+  return AD_DETAIL_POOL[i % AD_DETAIL_POOL.length];
+}
+
+// ---------- 远程搜索多选（策略组）：线上为远程检索，本地以模拟策略组作为候选 ----------
+const STRATEGY_POOL = ['无数据', '通用投放策略组', 'ROI提升策略组', '起量策略组'];
+const remoteQueries = reactive({});
+
+function setRemoteQuery(key, query) {
+  remoteQueries[key] = query || '';
+}
+
+function remoteOptions(def) {
+  const list = def.source === 'strategy'
+    ? [...new Set(all.value.map((a) => a.strategy).filter(Boolean))]
+    : (def.options || []);
+  const q = String(remoteQueries[def.key] || '').trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((o) => String(o).toLowerCase().includes(q));
+}
 
 function filterOptions(def) {
   if (def.options) return def.options;
@@ -446,6 +512,8 @@ function multiTitle(def) {
 
 function clearFilter(def) {
   if (def.kind === 'multi') filters[def.key] = [];
+  else if (def.kind === 'remote') filters[def.key] = [];
+  else if (def.kind === 'cascader') filters[def.key] = [];
   else if (def.kind === 'daterange') filters[def.key] = [];
   else if (def.kind === 'account') {
     filters[def.key] = '';
@@ -455,7 +523,7 @@ function clearFilter(def) {
     filters[def.key] = '';
     materialIds.value = [];
     materialNames.value = [];
-  } else filters[def.key] = def.def;
+  } else filters[def.key] = '';
 }
 
 // ---------- 筛选 ----------
@@ -468,10 +536,32 @@ function applyFilter() {
       list = list.filter((a) => v.includes(a[d.source] || a[d.key]));
       return;
     }
+    // 远程搜索多选（策略组）
+    if (d.kind === 'remote') {
+      const v = filters[d.key];
+      if (!Array.isArray(v) || !v.length) return;
+      list = list.filter((a) => v.includes(a[d.source] || a[d.key]));
+      return;
+    }
     // 媒体账户：按账户 ID（与项目页一致，选中账户后按 advertiser_id 过滤）
     if (d.kind === 'account') {
       if (!accountIds.value.length) return;
       list = list.filter((a) => accountIds.value.includes(String(a.advertiser_id)));
+      return;
+    }
+    // 状态：级联（一级 7 项，「未投放」下带 17 项二级）
+    if (d.kind === 'cascader') {
+      const v = filters[d.key];
+      if (!Array.isArray(v) || !v.length) return;
+      const leaf = v[v.length - 1];
+      if (d.key === 'status') {
+        if (STATUS_MATCH[leaf]) { list = list.filter((a) => a.status === STATUS_MATCH[leaf]); return; }
+        if (leaf === '未投放') {
+          list = list.filter((a) => a.status === 'disabled' && !STATUS_EMPTY.includes(a.status_detail));
+          return;
+        }
+        list = list.filter((a) => a.status_detail === leaf);
+      }
       return;
     }
     // 创意素材：按素材名过滤
@@ -482,22 +572,13 @@ function applyFilter() {
     }
     if (d.kind !== 'select') return;
     const v = filters[d.key];
-    if (!v || v === d.def) return;
-    if (d.key === 'status') {
-      if (STATUS_MATCH[v]) list = list.filter((a) => a.status === STATUS_MATCH[v]);
-      else if (STATUS_EMPTY.includes(v)) list = [];
-      return;
-    }
+    if (!v || v === d.def || v === '不限') return;
     if (d.key === 'star') {
       if (STAR_MATCH[v]) list = list.filter((a) => a.star === STAR_MATCH[v]);
       return;
     }
     if (d.key === 'deliveryMode') {
       list = list.filter((a) => a.delivery_mode === v);
-      return;
-    }
-    if (d.key === 'learn') {
-      list = list.filter((a) => a.learn === v);
       return;
     }
     list = list.filter((a) => (d.source ? a[d.source] : a[d.key]) === v);
@@ -551,7 +632,12 @@ async function load() {
   try {
     await applyAccountQuery();
     const res = await buildApi.ads();
-    all.value = (res.data?.list || []).map((a) => ({ ...a, enabled: a.status === 'enabled' }));
+    all.value = (res.data?.list || []).map((a) => ({
+      ...a,
+      enabled: a.status === 'enabled',
+      status_detail: adStatusDetail(a),
+      strategy: STRATEGY_POOL[(Math.abs(Number(a.id) || 0)) % STRATEGY_POOL.length],
+    }));
     const filtered = applyFilter();
     pagination.total = filtered.length;
     rows.value = filtered
