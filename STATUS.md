@@ -3118,3 +3118,11 @@
 - **回归**：`verify_r81.py` 23/23、`verify_r80.py` 26/26、`verify_r79.py` 52/52、`verify_r78.py` 61/61、`verify_r77.py` 60/60、`verify_r76.py` 7/7、`verify_r75.py` 11/11、`verify_r74.py` 4/4、`verify_r73.py` 9/9、`verify_r72.py` 12/12、`verify_r72b.py` 12/12、`verify_r72c.py` 12/12、`verify_r71.py` 6/6（clean 6/6）、`verify_r71b.py`、`verify_r71c.py`、`verify_r70.py`、`verify_r68.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r57.py`、`r32_check.py`、`r32_live.py` 全部通过，`PAGEERRORS` 均为空。
 
 - **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
+
+### ④ 推送与部署（2026-11-20）
+
+- **推送**：`git push origin main`（`94989e8..0b73d34`，含 R79–R82 共 19 个本地提交），仓库 <https://github.com/fenglaoban173/clzt-starter>。
+- **CI**：`Build & Deploy to GitHub Pages`（run `44701937519`）**构建 + 发布全部成功**；CI 以 `VITE_BASE=/clzt-starter/` 构建，本地同参数构建亦通过（18.91s）。
+- **线上地址**：<https://fenglaoban173.github.io/clzt-starter/>
+- **线上复验**（`C:/tmp/verify_r82_live.py`，Playwright 直连线上站点）：`total: 19 ok: 19 fail: 0`，`PAGEERRORS: []` —— 顶栏央广时代 logo 加载成功；资产菜单 7 项且被移除的 9 项均不在；项目表头含「项目启停」、广告表头含「广告启停」；账户列表手动同步已选 2 行、灰底 `rgb(247,248,250)`、每行带移除按钮。
+- **线上截图**：`C:/tmp/r82_live_sync.png`。
