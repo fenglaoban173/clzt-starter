@@ -2336,3 +2336,36 @@
 | pageerror | 空（`PAGEERRORS: []`） |
 
 - **回归**：`verify_r56c.py`（批量操作下拉仍 17 项）、`verify_r61.py`（批量修改ROI系数逐项目列表）、`verify_r63.py`（项目查询条件「创建时间」）、`verify_r64.py`（左侧菜单隐藏账户管理）全部通过。
+
+## 八十二、广告列表：媒体账户 / 创意素材复用项目弹窗，移除全部筛选 / 添加筛选 / 组合筛选 / 快捷复制，日期区间加「创建日期」（2026-11-20，需求 R67）
+
+**本轮目标**（广告列表 `/build/ads`）：① 查询条件「媒体账户」**复用项目的媒体账户弹窗**；② 查询条件「创意素材」**复用项目的创意素材**；③ **移除「全部筛选」按钮、移除「添加筛选」按钮**；④ 截图中日期范围**前面新增文字：创建日期**；⑤ **移除列表的「组合筛选」按钮**；⑥ **移除「快捷复制」按钮**。
+
+### ① 改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/mock/adFilters.js` | `AD_FILTER_DEFS`：`account` 由 `kind:'multi'`（`source:'account_name'`）改为 `kind:'account'`；`material` 由 `kind:'select'` 改为 `kind:'material'`；`createTime` 的标签由「创建时间」改为「**创建日期**」（`kind` 仍为 `daterange`）。`AD_MATERIALS` 保留导出（`mock/data.js` 仍用于给广告行补 `material` 字段）。 |
+| `frontend/src/views/build/Ads.vue` | ① 新增 `kind:'account'` / `kind:'material'` 两个筛选分支：只读 `el-input` + 内嵌「媒体账户：」/「创意素材：」前缀 + 右侧「清除」按钮，点击输入框打开弹窗；② `daterange` 分支改为 `.f-date-item` 外框包裹（标签在前、区间在后，与项目页 R63 一致），标签文案取自 def；③ **删除** `AdFilterPicker`（全部筛选 / 添加筛选）与 `AdComboFilter`（组合筛选）两个组件的使用及导入，并**删除**这两个已无引用的组件文件（`components/AdFilterPicker.vue`、`components/AdComboFilter.vue`）；④ **删除**「快捷复制」按钮及 `onCopy()`；⑤ 引入 `MediaAccountPickerDialog` / `MaterialPickerDialog`（与项目页同一组件），新增 `accountVisible/accountIds/accountNames/accountList`、`materialVisible/materialIds/materialNames` 状态与 `openAccountPicker/openMaterialPicker/onAccountSubmit/onMaterialSubmit`；⑥ `applyFilter()` 新增按 `advertiser_id`（媒体账户）与素材名（创意素材）过滤；`clearFilter()` 同步清理已选 ID；`applyAccountQuery()`（从「查看广告」跳转带入 `account_id`）改为同时写入 `accountIds`；⑦ 删除已无引用的 `visibleKeys` / `onVisibleChange()` / `resetFilters()` 与 `filterOptions()` 中的 `account_name` 分支；⑧ 样式新增 `.f-date-item`（含 `:deep(.el-date-editor)` / `:deep(.el-range-input)`，与 `Projects.vue` 一致）。 |
+
+### ② 验证
+
+- **构建**：`npm run build` 通过（8.43s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（广告列表 `/build/ads`）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 筛选标签 | 19 个 `.f-item` 标签依次为 智投项目 / 优化师 / **媒体账户** / 账户主体 / 推广目的 / 投放模式 / 项目 / 状态 / 诊断建议 / 策略组 / **创建日期** / 广告类型 / 学习期状态 / 星广联投 / 平台 / 优化目标 / 深度优化目标 / 深度优化方式 / **创意素材** |
+| ① 媒体账户弹窗 | 点击「媒体账户：所有账户」输入框 → 弹出「**选择媒体账户**」弹窗（与项目页同一组件：智投项目 / 账户主体 / 账户ID·账户名称搜索 / 已选面板 / 分页）；勾选 1 个账户确定 → 输入框回填「百度极速版词-央广-1」，列表 24 → **共 3 条**；勾选 2 个 → 回填「百度极速版词-央广-1、百度极速版词-央广-3」，**共 4 条** |
+| ② 创意素材弹窗 | 点击「创意素材：请选择素材」输入框 → 弹出「**素材查询**」弹窗（素材库 / 媒体素材页签、网格·列表视图、筛选区）；勾选「漫剧开场-竖版-01」提交 → 回填「漫剧开场-竖版-01」，列表 24 → **共 9 条**；再追加「口播引流-竖版-04」→ 回填「漫剧开场-竖版-01、口播引流-竖版-04」，**共 15 条** |
+| ③ 移除全部筛选 / 添加筛选 | 筛选区按钮仅剩「**查询**」；全页 `innerText` 不含「全部筛选」「添加筛选」 |
+| ④ 创建日期标签 | 「**创建日期：**」标签位于日期区间**前面**，与区间同处一个外框（外框 300×34px，区间编辑器 205px，起止占位「开始日期 … 至 … 结束日期」） |
+| ⑤ 移除组合筛选 | 操作行按钮为 手动同步 / 导出数据 / 自定义指标；全页 `innerText` 不含「组合筛选」 |
+| ⑥ 移除快捷复制 | 同上；全页 `innerText` 不含「快捷复制」 |
+| 清除按钮 | 「媒体账户：」/「创意素材：」右侧「×」可清空输入框与已选 ID（与项目页一致：清空后需点「查询」刷新列表） |
+| pageerror | 空（`PAGEERRORS: []`） |
+
+- **回归**：`verify_r48_ads.py`（广告批量修改时段弹窗）、`verify_r52_regress.py`（批量操作 6 个弹窗 + 广告页）、`verify_r53b.py`（项目查询条件 / 媒体账户弹窗 / 累积转化数）、`verify_r54b.py`（媒体账户弹窗 / 账户页筛选前缀）、`verify_r56c.py`（批量操作下拉 17 项）、`verify_r63.py`（项目查询条件「创建时间」）、`verify_r64.py`（左侧菜单隐藏账户管理）、`verify_r66.py`（关键词弹窗 7 列）全部通过。
+
+- **备注**：线上 `C:/tmp/oe_auth.json` 保存的登录态已过期（跳转登录页），本轮未能与线上 DOM 逐项比对，交互按项目页既有实现复用。

@@ -99,12 +99,13 @@ export const AD_BATCH_OP_TOASTS = {
 };
 
 // 广告列表「查询条件」筛选项定义（顺序与线上一致）
-// kind: select 下拉 / multi 多选下拉 / cascader 级联 / input 输入框 / daterange 日期区间
+// kind: select 下拉 / multi 多选下拉 / account 媒体账户选择器 / material 素材选择器
+//       / cascader 级联 / input 输入框 / daterange 日期区间
 // def：未选择时的默认展示文案；options：候选项
 export const AD_FILTER_DEFS = [
   { key: 'clProject', label: '智投项目', kind: 'multi', def: '全部', width: 200, source: 'project', options: AD_CL_PROJECTS },
   { key: 'optimizer', label: '优化师', kind: 'multi', def: '所有', width: 180, options: AD_OPTIMIZERS },
-  { key: 'account', label: '媒体账户', kind: 'multi', def: '所有账户', width: 240, source: 'account_name' },
+  { key: 'account', label: '媒体账户', kind: 'account', def: '所有账户', width: 240 },
   { key: 'subject', label: '账户主体', kind: 'multi', def: '所有主体', width: 240, options: AD_SUBJECTS },
   { key: 'purpose', label: '推广目的', kind: 'select', def: '所有推广目的', width: 230, options: AD_PURPOSES },
   { key: 'deliveryMode', label: '投放模式', kind: 'select', def: '全部', width: 200, options: AD_DELIVERY_MODES },
@@ -115,7 +116,7 @@ export const AD_FILTER_DEFS = [
   { key: 'status', label: '状态', kind: 'select', def: '不限', width: 180, options: AD_STATUSES },
   { key: 'diagnosis', label: '诊断建议', kind: 'multi', def: '不限', width: 220, options: AD_DIAGNOSIS },
   { key: 'strategy', label: '策略组', kind: 'multi', def: '不限', width: 180, options: AD_STRATEGY_GROUPS },
-  { key: 'createTime', label: '创建时间', kind: 'daterange', width: 300 },
+  { key: 'createTime', label: '创建日期', kind: 'daterange', width: 300 },
   { key: 'adType', label: '广告类型', kind: 'select', def: '不限', width: 200, source: 'ad_type', options: AD_AD_TYPES },
   { key: 'learn', label: '学习期状态', kind: 'select', def: '不限', width: 180, options: AD_LEARN_STATUSES },
   { key: 'star', label: '星广联投', kind: 'select', def: '全部', width: 180, options: AD_STAR_FLAGS },
@@ -124,5 +125,5 @@ export const AD_FILTER_DEFS = [
   { key: 'optGoal', label: '优化目标', kind: 'multi', def: '所有', width: 200, source: 'opt_goal', options: AD_OPT_GOALS },
   { key: 'deepGoal', label: '深度优化目标', kind: 'multi', def: '所有', width: 220, source: 'deep_goal', options: AD_DEEP_OPT_GOALS },
   { key: 'deepMode', label: '深度优化方式', kind: 'multi', def: '所有', width: 220, source: 'deep_mode', options: AD_DEEP_OPT_MODES },
-  { key: 'material', label: '创意素材', kind: 'select', def: '请选择素材', width: 200, options: AD_MATERIALS },
+  { key: 'material', label: '创意素材', kind: 'material', def: '请选择素材', width: 200, source: 'material' },
 ];

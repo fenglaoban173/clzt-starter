@@ -4,9 +4,6 @@
     <el-card class="filter-card" shadow="never">
       <div class="filter-row">
         <div class="filter-main">
-          <!-- 全部筛选：选择要展示的筛选项 -->
-          <AdFilterPicker v-model:visible-keys="visibleKeys" mode="all" @change="onVisibleChange" />
-
           <!-- 广告名称 / 广告ID + 关键词 -->
           <div class="name-filter">
             <el-select v-model="filters.nameType" class="f-name-type">
@@ -53,19 +50,52 @@
               <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
             </div>
 
-            <!-- 日期区间 -->
-            <el-date-picker
-              v-else-if="d.kind === 'daterange'"
-              v-model="filters[d.key]"
-              type="daterange"
-              unlink-panels
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              value-format="YYYY-MM-DD"
-              class="f-date"
-              :style="{ '--f-w': d.width + 'px' }"
-            />
+            <!-- 媒体账户：与项目页一致，点击打开「选择媒体账户」弹窗 -->
+            <div v-else-if="d.kind === 'account'" class="f-item">
+              <el-input
+                v-model="filters[d.key]"
+                class="f-box f-input f-account"
+                :style="{ '--f-w': d.width + 'px' }"
+                :placeholder="d.def"
+                :title="filters[d.key]"
+                readonly
+                @click="openAccountPicker"
+              >
+                <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+              </el-input>
+              <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+            </div>
+
+            <!-- 创意素材：与项目页一致，点击打开「素材查询」弹窗 -->
+            <div v-else-if="d.kind === 'material'" class="f-item">
+              <el-input
+                v-model="filters[d.key]"
+                class="f-box f-input f-material"
+                :style="{ '--f-w': d.width + 'px' }"
+                :placeholder="d.def"
+                :title="filters[d.key]"
+                readonly
+                @click="openMaterialPicker"
+              >
+                <template #prefix><span class="f-prefix">{{ d.label }}：</span></template>
+              </el-input>
+              <button class="f-x" title="清除" @click="clearFilter(d)"><el-icon><Close /></el-icon></button>
+            </div>
+
+            <!-- 创建日期：标签 + 日期区间（同一外框内，与项目页一致） -->
+            <div v-else-if="d.kind === 'daterange'" class="f-item f-date-item" :style="{ '--f-w': d.width + 'px' }">
+              <span class="f-prefix">{{ d.label }}：</span>
+              <el-date-picker
+                v-model="filters[d.key]"
+                type="daterange"
+                unlink-panels
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+                class="f-date"
+              />
+            </div>
 
             <!-- 输入框 -->
             <el-input
@@ -77,9 +107,6 @@
               clearable
             />
           </template>
-
-          <!-- 添加筛选：追加要展示的筛选项 -->
-          <AdFilterPicker v-model:visible-keys="visibleKeys" mode="add" @change="onVisibleChange" />
         </div>
 
         <!-- 查询：靠右、垂直居中（与线上一致） -->
@@ -93,7 +120,6 @@
     <el-card class="table-card" shadow="never">
       <div class="op-row">
         <div class="op-left">
-          <AdComboFilter v-model="comboVisible" @apply="onComboApply" @clear="resetFilters" />
           <el-select
             v-model="batchOp"
             class="batch-select"
@@ -103,7 +129,6 @@
           >
             <el-option v-for="op in AD_BATCH_OPS" :key="op" :label="op" :value="op" />
           </el-select>
-          <el-button :disabled="!selected.length" @click="onCopy">快捷复制</el-button>
           <span v-if="selected.length" class="sel-tip">已选择{{ selected.length }}条广告计划</span>
         </div>
         <div class="op-right">
@@ -238,6 +263,21 @@
 
     <!-- 广告详情 -->
     <AdDetailDrawer v-model="detailVisible" :row="detailRow" @view-project="onViewProject" />
+
+    <!-- 选择媒体账户（与项目页复用同一弹窗） -->
+    <MediaAccountPickerDialog
+      v-model="accountVisible"
+      :accounts="accountList"
+      :selected-ids="accountIds"
+      @submit="onAccountSubmit"
+    />
+
+    <!-- 素材查询（与项目页复用同一弹窗） -->
+    <MaterialPickerDialog
+      v-model="materialVisible"
+      :selected-ids="materialIds"
+      @submit="onMaterialSubmit"
+    />
   </div>
 </template>
 
@@ -248,11 +288,11 @@ import { ElMessage } from 'element-plus';
 import { CaretBottom, Close, Delete, EditPen, Operation, Search } from '@element-plus/icons-vue';
 import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
-import AdComboFilter from './components/AdComboFilter.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
 import AdDetailDrawer from './components/AdDetailDrawer.vue';
-import AdFilterPicker from './components/AdFilterPicker.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
+import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
+import MediaAccountPickerDialog from './components/MediaAccountPickerDialog.vue';
 import { AD_FILTER_DEFS, AD_BATCH_OPS } from '@/mock/adFilters';
 import { getBatchOpConfig } from '@/api/oceanengine';
 import {
@@ -279,8 +319,7 @@ const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
 const sortState = reactive({ prop: '', order: '' });
 
 // 全部展示的筛选项（默认全部 21 项，与线上一致）
-const visibleKeys = ref(AD_FILTER_DEFS.map((d) => d.key));
-const visibleFilters = computed(() => AD_FILTER_DEFS.filter((d) => visibleKeys.value.includes(d.key)));
+const visibleFilters = computed(() => AD_FILTER_DEFS);
 
 // 多选筛选项的初值
 const filters = reactive({
@@ -288,7 +327,7 @@ const filters = reactive({
   keyword: '',
   clProject: [],
   optimizer: [],
-  account: [],
+  account: '',
   subject: [],
   purpose: '所有推广目的',
   deliveryMode: '全部',
@@ -305,7 +344,7 @@ const filters = reactive({
   optGoal: [],
   deepGoal: [],
   deepMode: [],
-  material: '请选择素材',
+  material: '',
 });
 
 // ---------- 合计行（对齐线上「合计(缓存时间：HH:mm:ss)」） ----------
@@ -353,9 +392,6 @@ const STAR_MATCH = { 是: 'yes', 否: 'no' };
 
 function filterOptions(def) {
   if (def.options) return def.options;
-  if (def.source === 'account_name') {
-    return [...new Set(all.value.map((a) => a.account_name).filter(Boolean))];
-  }
   if (def.source === 'campaign_name') {
     return [...new Set(all.value.map((a) => a.campaign_name).filter(Boolean))];
   }
@@ -370,14 +406,15 @@ function multiTitle(def) {
 function clearFilter(def) {
   if (def.kind === 'multi') filters[def.key] = [];
   else if (def.kind === 'daterange') filters[def.key] = [];
-  else filters[def.key] = def.def;
-}
-
-function onVisibleChange() {
-  // 隐藏的筛选项同时清空取值
-  AD_FILTER_DEFS.forEach((d) => {
-    if (!visibleKeys.value.includes(d.key)) clearFilter(d);
-  });
+  else if (def.kind === 'account') {
+    filters[def.key] = '';
+    accountIds.value = [];
+    accountNames.value = [];
+  } else if (def.kind === 'material') {
+    filters[def.key] = '';
+    materialIds.value = [];
+    materialNames.value = [];
+  } else filters[def.key] = def.def;
 }
 
 // ---------- 筛选 ----------
@@ -388,6 +425,18 @@ function applyFilter() {
       const v = filters[d.key];
       if (!Array.isArray(v) || !v.length) return;
       list = list.filter((a) => v.includes(a[d.source] || a[d.key]));
+      return;
+    }
+    // 媒体账户：按账户 ID（与项目页一致，选中账户后按 advertiser_id 过滤）
+    if (d.kind === 'account') {
+      if (!accountIds.value.length) return;
+      list = list.filter((a) => accountIds.value.includes(String(a.advertiser_id)));
+      return;
+    }
+    // 创意素材：按素材名过滤
+    if (d.kind === 'material') {
+      if (!materialNames.value.length) return;
+      list = list.filter((a) => materialNames.value.includes(a.material));
       return;
     }
     if (d.kind !== 'select') return;
@@ -449,7 +498,11 @@ async function applyAccountQuery() {
   accountQueryDone.value = true;
   const res = await mediaApi.accounts();
   const acc = (res.data?.list || []).find((a) => String(a.advertiser_id) === String(id));
-  if (acc) filters.account = [acc.name];
+  if (acc) {
+    accountIds.value = [acc.advertiser_id];
+    accountNames.value = [acc.name];
+    filters.account = acc.name;
+  }
 }
 
 async function load() {
@@ -476,18 +529,6 @@ function onSelectionChange(list) { selected.value = list.filter((r) => !r.__summ
 function onSortChange({ prop, order }) {
   sortState.prop = prop || '';
   sortState.order = order || '';
-  load();
-}
-
-function resetFilters() {
-  AD_FILTER_DEFS.forEach((d) => {
-    if (d.kind === 'multi') filters[d.key] = [];
-    else if (d.kind === 'daterange') filters[d.key] = [];
-    else filters[d.key] = d.def;
-  });
-  filters.nameType = 'name';
-  filters.keyword = '';
-  page.value = 1;
   load();
 }
 
@@ -571,12 +612,47 @@ function onSyncConfirm({ accounts, range }) {
 }
 
 function onExport() { ElMessage.info('原型：导出当前筛选结果（异步报表）'); }
-function onCopy() { ElMessage.info(`原型：批量快捷复制所选 ${selected.value.length} 条广告`); }
 
-// ---------- 组合筛选 ----------
-const comboVisible = ref(false);
-function onComboApply(combo) {
-  ElMessage.info(`原型：已应用筛选组合「${combo.name}」（${combo.conditions.length} 个条件）`);
+// ---------- 选择媒体账户（与项目页复用同一弹窗） ----------
+const accountVisible = ref(false);
+const accountIds = ref([]);
+const accountNames = ref([]);
+const accountList = ref([]);
+
+async function loadAccounts() {
+  if (accountList.value.length) return;
+  const res = await mediaApi.accounts();
+  accountList.value = res.data?.list || [];
+}
+
+function openAccountPicker() {
+  loadAccounts();
+  accountVisible.value = true;
+}
+
+function onAccountSubmit(picked) {
+  accountIds.value = (picked || []).map((a) => String(a.advertiser_id));
+  accountNames.value = (picked || []).map((a) => a.name);
+  filters.account = accountNames.value.length ? accountNames.value.join('、') : '';
+  page.value = 1;
+  load();
+}
+
+// ---------- 素材查询（与项目页复用同一弹窗） ----------
+const materialVisible = ref(false);
+const materialIds = ref([]);
+const materialNames = ref([]);
+
+function openMaterialPicker() {
+  materialVisible.value = true;
+}
+
+function onMaterialSubmit(picked) {
+  materialIds.value = (picked || []).map((m) => m.id);
+  materialNames.value = (picked || []).map((m) => m.name);
+  filters.material = materialNames.value.length ? materialNames.value.join('、') : '';
+  page.value = 1;
+  load();
 }
 
 // ---------- 批量操作 ----------
@@ -660,7 +736,20 @@ onMounted(load);
 }
 .f-prefix { font-size: 15px; color: #4e5969; white-space: nowrap; }
 .filter-card .f-box { width: var(--f-w, 220px) !important; min-width: 0; }
-.filter-card .f-date { width: var(--f-w, 300px) !important; }
+/* 创建日期：查询条件名称 + 日期区间同处一个外框（线上一致：label 在前、区间在后） */
+.f-date-item {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: var(--f-w, 300px) !important;
+  padding: 0 8px 0 10px;
+  border: 1px solid #e5e6eb;
+  border-radius: 4px;
+  background: #fff;
+}
+.f-date-item:focus-within { border-color: var(--el-color-primary); }
+.f-date-item :deep(.el-date-editor) { flex: 1; min-width: 0; width: auto !important; border: none !important; box-shadow: none !important; }
+.f-date-item :deep(.el-range-input) { min-width: 0; }
 .f-search-ico { color: #86909c; }
 .f-item { display: flex; align-items: center; }
 .f-x {
