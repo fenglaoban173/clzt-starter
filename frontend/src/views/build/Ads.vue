@@ -298,7 +298,6 @@ import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import MediaAccountPickerDialog from './components/MediaAccountPickerDialog.vue';
 import { AD_FILTER_DEFS, AD_BATCH_OPS } from '@/mock/adFilters';
-import { getBatchOpConfig } from '@/api/oceanengine';
 import {
   AD_METRIC_CATALOG,
   AD_METRIC_MAP,
@@ -678,15 +677,13 @@ function onBatchOp(op) {
 }
 
 function onBatchConfirm({ op, rows: list }) {
-  const c = getBatchOpConfig('promotion', op);
-  ElMessage.success(`原型：已对 ${list.length} 条广告执行「${op}」→ ${c ? c.api.name : ''}`);
+  ElMessage.success(`原型：已对 ${list.length} 条广告执行「${op}」`);
   load();
 }
 
 // 「批量修改预算」弹窗确认
 function onAdBudgetConfirm({ rows: list }) {
-  const c = getBatchOpConfig('promotion', '修改预算');
-  ElMessage.success(`原型：已对 ${list.length} 条广告执行「修改预算」→ ${c ? c.api.name : ''}`);
+  ElMessage.success(`原型：已对 ${list.length} 条广告执行「修改预算」`);
   load();
 }
 

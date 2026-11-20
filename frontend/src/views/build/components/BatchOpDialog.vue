@@ -16,16 +16,6 @@
       <div v-for="(n, i) in cfg.notes || []" :key="i" class="bo-note">{{ n }}</div>
       <div v-if="onlineToast" class="bo-note bo-note-toast">线上提示：{{ onlineToast }}</div>
 
-      <!-- 接口信息（项目层级弹窗不展示） -->
-      <div v-if="!isProject" class="bo-api">
-        <span class="bo-api-tag">接口</span>
-        <span class="bo-api-method">{{ cfg.api.method }}</span>
-        <a class="bo-api-path" :href="apiUrl" target="_blank" rel="noreferrer">{{ apiUrl }}</a>
-        <span class="bo-api-name">{{ cfg.api.name }}</span>
-        <span class="bo-api-meta">权限点：{{ cfg.api.scope }}</span>
-        <span class="bo-api-meta">批量上限 {{ batchLimit }} 条</span>
-      </div>
-
       <!-- 表单 -->
       <el-form label-width="150px" label-position="right" class="bo-form">
         <el-form-item v-for="f in formFields" :key="f.key" :label="f.label">
@@ -239,13 +229,6 @@
 
           <!-- 兜底 -->
           <el-input v-else v-model="form[f.key]" :placeholder="f.placeholder" />
-
-          <!-- 字段级说明：接口字段名 + 取值限制（项目层级不展示接口原始字段） -->
-          <div v-if="f.apiField && !isProject" class="bo-field-meta">
-            <span class="bo-api-field">{{ f.apiField }}</span>
-            <span v-if="f.rule" class="bo-rule-text">{{ f.rule }}</span>
-            <span v-if="f.apiRef" class="bo-rule-text">取值来源：{{ f.apiRef }}</span>
-          </div>
         </el-form-item>
       </el-form>
 
@@ -253,8 +236,6 @@
       <div v-if="hasSchedule" class="bo-schedule">
         <div class="bo-schedule-title">
           <span class="bo-sched-label">{{ scheduleField ? scheduleField.label : '投放时段' }}</span>
-          <span v-if="scheduleField && scheduleField.apiField && !isProject" class="bo-api-field">{{ scheduleField.apiField }}</span>
-          <span v-if="scheduleField && scheduleField.rule && !isProject" class="bo-rule-text">{{ scheduleField.rule }}</span>
         </div>
         <div class="bo-schedule-head">
           <span class="bo-corner"></span>
@@ -271,31 +252,15 @@
           />
         </div>
         <div class="bo-schedule-foot">
-          <span class="bo-tip">{{ isProject ? '半小时为最小粒度（每天 48 段）' : '半小时为最小粒度（每天 48 段），对应 schedule_time 的 48×7 位 0/1 字符串' }}</span>
+          <span class="bo-tip">半小时为最小粒度（每天 48 段）</span>
           <a class="bo-link" @click="clearSchedule">清空选择</a>
         </div>
-      </div>
-
-      <!-- 请求体预览（项目层级弹窗不展示） -->
-      <div v-if="!isProject" class="bo-payload">
-        <div class="bo-payload-head">
-          <span>请求体预览</span>
-          <a class="bo-link" @click="showPayload = !showPayload">{{ showPayload ? '收起' : '展开' }}</a>
-        </div>
-        <pre v-if="showPayload" class="bo-payload-body">{{ payloadText }}</pre>
       </div>
     </div>
 
     <template #footer>
-      <div class="bo-foot">
-        <div class="bo-foot-left">
-          <el-button v-if="!isProject" size="small" @click="showPayload = !showPayload">{{ showPayload ? '收起请求体' : '查看请求体' }}</el-button>
-        </div>
-        <div class="bo-foot-btns">
-          <el-button @click="close">{{ cfg && cfg.cancelText ? cfg.cancelText : '取 消' }}</el-button>
-          <el-button type="primary" @click="confirm">{{ cfg && cfg.okText ? cfg.okText : '确 定' }}</el-button>
-        </div>
-      </div>
+      <el-button @click="close">{{ cfg && cfg.cancelText ? cfg.cancelText : '取 消' }}</el-button>
+      <el-button type="primary" @click="confirm">{{ cfg && cfg.okText ? cfg.okText : '确 定' }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -304,7 +269,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Close } from '@element-plus/icons-vue';
-import { ENUMS, getBatchOpConfig, apiUrl as buildApiUrl, BATCH_LIMIT, ONLINE_ONLY_TOAST } from '@/api/oceanengine';
+import { ENUMS, getBatchOpConfig, ONLINE_ONLY_TOAST } from '@/api/oceanengine';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -323,15 +288,10 @@ const components = ref([]);
 const nameRules = ref(['原广告名称']);
 const startNo = ref('1');
 const schedule = ref([]);
-const showPayload = ref(true);
 
 const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
 const cfg = computed(() => getBatchOpConfig(props.scope, props.op));
-// 项目层级弹窗不展示「接口信息」与「请求体预览」（与线上一致）
-const isProject = computed(() => props.scope === 'project');
-const apiUrl = computed(() => buildApiUrl(cfg.value));
-const batchLimit = BATCH_LIMIT;
 const onlineToast = computed(() => (props.scope === 'promotion' ? ONLINE_ONLY_TOAST[props.op] : ''));
 
 const visibleFields = computed(() => {
@@ -368,7 +328,6 @@ const payload = computed(() => {
     return { error: String(e) };
   }
 });
-const payloadText = computed(() => JSON.stringify(payload.value, null, 2));
 
 function normOptions(f) {
   return (f.options || []).map((o) => (typeof o === 'string' ? { label: o, value: o } : o));
@@ -485,49 +444,11 @@ function confirm() {
 .bo-desc { margin-bottom: 10px; }
 .bo-note { margin-bottom: 6px; color: #86909c; font-size: 13px; }
 
-/* 接口条 */
-.bo-api {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 10px;
-  margin-bottom: 14px;
-  background: #f7f8fa;
-  border: 1px solid #e5e6eb;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #4e5969;
-}
-.bo-api-tag { padding: 1px 6px; border-radius: 2px; background: #165dff; color: #fff; }
-.bo-api-method { font-weight: 600; color: #165dff; }
-.bo-api-path { color: #165dff; text-decoration: none; word-break: break-all; }
-.bo-api-name { color: #1d2129; }
-.bo-api-meta { color: #86909c; }
-
 .bo-form { max-width: 900px; }
 .bo-select { width: 260px; }
 .bo-date { width: 260px; }
 .bo-tip { color: #86909c; font-size: 12px; }
 .bo-link { color: #165dff; cursor: pointer; font-size: 13px; margin-left: 8px; }
-
-.bo-field-meta {
-  width: 100%;
-  margin-top: 4px;
-  font-size: 12px;
-  color: #86909c;
-  line-height: 1.6;
-}
-.bo-api-field {
-  display: inline-block;
-  margin-right: 8px;
-  padding: 0 6px;
-  border-radius: 2px;
-  background: #eef3ff;
-  color: #165dff;
-  font-family: Consolas, Monaco, monospace;
-}
-.bo-rule-text { display: inline; word-break: break-word; }
 
 .bo-readonly { font-size: 13px; color: #4e5969; word-break: break-all; }
 .bo-upload { display: flex; align-items: center; gap: 10px; }
@@ -592,25 +513,4 @@ function confirm() {
 .bo-rule-label { font-size: 14px; }
 .bo-rule-tag { cursor: pointer; }
 .bo-start-no { width: 160px; }
-
-/* 请求体预览 */
-.bo-payload { margin-top: 14px; border-top: 1px solid #e5e6eb; padding-top: 10px; }
-.bo-payload-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; }
-.bo-payload-body {
-  margin: 8px 0 0;
-  padding: 10px;
-  max-height: 240px;
-  overflow: auto;
-  background: #1d2129;
-  color: #c9f0d3;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1.6;
-  font-family: Consolas, Monaco, monospace;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.bo-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.bo-foot-btns { display: flex; gap: 8px; }
 </style>

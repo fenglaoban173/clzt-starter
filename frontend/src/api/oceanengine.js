@@ -170,7 +170,7 @@ export const PROMOTION_BATCH_OPS = {
     desc: (n) => `已选中 ${n} 个广告`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/delete/', name: '批量删除营销', scope: AUTH_PROMOTION },
     fields: [
-      { key: 'promotion_ids', label: '营销ID', type: 'readonly', apiField: 'promotion_ids', required: true, hint: '一次最多删除 10 个营销（list 长度限制 1～10）' },
+      { key: 'promotion_ids', label: '营销ID', type: 'readonly', apiField: 'promotion_ids', required: true, hint: '一次最多删除 10 个广告' },
     ],
     build: (rows) => ({ advertiser_id: '{advertiser_id}', promotion_ids: rows.map((r) => r.id) }),
   },
@@ -238,9 +238,6 @@ export const PROMOTION_BATCH_OPS = {
     title: '修改创意',
     desc: (n) => `已选中 ${n} 个广告`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（promotion_materials）', scope: AUTH_PROMOTION },
-    notes: [
-      '修改方式「删除素材」调用 /open_api/v3.0/promotion/material/delete/；「暂停素材」调用 /open_api/v3.0/material/status/update/（opt_status = DISABLE）；「替换素材 / 增加素材」调用 /open_api/v3.0/promotion/update/ 的 promotion_materials。',
-    ],
     fields: [
       { key: 'mode', label: '修改方式', type: 'radio', apiField: '-', required: true, default: '替换素材', options: ['删除素材', '暂停素材', '替换素材', '增加素材'] },
       { key: 'distribute', label: '素材分配方式', type: 'radio', apiField: '-', required: true, default: '全部相同', options: ['全部相同', '平均分配'] },
@@ -306,7 +303,7 @@ export const PROMOTION_BATCH_OPS = {
     title: '修改多直达链接',
     desc: (n) => `已选中${n}个广告`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（open_urls）', scope: AUTH_PROMOTION },
-    notes: ['仅支持【电商推广 - 通投广告】；电商投放且客户拥有 moreapp 白名单时必须传 open_urls，传 open_url 无效。'],
+    notes: ['仅支持【电商推广 - 通投广告】。'],
     fields: [
       { key: 'open_urls', label: '直达链接组', type: 'links', apiField: 'open_urls[]', required: true, placeholder: '请输入直达链接', rule: '电商优选直达链接组，数量限制 1～10 个' },
     ],
@@ -316,7 +313,7 @@ export const PROMOTION_BATCH_OPS = {
     title: '修改来源',
     desc: (n) => `已选中${n}个广告`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（source）', scope: AUTH_PROMOTION },
-    notes: ['不支持修改应用推广（landing_type = APP）的广告。'],
+    notes: ['不支持修改应用推广的广告。'],
     fields: [
       { key: 'source', label: '来源', type: 'input', apiField: 'source', required: true, placeholder: '请输入单元来源', rule: '单元来源，字数限制 2～10 字（英文字符 4～20）；landing_type = LINK / MICRO_GAME / SHOP / QUICK_APP 时必填' },
     ],

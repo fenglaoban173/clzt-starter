@@ -2458,3 +2458,40 @@
 | pageerror | 空（`PAGEERRORS: []`） |
 
 - **回归**：`verify_r48_ads.py`（广告「修改时段」通用弹窗，接口条 + 48×7 栅格完好）、`verify_r52_regress.py`（项目批量操作分流）、`verify_r56c.py`（批量操作下拉 17 项）、`verify_r63.py`（项目查询条件）、`verify_r64.py` / `verify_r64b.py`（左侧菜单）、`verify_r67.py` / `verify_r67b.py`（广告页媒体账户 / 创意素材弹窗）、`verify_r68.py`（R68 全部断言）、`verify_r53b.py` / `verify_r54b.py`（媒体账户弹窗、账户页筛选前缀）全部通过。
+
+## 八十六、广告列表剩余批量操作弹窗统一移除接口相关内容与文字（2026-11-20，需求 R71）
+
+**本轮目标**：广告列表「批量操作」中除「修改预算」外的其余弹窗（统一走通用弹窗 `BatchOpDialog.vue`）里**接口相关的内容和文字全部移除**，清洁程度与 R70 改造后的「批量修改预算」弹窗保持一致。
+
+### ① 改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/BatchOpDialog.vue` | ① 删除顶部**接口条**（接口 / 方法 / 接口地址 / 接口名 / 权限点 / 批量上限）。② 删除**字段级接口说明**（`data[].xxx` 接口字段名标记 + 取值限制说明 + 取值来源），字段下只留业务控件。③ 删除**请求体预览**区块及页脚「查看请求体 / 收起请求体」按钮。④ 投放时段标题去掉接口字段名与取值说明，底部提示改为「半小时为最小粒度（每天 48 段）」（去掉 `schedule_time` 的 48×7 位 0/1 字符串说明）。⑤ 页脚简化为「取 消 / 确 定」两个按钮。⑥ 清理随之失效的脚本（`apiUrl` / `BATCH_LIMIT` / `showPayload` / `isProject` / `payloadText`）与样式（`.bo-api*` / `.bo-field-meta` / `.bo-api-field` / `.bo-rule-text` / `.bo-payload*` / `.bo-foot*`）。 |
+| `frontend/src/api/oceanengine.js` | ① 「修改创意」删除整段接口地址说明 notes（`/open_api/v3.0/promotion/material/delete/` 等）。② 「修改多直达链接」notes 去掉 `moreapp` 白名单与 `open_urls` / `open_url` 字段名，仅保留「仅支持【电商推广 - 通投广告】」。③ 「修改来源」notes 去掉 `landing_type = APP`，改为「不支持修改应用推广的广告。」④ 广告「删除」字段提示由「一次最多删除 10 个营销（list 长度限制 1～10）」改为「一次最多删除 10 个广告」。 |
+| `frontend/src/views/build/Ads.vue` | 批量操作确认提示去掉「→ 接口名」（如 `→ 批量更新营销出价`），改为「原型：已对 N 条广告执行「操作名」」；`getBatchOpConfig` 引入随之移除。 |
+
+> 说明：被移除的接口条 / 字段说明 / 请求体预览原本都带 `!isProject` 守卫（项目层级弹窗本就不展示），本次改为对广告层级同样不展示，**项目列表页行为不变**。
+
+### ② 验证
+
+- **构建**：`npm run build` 通过（8.29s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（`/build/ads`，勾选 3 条广告 → 批量操作下拉逐项打开，**23 个通用弹窗全部实测**）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 汇总 | `total: 23 clean: 23 dirty: 0 notOpened: 0`（`dirty` = 仍含接口条 / 字段说明 / 请求体预览 / 接口文字） |
+| 接口条 | `hasApiBar: false`（23/23） |
+| 字段级接口说明 | `hasFieldMeta: false`、`hasApiField: false`（23/23） |
+| 请求体预览 | `hasPayload: false`（23/23） |
+| 接口文字黑名单 | 逐项正则命中 `badHits: []`（23/23）。黑名单覆盖：接口 / 权限点 / 批量上限 / 请求体 / 取值来源 / `data[]` / `/open_api/` / `apiField` / `apiRef` / `landing_type` / `opt_status` / `promotion_materials` / `open_url(s)` / `moreapp` / `schedule_time` / `delivery_mode` / `roi_goal` / `budget_mode` / `video_material_list` / `external_url_material_list` / `product_info` / `playlet_series_url_list` / `component_material_list` / `title_material_list` / `privative_word` / `shop_multi_roi_goals` / `raise_info` / `advertiser_id` / `promotion_id` / `BUDGET_MODE` / `REALTIME` / `ENABLE` 等 |
+| 业务字段完好 | 标题与字段逐项核对无误，如「修改创意」= 修改方式 / 素材分配方式 / 素材；「修改出价」= 出价 / 修改方式；「修改ROI系数」= ROI系数 / 首日ROI系数 / 电商平台多ROI系数；「批量修改广告名称」= 修改模式 / 广告名称 / 广告命名规则；「修改产品名称」= 产品名称类型 / 产品名称 |
+| 页脚 | 23/23 为「取 消 / 确 定」 |
+| 「修改时段」专项（`verify_r71b.py`） | 336 个半小时格（7 天 × 48 段）完好；时段标题 = 「投放时段」；底部提示 = 「半小时为最小粒度（每天 48 段）」；页脚在视口高 1000 / 800 下均可见（`footVisible: true`）；接口正则 `hasApi: false` |
+| 确认流程（`verify_r71c.py`） | 「修改出价」点确定 → 弹窗关闭（`dialogVisible: 0`），提示 = 「原型：已对 3 条广告执行「修改出价」」（无接口名） |
+| pageerror | 空（`PAGEERRORS: []`） |
+
+- **回归**：`verify_r48.py`（项目「批量修改时段」）、`verify_r48_ads.py`（广告「修改时段」48×7 栅格）、`verify_r52_regress.py`（项目批量操作分流）、`verify_r56c.py`（项目批量操作下拉 17 项）、`verify_r63.py`（项目查询条件）、`verify_r64.py` / `verify_r64b.py`（左侧菜单）、`verify_r67.py` / `verify_r67b.py`（广告页媒体账户 / 创意素材弹窗）、`verify_r68.py`（R68 全部断言）、`verify_r69.py` / `verify_r69c.py`（合计样式、行内编辑分流）、`verify_r70.py`（修改预算弹窗）、`verify_r53b.py` / `verify_r54b.py`（媒体账户弹窗、账户页筛选前缀）全部通过。
+
+- **遗留失败（非本轮引入）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关（`.abd-dialog .bo-payload-head .bo-link`）；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
