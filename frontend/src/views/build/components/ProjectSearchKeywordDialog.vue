@@ -18,7 +18,7 @@
         <span class="kw-label">关键词</span>
         <div class="kw-content">
           <el-table :data="rows" border size="small" class="kw-table" max-height="400">
-            <el-table-column label="项目名称" min-width="240">
+            <el-table-column label="项目名称" min-width="220">
               <template #default="{ row }">
                 <div class="kw-cell">
                   <div class="kw-cell-title" :title="row.name">{{ row.name }}</div>
@@ -26,12 +26,17 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="原关键词" width="130">
+            <el-table-column label="原关键词" width="110">
               <template #default="{ row }">
                 <span class="kw-origin" :title="row.originWord">{{ row.originWord || '—' }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="关键词" min-width="200">
+            <el-table-column label="原匹配类型" width="110">
+              <template #default="{ row }">
+                <span class="kw-origin">{{ row.originMatch || '—' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="关键词" min-width="170">
               <template #default="{ row }">
                 <el-input
                   :model-value="row.word"
@@ -42,14 +47,14 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column label="匹配类型" width="120">
+            <el-table-column label="匹配类型" width="105">
               <template #default="{ row }">
                 <el-select v-model="row.match_type" class="kw-cell-select" size="small">
                   <el-option v-for="o in ENUMS.matchType" :key="o.value" :label="o.label" :value="o.value" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="出价" width="120">
+            <el-table-column label="出价" width="105">
               <template #default="{ row }">
                 <el-input
                   :model-value="row.bid"
@@ -60,14 +65,12 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="70" align="center">
+            <el-table-column label="操作" width="60" align="center">
               <template #default="{ $index }">
                 <el-button link type="danger" @click="removeRow($index)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
-
-          <el-button size="small" class="kw-add" @click="addRow">添加关键词</el-button>
         </div>
       </div>
     </div>
@@ -111,6 +114,12 @@ function originKeyword(i) {
   return lib.length ? lib[i % lib.length] : null;
 }
 
+/** 原匹配类型文案（广泛匹配 / 短语匹配 / 精确匹配） */
+function matchTypeLabel(v) {
+  const hit = ENUMS.matchType.find((o) => o.value === normMatchType(v));
+  return hit ? hit.label : '';
+}
+
 function init() {
   const list = (props.projects || []).filter((p) => !p.__total);
   rows.value = list.map((p, i) => {
@@ -119,8 +128,9 @@ function init() {
       key: `kw-${p.id}`,
       pid: p.campaign_id || p.id,
       name: p.name,
-      // 原关键词（只读展示）
+      // 原关键词 / 原匹配类型（只读展示）
       originWord: o ? o.word : '',
+      originMatch: o ? matchTypeLabel(o.match_type) : '',
       // 新关键词（待填写）
       word: '',
       match_type: 'EXTENSIVE',
@@ -140,20 +150,6 @@ function toBidStr(v) {
   }
   if (s.startsWith('.')) s = `0${s}`;
   return s;
-}
-
-/** 添加一行关键词（归属与上一行相同的项目） */
-function addRow() {
-  const last = rows.value[rows.value.length - 1];
-  rows.value.push({
-    key: `kw-new-${Date.now()}-${rows.value.length}`,
-    pid: last ? last.pid : '',
-    name: last ? last.name : '',
-    originWord: '',
-    word: '',
-    match_type: 'EXTENSIVE',
-    bid: '',
-  });
 }
 
 /** 删除一行关键词 */
@@ -238,9 +234,6 @@ function confirm() {
 /* 单元格内的输入框 / 下拉（占满单元格，32px 高） */
 .kw-cell-input { width: 100%; --el-input-height: 32px; }
 .kw-cell-select { width: 100%; --el-select-height: 32px; }
-
-/* 「添加关键词」按钮 */
-.kw-add { margin-top: 12px; }
 </style>
 
 <style>
