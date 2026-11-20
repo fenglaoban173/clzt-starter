@@ -261,6 +261,9 @@
     <!-- 批量操作弹窗（表单字段对齐巨量引擎开放平台接口） -->
     <BatchOpDialog v-model="batchVisible" scope="promotion" :op="batchOpName" :rows="batchRows" @confirm="onBatchConfirm" />
 
+    <!-- 批量修改预算（按线上版式单独成弹窗：修改规则 / 预算 / 广告列表） -->
+    <AdBudgetDialog v-model="budgetVisible" :rows="budgetRows" @confirm="onAdBudgetConfirm" />
+
     <!-- 广告详情 -->
     <AdDetailDrawer v-model="detailVisible" :row="detailRow" @view-project="onViewProject" />
 
@@ -289,6 +292,7 @@ import { CaretBottom, Close, Delete, EditPen, Operation, Search } from '@element
 import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
+import AdBudgetDialog from './components/AdBudgetDialog.vue';
 import AdDetailDrawer from './components/AdDetailDrawer.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
@@ -313,6 +317,8 @@ const batchOp = ref('');
 const batchOpName = ref('');
 const batchRows = ref([]);
 const batchVisible = ref(false);
+const budgetVisible = ref(false);
+const budgetRows = ref([]);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -660,6 +666,12 @@ function onBatchOp(op) {
     ElMessage.warning('请先选择广告');
     return;
   }
+  // 「修改预算」按线上版式单独成弹窗（修改规则 / 预算 / 广告列表）
+  if (op === '修改预算') {
+    budgetRows.value = selected.value.map((r) => ({ ...r }));
+    budgetVisible.value = true;
+    return;
+  }
   batchOpName.value = op;
   batchRows.value = selected.value.map((r) => ({ ...r }));
   batchVisible.value = true;
@@ -671,10 +683,25 @@ function onBatchConfirm({ op, rows: list }) {
   load();
 }
 
+// 「批量修改预算」弹窗确认
+function onAdBudgetConfirm({ rows: list, form }) {
+  const c = getBatchOpConfig('promotion', '修改预算');
+  ElMessage.success(
+    `原型：已对 ${list.length} 条广告执行「修改预算」→ ${c ? c.api.name : ''}（${form.scope === 'each' ? '分别修改' : '统一修改'}）`
+  );
+  load();
+}
+
 // 行内编辑（预算 / 出价）：打开对应的批量修改弹窗
 const editableCols = ['budget', 'bid'];
 function onEditCell(col, row) {
-  batchOpName.value = col.key === 'budget' ? '修改预算' : '修改出价';
+  // 预算走「批量修改预算」专用弹窗；出价仍走通用批量操作弹窗
+  if (col.key === 'budget') {
+    budgetRows.value = [{ ...row }];
+    budgetVisible.value = true;
+    return;
+  }
+  batchOpName.value = '修改出价';
   batchRows.value = [{ ...row }];
   batchVisible.value = true;
 }
@@ -808,7 +835,7 @@ onMounted(load);
 .ad-name { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ad-id { margin: 2px 0 0; font-size: 13px; color: #86909c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 合计行 */
-.ad-summary { margin: 0; font-size: 14px; color: #4e5969; }
+.ad-summary { margin: 0; font-size: 15px; font-weight: 600; color: #1d2129; }
 .table-card :deep(.ad-summary-row .el-table-column--selection .el-checkbox) { display: none; }
 .num-cell { display: inline-block; }
 .edit-icon { margin-left: 4px; color: #86909c; cursor: pointer; vertical-align: middle; }
