@@ -696,13 +696,19 @@ export const PROJECT_BATCH_OPS = {
     api: { method: 'POST', path: '/open_api/v3.0/project/update/', name: '更新项目（keywords）', scope: AUTH_PROJECT },
     // 线上「修改搜索快投关键词」走独立弹窗 ProjectSearchKeywordDialog：关键词列表逐行增删
     // （按需求移除「出价系数 search_bid_ratio」与「智能拓流 auto_extend_traffic」两项）
+    // 表格按「每个项目一行」展示（项目名称 / 原关键词 / 关键词 / 匹配类型 / 出价 / 操作），
+    // 提交的每个关键词带上所属项目 ID
     fields: [
       { key: 'keywords', label: '关键词', type: 'keywords', apiField: 'keywords[]', required: true, rule: '关键词长度不超过 30（汉字计 1，英文字符计 0.5），不能包含 emoji；匹配类型 EXTENSIVE 广泛 / PHRASE 短语 / PRECISION 精确；bid 取值 0.2～999.0' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      project_id: '{project_id}',
-      keywords: (form.keywords || []).map((k) => ({ word: k.word, match_type: k.match_type, bid: num(k.bid) })),
+      keywords: (form.keywords || []).map((k) => ({
+        project_id: k.project_id,
+        word: k.word,
+        match_type: k.match_type,
+        bid: num(k.bid),
+      })),
     }),
   },
   素材一键起量: {

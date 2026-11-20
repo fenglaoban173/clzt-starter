@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="批量修改搜索快投关键词"
-    width="880px"
+    width="1120px"
     align-center
     class="kw-dialog"
     :close-on-click-modal="false"
@@ -13,12 +13,25 @@
     <div class="kw-body">
       <div class="kw-desc">已选中 {{ projectCount }} 个项目</div>
 
-      <!-- 关键词：左侧标签，右侧表格（可增删关键词行） -->
+      <!-- 关键词：左侧标签，右侧表格（每个项目一行，可增删关键词行） -->
       <div class="kw-item">
         <span class="kw-label">关键词</span>
         <div class="kw-content">
-          <el-table :data="rows" border size="small" class="kw-table">
-            <el-table-column label="关键词" min-width="280">
+          <el-table :data="rows" border size="small" class="kw-table" max-height="400">
+            <el-table-column label="项目名称" min-width="240">
+              <template #default="{ row }">
+                <div class="kw-cell">
+                  <div class="kw-cell-title" :title="row.name">{{ row.name }}</div>
+                  <div class="kw-cell-desc">项目ID：{{ row.pid }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="原关键词" width="130">
+              <template #default="{ row }">
+                <span class="kw-origin" :title="row.originWord">{{ row.originWord || '—' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="关键词" min-width="200">
               <template #default="{ row }">
                 <el-input
                   :model-value="row.word"
@@ -29,14 +42,14 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column label="匹配类型" width="150">
+            <el-table-column label="匹配类型" width="120">
               <template #default="{ row }">
                 <el-select v-model="row.match_type" class="kw-cell-select" size="small">
                   <el-option v-for="o in ENUMS.matchType" :key="o.value" :label="o.label" :value="o.value" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="出价" width="150">
+            <el-table-column label="出价" width="120">
               <template #default="{ row }">
                 <el-input
                   :model-value="row.bid"
@@ -80,7 +93,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 
 const OP = '修改搜索快投关键词';
 
-/** 关键词行（已有关键词 + 空行） */
+/** 关键词行（每个项目一行，可继续追加关键词行） */
 const rows = ref([]);
 
 /** 已选中的项目数 */
@@ -92,15 +105,28 @@ function normMatchType(v) {
   return ENUMS.matchType.some((o) => o.value === v) ? v : 'EXTENSIVE';
 }
 
+/** 项目原关键词（mock：取关键词库，按项目顺序轮询） */
+function originKeyword(i) {
+  const lib = openapiDb.keywords || [];
+  return lib.length ? lib[i % lib.length] : null;
+}
+
 function init() {
-  const exist = (openapiDb.keywords || []).map((k) => ({
-    word: k.word,
-    match_type: normMatchType(k.match_type),
-    bid: k.bid === undefined || k.bid === null ? '' : String(k.bid),
-  }));
-  // 末尾补空行，便于直接输入新关键词
-  const blanks = Array.from({ length: 4 }, () => ({ word: '', match_type: 'EXTENSIVE', bid: '' }));
-  rows.value = [...exist, ...blanks];
+  const list = (props.projects || []).filter((p) => !p.__total);
+  rows.value = list.map((p, i) => {
+    const o = originKeyword(i);
+    return {
+      key: `kw-${p.id}`,
+      pid: p.campaign_id || p.id,
+      name: p.name,
+      // 原关键词（只读展示）
+      originWord: o ? o.word : '',
+      // 新关键词（待填写）
+      word: '',
+      match_type: 'EXTENSIVE',
+      bid: '',
+    };
+  });
 }
 
 /** 出价输入：只保留数字与小数点（最多 1 位小数） */
@@ -116,9 +142,18 @@ function toBidStr(v) {
   return s;
 }
 
-/** 添加一行关键词 */
+/** 添加一行关键词（归属与上一行相同的项目） */
 function addRow() {
-  rows.value.push({ word: '', match_type: 'EXTENSIVE', bid: '' });
+  const last = rows.value[rows.value.length - 1];
+  rows.value.push({
+    key: `kw-new-${Date.now()}-${rows.value.length}`,
+    pid: last ? last.pid : '',
+    name: last ? last.name : '',
+    originWord: '',
+    word: '',
+    match_type: 'EXTENSIVE',
+    bid: '',
+  });
 }
 
 /** 删除一行关键词 */
@@ -145,7 +180,14 @@ function confirm() {
     ElMessage.warning('请输入正确的出价（取值范围 0.2~999.0）');
     return;
   }
-  const form = { keywords: filled.map((r) => ({ ...r, word: r.word.trim() })) };
+  const form = {
+    keywords: filled.map((r) => ({
+      project_id: r.pid,
+      word: r.word.trim(),
+      match_type: r.match_type,
+      bid: r.bid,
+    })),
+  };
   const cfg = getBatchOpConfig('project', OP);
   let payload = null;
   if (cfg && typeof cfg.build === 'function') {
@@ -155,7 +197,8 @@ function confirm() {
       payload = { error: String(e) };
     }
   }
-  ElMessage.success(`原型：已提交批量修改搜索快投关键词任务（${projectCount.value} 个项目，${filled.length} 个关键词）`);
+  const projectNum = new Set(filled.map((r) => r.pid)).size;
+  ElMessage.success(`原型：已提交批量修改搜索快投关键词任务（${projectNum} 个项目，${filled.length} 个关键词）`);
   emit('confirm', { op: OP, rows: filled, form, payload });
   close();
 }
@@ -184,6 +227,14 @@ function confirm() {
 .kw-table :deep(th.el-table__cell .cell) { font-size: 12px; font-weight: 700; color: #333; }
 .kw-table :deep(td.el-table__cell .cell) { font-size: 12px; line-height: 18px; color: #333; }
 
+/* 项目名称单元格：名称 + 项目ID */
+.kw-cell { min-width: 0; }
+.kw-cell-title { font-size: 12px; line-height: 16px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kw-cell-desc { font-size: 11px; line-height: 14px; color: #86909c; }
+
+/* 原关键词（只读） */
+.kw-origin { font-size: 12px; color: #4e5969; word-break: break-all; }
+
 /* 单元格内的输入框 / 下拉（占满单元格，32px 高） */
 .kw-cell-input { width: 100%; --el-input-height: 32px; }
 .kw-cell-select { width: 100%; --el-select-height: 32px; }
@@ -193,7 +244,7 @@ function confirm() {
 </style>
 
 <style>
-/* 弹窗外壳：与线上一致（880px 弹窗 / 标题 16px 700 #333 / body 20px 24px） */
+/* 弹窗外壳：与线上一致（标题 16px 700 #333 / body 20px 24px） */
 .kw-dialog { padding: 0; }
 .kw-dialog .el-dialog__header { margin-right: 0; padding: 14px 24px; border-bottom: 1px solid #e8eaec; }
 .kw-dialog .el-dialog__title { font-size: 16px; font-weight: 700; line-height: 18px; color: #333; }
