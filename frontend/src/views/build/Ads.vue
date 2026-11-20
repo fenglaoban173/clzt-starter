@@ -272,6 +272,7 @@
     <AdNegativeWordDialog v-model="negativeWordVisible" :rows="batchRows" @confirm="onAdNegativeWordConfirm" />
     <AdRenameDialog v-model="renameVisible" :rows="batchRows" @confirm="onAdRenameConfirm" />
     <AdScheduleDialog v-model="scheduleVisible" :rows="batchRows" @confirm="onAdScheduleConfirm" />
+    <AdLandingPageDialog v-model="landingPageVisible" :rows="batchRows" @confirm="onAdLandingPageConfirm" />
 
     <!-- 广告详情 -->
     <AdDetailDrawer v-model="detailVisible" :row="detailRow" @view-project="onViewProject" />
@@ -310,6 +311,7 @@ import AdOneClickRaiseDialog from './components/AdOneClickRaiseDialog.vue';
 import AdNegativeWordDialog from './components/AdNegativeWordDialog.vue';
 import AdRenameDialog from './components/AdRenameDialog.vue';
 import AdScheduleDialog from './components/AdScheduleDialog.vue';
+import AdLandingPageDialog from './components/AdLandingPageDialog.vue';
 import AdDetailDrawer from './components/AdDetailDrawer.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
@@ -343,6 +345,7 @@ const oneClickRaiseVisible = ref(false);
 const negativeWordVisible = ref(false);
 const renameVisible = ref(false);
 const scheduleVisible = ref(false);
+const landingPageVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -775,6 +778,11 @@ async function onBatchOp(op) {
     scheduleVisible.value = true;
     return;
   }
+  // 「修改落地页」按线上版式单独成弹窗（统一修改 / 分别修改 + 导入模板）
+  if (op === '修改落地页') {
+    landingPageVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -826,6 +834,11 @@ function onAdRenameConfirm() {
 
 // 批量修改广告时段提交
 function onAdScheduleConfirm() {
+  load();
+}
+
+// 修改广告落地页提交
+function onAdLandingPageConfirm() {
   load();
 }
 

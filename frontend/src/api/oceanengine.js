@@ -238,10 +238,6 @@ export const PROMOTION_BATCH_OPS = {
       promotion_id: '{promotion_id}',
       roi_goal: num(form.roi_goal),
       first_roi_goal: num(form.first_roi_goal),
-      shop_multi_roi_goals: (form.shop_multi_roi_goals || []).map((m) => ({
-        shop_platform: m.shop_platform,
-        roi_goal: num(m.roi_goal),
-      })),
     }),
   },
   修改创意: {
@@ -263,23 +259,25 @@ export const PROMOTION_BATCH_OPS = {
     title: '设置一键起量',
     desc: (n) => `已选 ${n} 个可调整广告，将全量更新所有预约中的起量方案，已生效的不受影响。`,
     api: { method: 'POST', path: '/open_api/v3.0/tools/promotion_raise/set/', name: '开启/更新一键起量', scope: AUTH_PROMOTION },
+    // 线上「开启一键起量」走独立弹窗 AdOneClickRaiseDialog：预算设置规则 / 起量预算批量 / 起量生效时间 / 起量方案
     fields: [
       { key: 'budgetRule', label: '预算设置规则', type: 'radio', apiField: 'raise_info[]', required: true, default: '统一设置', options: ['统一设置', '分别设置'] },
-      { key: 'raise_budget', label: '起量预算', type: 'number', apiField: 'raise_info[].raise_budget', required: true, unit: '元', placeholder: '请输入起量预算', rule: '起量预算需大于等于计划出价、小于等于计划预算，允许小数点后两位；可用【获取营销建议起量预算】获取建议值' },
-      { key: 'is_effective_now', label: '起量生效时间', type: 'radio', apiField: 'raise_info[].is_effective_now', required: true, default: '立即生效', options: [{ label: '立即生效', value: '立即生效' }, { label: '指定时间', value: '指定时间' }], rule: '仅支持营销状态为「投放中」的营销立即生效；仅支持 1 个方案设置「立即生效」' },
-      { key: 'appointed_time', label: '指定投放时间', type: 'datetime', apiField: 'raise_info[].appointed_time.raise_time', placeholder: '请选择起量时间', visibleWhen: { is_effective_now: '指定时间' }, rule: '不传重复周期时格式为 yyyy-mm-dd HH:MM' },
-      { key: 'repeated_day', label: '重复周期', type: 'select', apiField: 'raise_info[].appointed_time.repeated_day', placeholder: '请选择重复周期', visibleWhen: { is_effective_now: '指定时间' }, options: ENUMS.repeatedDay.filter((o) => o.value), rule: '仅生效一次；传重复周期时 raise_time 格式为 HH:MM；EVERY_DAY 与其他允许值不可同时传入' },
+      { key: 'raise_budget_batch', label: '起量预算批量', type: 'number', apiField: 'raise_info[].raise_budget', unit: '元', placeholder: '请输入起量预算', rule: '起量预算需大于等于计划出价、小于等于计划预算，允许小数点后两位' },
+      { key: 'is_effective_now', label: '起量生效时间', type: 'radio', apiField: 'raise_info[].is_effective_now', required: true, default: '指定时间', options: [{ label: '立即生效', value: '立即生效' }, { label: '指定时间', value: '指定时间' }], rule: '仅支持营销状态为「投放中」的营销立即生效；仅支持 1 个方案设置「立即生效」' },
+      { key: 'raise_time', label: '起量时间', type: 'datetime', apiField: 'raise_info[].appointed_time.raise_time', placeholder: '请选择起量时间', rule: '方案之间起量时间最少间隔 6 小时' },
+      { key: 'repeated_day', label: '重复周期', type: 'select', apiField: 'raise_info[].appointed_time.repeated_day', options: ENUMS.repeatedDay.filter((o) => o.value), rule: '仅生效一次；传重复周期时 raise_time 格式为 HH:MM；EVERY_DAY 与其他允许值不可同时传入' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
       promotion_id: '{promotion_id}',
-      raise_info: [
-        {
-          raise_budget: num(form.raise_budget),
-          is_effective_now: form.is_effective_now === '立即生效',
-          appointed_time: form.is_effective_now === '立即生效' ? undefined : { raise_time: form.appointed_time, repeated_day: form.repeated_day || undefined },
-        },
-      ],
+      raise_info: (form.plans && form.plans.length ? form.plans : [form]).map((p) => ({
+        raise_budget: num(p.raise_budget),
+        is_effective_now: p.is_effective_now === '立即生效',
+        appointed_time:
+          p.is_effective_now === '立即生效'
+            ? undefined
+            : { raise_time: p.raise_time, repeated_day: p.repeated_day || undefined },
+      })),
     }),
   },
   修改落地页: {
@@ -297,7 +295,7 @@ export const PROMOTION_BATCH_OPS = {
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
       promotion_id: '{promotion_id}',
-      external_url_material_list: form.urls || [],
+      external_url_material_list: (form.urls || []).map((u) => ({ landing_url: u, ad_id: '' })),
     }),
   },
   修改直达链接: {

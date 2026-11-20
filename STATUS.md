@@ -2570,3 +2570,76 @@
 - **回归**：`verify_r48.py`、`verify_r48_ads.py`（已更新：广告「修改时段」改判 `.ps-dialog`）、`verify_r52_regress.py`、`verify_r56c.py`、`verify_r63.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r67.py`、`verify_r67b.py`、`verify_r68.py`、`verify_r69.py`、`verify_r69c.py`（已更新：出价行内编辑改判 `AdBidDialog`）、`verify_r70.py`、`verify_r71.py`（已更新：OPS 收窄为 12 个广告独有操作）、`verify_r53b.py`、`verify_r54b.py` 全部通过。
 
 - **遗留失败（非本轮引入）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关（`.abd-dialog .bo-payload-head .bo-link`）；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
+## 八十八、广告列表：「修改落地页」弹窗按线上版式重建 / 「修改ROI系数」移除电商平台多ROI系数 / 「开启一键起量」弹窗按线上版式重建（2026-11-20，需求 R73）
+
+### ① 需求来源（用户原话）
+
+> 广告列表：1、按图1,2,3 改造 修改落地页弹窗；2、图4 移除 电商平台多ROI系数 板块；3、图5,6,7,8,9,10 ，11改造 本地广告列表，一键起量弹窗内容；
+
+参考截图共 11 张（图1 ~ 图11，均为线上 cl.mobgi.com 广告列表对应弹窗），对应关系：
+
+| 图 | 对应改动 |
+| --- | --- |
+| 图1 / 图2 / 图3 | 「修改落地页」弹窗（统一修改 / 分别修改 / 导入模板） |
+| 图4 | 「修改ROI系数」弹窗移除「电商平台多ROI系数」板块 |
+| 图5 ~ 图11 | 「开启一键起量」弹窗（预算设置规则 / 起量预算批量 / 起量生效时间 / 起量方案 / 广告表格 / 添加起量方案 / 页脚「开启一键起量」） |
+
+### ② 改动明细
+
+#### ① 「修改落地页」弹窗按图1/图2/图3 重建（新建 `AdLandingPageDialog.vue`）
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/AdLandingPageDialog.vue`（新建） | 820px 弹窗，标题「修改落地页」，`close-on-click-modal=false`、`destroy-on-close`。自上而下：**已选中 N 个广告** → 两行说明（取自 `getBatchOpConfig('promotion','修改落地页').notes`，即「1) 落地页修改为覆盖式修改…」/「2) 请确保您所填写的落地页类型与原有广告内投放内容一致…」）→ **修改方式**（分段按钮「统一修改 / 分别修改」，选中态蓝字 + 浅蓝底 + 蓝框）→ **统一修改**：落地页链接输入（500px，占位「请输入落地页链接」）+ 下方「添加」按钮（160×32，可继续追加链接行）→ **分别修改**：「获取模板」行（按钮「下载模板」120×32 主色 + 说明「点击导出当前选中广告数据，填写落地页链接后上传。」）、「导入文件」行（按钮「上传文件」120×32 主色 + 「目前仅支持xlsx/xls文件格式」，隐藏 `input[accept=".xlsx,.xls"]`）。页脚「取消 / 保存」（80×32，主色 #197afb）。 |
+| `frontend/src/views/build/Ads.vue` | 引入 `AdLandingPageDialog`、新增 `landingPageVisible` ref、模板挂载 `<AdLandingPageDialog v-model="landingPageVisible" :rows="batchRows" @confirm="onAdLandingPageConfirm" />`；`onBatchOp` 中新增分流分支 `if (op === '修改落地页') { landingPageVisible.value = true; return; }`（不再走通用 `BatchOpDialog`）；新增 `onAdLandingPageConfirm()` 提交后 `load()` 刷新列表。 |
+| `frontend/src/api/oceanengine.js` | 「修改落地页」`build` 的 `external_url_material_list` 由裸字符串数组改为对象数组：`form.urls.map((u) => ({ landing_url: u, ad_id: '' }))`，与「统一修改」多链接结构对齐。 |
+| `frontend/src/utils/xlsx.js`（复用，未改） | 导入模板用既有 `downloadWorkbook(sheets, filename)` 生成真实 xlsx。 |
+
+**导入模板**：`修改落地页-导入模板.xlsx`，表头依次为 `账户ID（必填）`、`广告ID（必填）`、`落地页 1` ~ `落地页 10`；数据行为当前选中广告的 `advertiser_id` / `ad_id` + 10 个空落地页列；工作表附「填写须知」三行说明。
+
+#### ② 「修改ROI系数」移除「电商平台多ROI系数」板块（图4）
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/AdRoiCoefficientDialog.vue` | 删除整个「电商平台多ROI系数」子表块（`.roi-multi-head` 标题 + 电商平台下拉 / ROI系数 / 删除 三列表格 + 「添加平台」按钮），同时删除 `multiRows` ref、`addMultiRow()`、`form.shop_multi_roi_goals` 与全部 `.roi-multi-*` / `.roi-add` 样式。保留的广告独有字段：**首日ROI系数**列 + 顶部提示「线上提示：所选广告无ROI系数，操作取消！」。现表头为 广告名称 / ROI系数 / 首日ROI系数。 |
+| `frontend/src/api/oceanengine.js` | 「修改ROI系数」`build` 删除 `shop_multi_roi_goals` 映射，只保留 `roi_goal` / `first_roi_goal`。 |
+
+#### ③ 「开启一键起量」弹窗按图5 ~ 图11 重建（重写 `AdOneClickRaiseDialog.vue`）
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/AdOneClickRaiseDialog.vue`（整文件重写） | 980px 弹窗，标题「设置一键起量」。结构：**说明行**「已选 N 个可调整广告，将全量更新所有预约中的起量方案，已生效的不受影响。」→ **预算设置规则**（分段按钮「统一设置 / 分别设置」）→ **（分别设置时出现）起量预算批量**：下拉（降低 / 按 % 降低 / 等于原预算）+ 金额输入（元）+「应用」按钮 → **起量生效时间**（分段按钮「立即生效 / 指定时间」，「立即生效」在所选广告非全部「投放中」时禁用并挂气泡「仅所选广告均为"投放中"状态可设置立即生效。」）→ **起量方案卡片**（可增删，卡片头「起量方案 N」；内含 **重复周期**「仅一次 / 每周重复」；选「每周重复」时显示说明「周期起量任务默认在56天（2027年01月15日）后自行结束」+ 每天 / 每周一 ~ 每周日 8 个折角按钮；**起量时间** 日期时间选择器（占位「请选择起量时间」）+ 橙色提示「ⓘ 方案之间起量时间最少间隔6小时」）→ **广告表格**（表头 广告 / 当日消耗 / 转化成本 / 当前预算 / 出价 / 分别设置起量预算，表格高 300px，每行「请输入起量预算」输入框）→ **「＋ 添加起量方案」按钮**（位于表格下方）→ 页脚「取消 / 开启一键起量」。 |
+| `frontend/src/api/oceanengine.js` | 「开启一键起量」`fields` 改为 预算设置规则 / 起量预算批量 / 起量生效时间（默认「指定时间」）/ 起量时间 / 重复周期；`build` 改为按方案数组生成 `raise_info`：`raise_info: (form.plans?.length ? form.plans : [form]).map((p) => ({ raise_budget: num(p.raise_budget), is_effective_now: p.is_effective_now === '立即生效', appointed_time: p.is_effective_now === '立即生效' ? undefined : { raise_time: p.raise_time, repeated_day: p.repeated_day || undefined } }))`。 |
+
+> 说明：本轮未改动 `mock/data.js`、`layouts/AppLayout.vue`、`main.js`；新增文件仅 `AdLandingPageDialog.vue`。
+
+### ③ 验证
+
+- **构建**：`npm run build` 通过（8.54s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（`/build/ads`，勾选 3 条广告 → 批量操作下拉逐项打开，`C:/tmp/verify_r73.py`）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 汇总 | `total: 9 ok: 9 fail: 0`，`PAGEERRORS: []` |
+| 修改落地页（统一修改） | 标题「修改落地页」；标签 修改方式 / 落地页链接；按钮 添加；占位「请输入落地页链接」；页脚 取消 / 保存 |
+| 修改落地页（分别修改） | 标签 修改方式 / 获取模板 / 导入文件；按钮 下载模板 / 上传文件；含「点击导出当前选中广告数据，填写落地页链接后上传。」「目前仅支持xlsx/xls文件格式」；页脚 取消 / 保存 |
+| 修改落地页（模板表头） | 下载 `修改落地页-导入模板.xlsx`，解析 sheet1 表头行得 `["账户ID（必填）","广告ID（必填）","落地页 1" … "落地页 10"]`（与期望完全一致） |
+| 修改ROI系数 | 标题「批量修改ROI系数」；表头 广告名称 / ROI系数 / 首日ROI系数；页脚 取消 / 确定；**不含** 电商平台多ROI系数 / 添加平台 / 拼多多 / 淘宝 / 京东 |
+| 开启一键起量（统一设置） | 标题「设置一键起量」；表头 广告 / 当日消耗 / 转化成本 / 当前预算 / 出价 / 分别设置起量预算；页脚 取消 / 开启一键起量；含 预算设置规则 / 起量生效时间 / 立即生效 / 指定时间 / 起量方案 1 / 重复周期 / 仅一次 / 每周重复 / 起量时间 / 「方案之间起量时间最少间隔6小时」/「添加起量方案」 |
+| 开启一键起量（每周重复） | 周几按钮 8 个：每天 / 每周一 / 每周二 / 每周三 / 每周四 / 每周五 / 每周六 / 每周日；提示「周期起量任务默认在56天（2027年01月15日）后自行结束」 |
+| 开启一键起量（分别设置） | 「起量预算批量」出现；下拉选项恰为 `["降低","按 % 降低","等于原预算"]` |
+| 开启一键起量（立即生效） | 「立即生效」按钮 `is-disabled = true`（所选广告非全部投放中时禁用） |
+| 开启一键起量（添加起量方案） | 起量方案卡片数 1 → 2 |
+
+- **版式截图复核**：`C:/tmp/r73_landing_all.png`、`r73_landing_each.png`、`r73_raise_weekly.png`、`r73_raise_each.png`、`r73_roi.png` 与图1 / 图2 / 图7 逐项对齐；其中周几按钮组原为 flex 换行导致「每周日」被裁切，已改为 `display:flex; gap:8px` + `flex:1` 均分，复核通过。
+
+- **回归**：
+  - `verify_r72.py`（已更新：修改ROI系数 不再期望「电商平台多ROI系数 / 添加平台」；并补 `select_rows` / `expand_cond`，修复确认后 reload 清空勾选导致的「暂停 / 删除 下拉项找不到」）→ `total: 12 ok: 12 fail: 0`，`PAGEERRORS: []`。
+  - `verify_r72b.py`（已更新：修改ROI系数 期望键收窄为 `ROI系数 / 首日ROI系数`）→ `total: 12 ok: 12 fail: 0`，`PAGEERRORS: []`。
+  - `verify_r72c.py`（已更新：一键起量改判 `.mcr-time-picker` / `.mcr-radio` / `.mcr-warn`）→ `total: 12 ok: 12 fail: 0`，`PAGEERRORS: []`。
+  - `verify_r71.py`（已更新：OPS 移除「修改落地页」，改由 `verify_r73.py` 覆盖）→ `total: 11 clean: 11 dirty: 0`，`PAGEERRORS: []`。
+  - `verify_r71c.py`（已更新：每次操作前重新勾选 3 行）→ 两项确认流程均正常关闭弹窗并给出提示，`PAGEERRORS: []`。
+  - `verify_r48.py`、`verify_r48_ads.py`、`verify_r52_regress.py`、`verify_r53b.py`、`verify_r54b.py`、`verify_r56c.py`、`verify_r63.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r67.py`、`verify_r67b.py`、`verify_r68.py`、`verify_r69.py`、`verify_r69c.py`、`verify_r70.py` 全部通过。
+
+- **遗留失败（非本轮引入，沿用 R71/R72 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关（`.abd-dialog .bo-payload-head .bo-link`）；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。

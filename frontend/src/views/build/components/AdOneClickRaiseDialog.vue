@@ -2,7 +2,8 @@
   <el-dialog
     :model-value="modelValue"
     title="设置一键起量"
-    width="820px"
+    width="980px"
+    top="6vh"
     align-center
     class="mcr-dialog"
     :close-on-click-modal="false"
@@ -11,115 +12,149 @@
     @open="init"
   >
     <div class="mcr-body">
-      <!-- 预算设置规则（广告独有字段） -->
+      <!-- 顶部说明 -->
+      <div class="mcr-desc">
+        已选 <b class="mcr-desc-num">{{ rows.length }}</b> 个可调整广告，<span
+          class="mcr-desc-warn"
+          >将全量更新所有预约中的起量方案，已生效的不受影响。</span
+        >
+      </div>
+
+      <!-- 预算设置规则 -->
       <div class="mcr-item">
         <span class="mcr-label">预算设置规则</span>
         <div class="mcr-content">
-          <el-radio-group v-model="budgetRule" size="small" class="mcr-radio">
+          <el-radio-group v-model="budgetRule" size="small" class="mcr-radio mcr-radio-plain">
             <el-radio-button border value="all">统一设置</el-radio-button>
             <el-radio-button border value="each">分别设置</el-radio-button>
           </el-radio-group>
         </div>
       </div>
 
-      <!-- 起量预算 -->
-      <div class="mcr-item">
-        <span class="mcr-label">起量预算</span>
+      <!-- 起量预算批量（分别设置时展示） -->
+      <div v-if="budgetRule === 'each'" class="mcr-item">
+        <span class="mcr-label">起量预算批量</span>
         <div class="mcr-content mcr-content-inline">
-          <el-input v-model="budget" placeholder="请输入起量预算" class="mcr-input-260" />
-          <el-button type="primary" size="small" class="mcr-apply" @click="applyBudgetAll">应用到所有</el-button>
+          <el-select v-model="budgetOp" class="mcr-op-select">
+            <el-option v-for="o in BUDGET_OPS" :key="o.value" :label="o.label" :value="o.value" />
+          </el-select>
+          <el-input v-model="budget" class="mcr-budget-input">
+            <template #suffix>元</template>
+          </el-input>
+          <el-button type="primary" size="small" class="mcr-apply" @click="applyBudgetAll">应用</el-button>
         </div>
       </div>
 
-      <!-- 起量生效时间（广告独有字段） -->
+      <!-- 起量生效时间 -->
       <div class="mcr-item">
         <span class="mcr-label">起量生效时间</span>
         <div class="mcr-content">
           <el-radio-group v-model="timeMode" size="small" class="mcr-radio">
-            <el-radio-button border value="now">立即生效</el-radio-button>
+            <el-radio-button border value="now" :disabled="!canImmediate">
+              <el-tooltip :content="NOW_TIP" placement="top" :disabled="canImmediate">
+                <span class="mcr-radio-text">立即生效</span>
+              </el-tooltip>
+            </el-radio-button>
             <el-radio-button border value="appoint">指定时间</el-radio-button>
           </el-radio-group>
         </div>
       </div>
 
-      <!-- 指定投放时间 + 重复周期（广告独有字段） -->
+      <!-- 起量方案 -->
       <template v-if="timeMode === 'appoint'">
-        <div class="mcr-item">
-          <span class="mcr-label">指定投放时间</span>
-          <div class="mcr-content mcr-content-inline">
-            <div class="mcr-date-260">
-              <el-date-picker
-                v-model="appointTime"
-                type="datetime"
-                placeholder="请选择起量时间"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                size="small"
-                :prefix-icon="Clock"
-              />
+        <div v-for="(plan, pi) in plans" :key="plan.id" class="mcr-plan">
+          <div class="mcr-plan-head">起量方案 {{ pi + 1 }}</div>
+          <div class="mcr-plan-body">
+            <div class="mcr-item">
+              <span class="mcr-label">重复周期</span>
+              <div class="mcr-content">
+                <el-radio-group v-model="plan.repeat" size="small" class="mcr-radio">
+                  <el-radio-button border value="once">仅一次</el-radio-button>
+                  <el-radio-button border value="weekly">每周重复</el-radio-button>
+                </el-radio-group>
+              </div>
             </div>
-            <el-button type="primary" size="small" class="mcr-apply" @click="applyTimeAll">应用到所有</el-button>
-          </div>
-        </div>
 
-        <div class="mcr-item">
-          <span class="mcr-label">重复周期</span>
-          <div class="mcr-content">
-            <el-select v-model="repeatedDay" placeholder="请选择重复周期" class="mcr-select-260" size="small">
-              <el-option v-for="o in REPEATED_DAY" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-            <p class="mcr-tip">不传重复周期时起量时间精确到分；选择重复周期时起量时间精确到时分。</p>
+            <template v-if="plan.repeat === 'weekly'">
+              <div class="mcr-item">
+                <span class="mcr-label"></span>
+                <div class="mcr-content">
+                  <p class="mcr-tip">周期起量任务默认在{{ WEEKLY_DAYS }}天（{{ weeklyEndDate }}）后自行结束</p>
+                  <div class="mcr-weekdays">
+                    <button
+                      v-for="w in WEEKDAYS"
+                      :key="w.value"
+                      type="button"
+                      class="mcr-weekday"
+                      :class="{ 'is-active': plan.weekday === w.value }"
+                      @click="plan.weekday = w.value"
+                    >
+                      {{ w.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div class="mcr-item">
+              <span class="mcr-label">起量时间</span>
+              <div class="mcr-content mcr-content-inline">
+                <el-date-picker
+                  v-model="plan.time"
+                  type="datetime"
+                  placeholder="请选择起量时间"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  size="small"
+                  class="mcr-time-picker"
+                  :prefix-icon="Clock"
+                />
+                <span class="mcr-warn">
+                  <i class="mcr-warn-icon">!</i>
+                  方案之间起量时间最少间隔6小时
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </template>
 
       <!-- 广告列表 -->
-      <el-table :data="pageRows" border size="small" class="mcr-table" height="400">
-        <el-table-column label="广告" min-width="313">
+      <el-table :data="rows" border size="small" class="mcr-table" height="300">
+        <el-table-column label="广告" min-width="240">
           <template #default="{ row }">
             <div class="mcr-cell">
               <div class="mcr-cell-title" :title="row.name">{{ row.name }}</div>
-              <div class="mcr-cell-desc">ID：{{ row.pid }}</div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="起量预算" width="229">
-          <template #default="{ row }">
-            <el-input v-model="row.budget" placeholder="请输入起量预算" size="small" class="mcr-cell-input" />
-          </template>
+        <el-table-column label="当日消耗" width="100" align="right">
+          <template #default="{ row }">{{ num(row.stat_cost) }}</template>
         </el-table-column>
-        <el-table-column label="起量生效时间" width="229">
+        <el-table-column label="转化成本" width="100" align="right">
+          <template #default="{ row }">{{ num(row.convert_cost) }}</template>
+        </el-table-column>
+        <el-table-column label="当前预算" width="120" align="right">
+          <template #default="{ row }">{{ num(row.budget) }}</template>
+        </el-table-column>
+        <el-table-column label="出价" width="90" align="right">
+          <template #default="{ row }">{{ num(row.bid) }}</template>
+        </el-table-column>
+        <el-table-column label="分别设置起量预算" min-width="180">
           <template #default="{ row }">
-            <div v-if="timeMode === 'appoint'" class="mcr-cell-date">
-              <el-date-picker
-                v-model="row.appointTime"
-                type="datetime"
-                placeholder="请选择起量时间"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                size="small"
-                :prefix-icon="Clock"
-              />
-            </div>
-            <span v-else class="mcr-dyn-text">立即生效</span>
+            <el-input v-model="row.raiseBudget" placeholder="请输入起量预算" size="small" class="mcr-cell-input" />
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
-      <el-pagination
-        class="mcr-pager"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="rows.length"
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
+      <!-- 添加起量方案 -->
+      <button v-if="timeMode === 'appoint'" type="button" class="mcr-add-plan" @click="addPlan">
+        <span class="mcr-add-plan-plus">＋</span> 添加起量方案
+      </button>
     </div>
 
     <template #footer>
-      <el-button size="small" @click="close">取消</el-button>
-      <el-button size="small" type="primary" @click="confirm">确定</el-button>
+      <el-button @click="close">取消</el-button>
+      <el-button type="primary" class="mcr-submit" @click="confirm">开启一键起量</el-button>
     </template>
   </el-dialog>
 </template>
@@ -138,9 +173,16 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 
 const OP = '开启一键起量';
 
-/** 重复周期（广告独有字段） */
-const REPEATED_DAY = [
-  { label: '每天重复', value: 'EVERY_DAY' },
+/** 起量预算批量调整方式（与线上一致：降低 / 按 % 降低 / 等于原预算） */
+const BUDGET_OPS = [
+  { label: '降低', value: 'lower' },
+  { label: '按 % 降低', value: 'lowerPercent' },
+  { label: '等于原预算', value: 'equals' },
+];
+
+/** 重复周几（每周重复时可选） */
+const WEEKDAYS = [
+  { label: '每天', value: 'EVERY_DAY' },
   { label: '每周一', value: 'PER_MONDAY' },
   { label: '每周二', value: 'PER_TUESDAY' },
   { label: '每周三', value: 'PER_WEDNESDAY' },
@@ -150,68 +192,84 @@ const REPEATED_DAY = [
   { label: '每周日', value: 'PER_SUNDAY' },
 ];
 
+/** 周期起量任务默认结束天数（与线上一致） */
+const WEEKLY_DAYS = 56;
+
+/** 「立即生效」提示 */
+const NOW_TIP = '仅所选广告均为"投放中"状态可设置立即生效。';
+
 /** 可操作广告（去掉合计行） */
 const rows = ref([]);
 
-// 预算设置规则：all 统一设置 / each 分别设置（广告独有字段）
+// 预算设置规则：all 统一设置 / each 分别设置
 const budgetRule = ref('all');
-// 起量预算（批量值）
+// 起量预算批量：调整方式 + 金额
+const budgetOp = ref('lower');
 const budget = ref('');
-// 起量生效时间：now 立即生效 / appoint 指定时间（广告独有字段）
-const timeMode = ref('now');
-// 指定投放时间
-const appointTime = ref('');
-// 重复周期
-const repeatedDay = ref('');
-// 分页
-const page = ref(1);
-const pageSize = ref(20);
+// 起量生效时间：now 立即生效 / appoint 指定时间
+const timeMode = ref('appoint');
+// 起量方案列表
+const plans = ref([]);
 
-const pageRows = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return rows.value.slice(start, start + pageSize.value);
+/** 周期起量任务默认结束日期（今天 + 56 天） */
+const weeklyEndDate = computed(() => {
+  const d = new Date();
+  d.setDate(d.getDate() + WEEKLY_DAYS);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}年${p(d.getMonth() + 1)}月${p(d.getDate())}日`;
 });
+
+/** 所选广告是否全部「投放中」（决定「立即生效」是否可用） */
+const canImmediate = computed(
+  () => rows.value.length > 0 && rows.value.every((r) => r.enabled === true || r.status === 'enabled')
+);
+
+function num(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+}
 
 function init() {
   budgetRule.value = 'all';
+  budgetOp.value = 'lower';
   budget.value = '';
-  timeMode.value = 'now';
-  appointTime.value = '';
-  repeatedDay.value = '';
-  page.value = 1;
-  pageSize.value = 20;
+  timeMode.value = 'appoint';
   const list = (props.rows || []).filter((r) => !r.__summary);
   rows.value = list.map((r) => ({
     id: r.id,
     pid: r.ad_id || r.id,
     name: r.name,
-    budget: '',
-    appointTime: '',
+    enabled: r.enabled,
+    status: r.status,
+    stat_cost: Number(r.stat_cost) || 0,
+    convert_cost: Number(r.convert_cost) || 0,
+    budget: Number(r.budget) || 0,
+    bid: Number(r.bid) || 0,
+    raiseBudget: '',
   }));
+  plans.value = [newPlan()];
+}
+
+/** 新建一个起量方案 */
+function newPlan() {
+  return { id: Date.now() + Math.random(), repeat: 'once', weekday: 'EVERY_DAY', time: '' };
+}
+
+/** 添加起量方案 */
+function addPlan() {
+  plans.value = [...plans.value, newPlan()];
 }
 
 /** 起量预算应用到所有广告 */
 function applyBudgetAll() {
+  const val = budget.value;
+  if (val === '') {
+    ElMessage.warning('请输入起量预算');
+    return;
+  }
   rows.value.forEach((r) => {
-    r.budget = budget.value;
+    r.raiseBudget = val;
   });
-}
-
-/** 指定投放时间应用到所有广告 */
-function applyTimeAll() {
-  if (timeMode.value !== 'appoint') return;
-  rows.value.forEach((r) => {
-    r.appointTime = appointTime.value;
-  });
-}
-
-function onPageChange(p) {
-  page.value = p;
-}
-
-function onSizeChange(s) {
-  pageSize.value = s;
-  page.value = 1;
 }
 
 function close() {
@@ -219,24 +277,29 @@ function close() {
 }
 
 function confirm() {
-  const hasBudget = budget.value !== '' || rows.value.some((r) => r.budget !== '');
+  const hasBudget = rows.value.some((r) => r.raiseBudget !== '');
   if (!hasBudget) {
     ElMessage.warning('请输入起量预算');
     return;
   }
   if (timeMode.value === 'appoint') {
-    const hasTime = appointTime.value !== '' || rows.value.some((r) => r.appointTime !== '');
-    if (!hasTime) {
-      ElMessage.warning('请选择指定投放时间');
+    const noTime = plans.value.some((p) => !p.time);
+    if (noTime) {
+      ElMessage.warning('请选择起量时间');
       return;
     }
   }
   const form = {
-    budgetRule: budgetRule.value,
+    budgetRule: budgetRule.value === 'all' ? '统一设置' : '分别设置',
     raise_budget: budget.value,
+    budget_op: budgetOp.value,
     is_effective_now: timeMode.value === 'now' ? '立即生效' : '指定时间',
-    appointed_time: appointTime.value,
-    repeated_day: repeatedDay.value,
+    plans: plans.value.map((p) => ({
+      raise_budget: budget.value || rows.value[0]?.raiseBudget || '',
+      is_effective_now: timeMode.value === 'now' ? '立即生效' : '指定时间',
+      raise_time: p.time,
+      repeated_day: p.repeat === 'weekly' ? p.weekday : undefined,
+    })),
   };
   const cfg = getBatchOpConfig('promotion', OP);
   let payload = null;
@@ -247,11 +310,8 @@ function confirm() {
       payload = { error: String(e) };
     }
   }
-  const timeText = timeMode.value === 'now' ? '立即生效' : appointTime.value || '按广告分别设置';
   ElMessage.success(
-    `原型：已提交设置一键起量任务（${rows.value.length} 条广告，起量预算：${
-      budget.value || '按广告分别设置'
-    }，起量生效时间：${timeText}）`
+    `原型：已提交设置一键起量任务（${rows.value.length} 条广告，起量方案 ${plans.value.length} 个）`
   );
   emit('confirm', { op: OP, rows: rows.value, form, payload });
   close();
@@ -266,57 +326,124 @@ function confirm() {
   color: #606266;
 }
 
-/* 表单行：标签 150px，行间距 18px（与线上一致） */
+/* 顶部说明 */
+.mcr-desc { margin-bottom: 18px; font-size: 14px; line-height: 20px; color: #606266; }
+.mcr-desc-num { color: #197afb; font-weight: 400; }
+.mcr-desc-warn { color: #f5a623; }
+
+/* 表单行：标签 100px */
 .mcr-item { display: flex; align-items: flex-start; margin-bottom: 18px; }
-.mcr-label { flex: none; width: 150px; font-size: 14px; line-height: 32px; color: #666; }
+.mcr-label { flex: none; width: 100px; font-size: 14px; line-height: 32px; color: #666; }
 .mcr-content { flex: 1; min-width: 0; }
-.mcr-content-inline { display: flex; align-items: center; }
+.mcr-content-inline { display: flex; align-items: center; gap: 12px; }
 
-/* 固定宽度输入框（与线上一致：260px / 80px / 32px 高） */
-.mcr-input-260 { width: 260px; --el-input-height: 32px; }
-.mcr-select-260 { width: 260px; }
-.mcr-select-260 :deep(.el-select__wrapper) { min-height: 32px; }
-.mcr-input-80 { width: 80px; --el-input-height: 32px; }
+/* 起量预算批量：下拉 120px / 金额 120px */
+.mcr-op-select { width: 120px; }
+.mcr-op-select :deep(.el-select__wrapper) { min-height: 32px; }
+.mcr-budget-input { width: 120px; --el-input-height: 32px; }
 
-/* 日期选择器（线上为 260px / 32px，EP 默认 220px / 24px，需强制覆盖） */
-.mcr-date-260 { width: 260px; }
-.mcr-date-260 :deep(.el-date-editor) { width: 260px; --el-input-height: 32px; }
-.mcr-cell-date { width: 100%; }
-.mcr-cell-date :deep(.el-date-editor) { width: 100%; --el-input-height: 32px; }
+/* 起量时间选择器（260px / 32px） */
+.mcr-time-picker { width: 260px; }
+.mcr-time-picker :deep(.el-date-editor) { width: 260px; --el-input-height: 32px; }
 
-/* 动态时间行（14px #606266） */
-.mcr-dyn-row { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 32px; color: #606266; }
+/* 橙色提示（方案间隔 6 小时） */
+.mcr-warn { display: inline-flex; align-items: center; font-size: 14px; color: #f5a623; }
+.mcr-warn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f5a623;
+  color: #fff;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 16px;
+}
 
-/* 动态时间说明（12px #999，与线上一致） */
-.mcr-tip { margin: 8px 0 0; font-size: 12px; line-height: 18px; color: #999; }
+/* 起量方案卡片 */
+.mcr-plan { margin-bottom: 16px; border: 1px solid #ebeef5; }
+.mcr-plan-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background: #fafafa;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+.mcr-plan-body { padding: 18px 16px 0; }
+.mcr-plan-body .mcr-item:last-child { margin-bottom: 18px; }
 
-/* 项目表格（与线上一致：表头 48px / 行高 48px / 边框 #ebeef5） */
+/* 说明文案（12px #999） */
+.mcr-tip { margin: 0 0 10px; font-size: 12px; line-height: 18px; color: #999; }
+
+/* 周几按钮组（折角样式） */
+.mcr-weekdays { display: flex; gap: 8px; }
+.mcr-weekday {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 8px;
+  border: 1px solid #dcdfe6;
+  border-radius: 2px;
+  background: #fff;
+  color: #606266;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mcr-weekday::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid #dcdfe6;
+  border-left: 8px solid transparent;
+}
+.mcr-weekday.is-active {
+  border-color: #197afb;
+  background: #d6eaff;
+  color: #197afb;
+}
+.mcr-weekday.is-active::after { border-top-color: #197afb; }
+
+/* 「＋ 添加起量方案」虚线按钮 */
+.mcr-add-plan {
+  width: 100%;
+  height: 40px;
+  margin-top: 18px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 2px;
+  background: #fff;
+  color: #606266;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mcr-add-plan:hover { border-color: #197afb; color: #197afb; }
+.mcr-add-plan-plus { margin-right: 2px; }
+
+/* 广告表格（与线上一致：表头 48px / 行高 48px / 边框 #ebeef5） */
 .mcr-table { --el-table-border-color: #ebeef5; --el-table-header-text-color: #333; width: 100%; }
 .mcr-table :deep(.el-table__header-wrapper th.el-table__cell) { height: 48px; padding: 0; background: #fff; }
 .mcr-table :deep(.el-table__body-wrapper td.el-table__cell) { height: 48px; padding: 5.5px 0; }
 .mcr-table :deep(th.el-table__cell .cell) { font-size: 12px; font-weight: 700; color: #333; }
 .mcr-table :deep(td.el-table__cell .cell) { font-size: 12px; line-height: 18px; color: #333; }
 
-/* 单元格内的项目名称 / 项目ID（与线上一致） */
+/* 单元格内的广告名称 */
 .mcr-cell-title { font-size: 12px; line-height: 18px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mcr-cell-desc { font-size: 12px; line-height: 18px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 单元格内的输入框（占满单元格，32px 高） */
 .mcr-cell-input { width: 100%; --el-input-height: 32px; }
 
-/* 动态时间单元格文案（12px #999，与线上一致） */
-.mcr-dyn-text { font-size: 12px; line-height: 18px; color: #999; }
-
-/* 分页（13px #999，与线上一致） */
-.mcr-pager { margin-top: 16px; --el-pagination-font-size: 13px; --el-pagination-button-disabled-bg-color: #fff; }
-.mcr-pager :deep(.el-pagination__total) { color: #999; }
-.mcr-pager :deep(.el-select) { width: 100px; }
-.mcr-pager :deep(.el-input__wrapper) { height: 32px; box-sizing: border-box; --el-input-height: 32px; }
-.mcr-pager :deep(.el-pagination__editor) { width: 46px; }
-
-/* 分段按钮（选中为蓝字 + 浅蓝底 + 蓝框，80×32，与线上一致） */
+/* 分段按钮（选中为蓝字 + 浅蓝底 + 蓝框，与线上一致） */
 .mcr-radio :deep(.el-radio-button__inner) {
-  min-width: 80px;
+  min-width: 110px;
   padding: 9px 12px;
   font-size: 12px;
   line-height: 12px;
@@ -338,25 +465,29 @@ function confirm() {
   background: #fff;
   border-color: #ebeef5;
 }
+/* 「预算设置规则」未选中项无边框（与线上一致） */
+.mcr-radio-plain :deep(.el-radio-button:not(.is-active) .el-radio-button__inner) {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* 气泡内文字 */
+.mcr-radio-text { display: inline-block; }
 </style>
 
 <style>
-/* 弹窗外壳：与线上一致（820px 弹窗 / 标题 16px 700 #333 / body 20px 24px） */
+/* 弹窗外壳：与线上一致（标题 16px 700 #333 / body 20px 24px） */
 .mcr-dialog { padding: 0; }
 .mcr-dialog .el-dialog__header { margin-right: 0; padding: 14px 24px; border-bottom: 1px solid #e8eaec; }
 .mcr-dialog .el-dialog__title { font-size: 16px; font-weight: 700; line-height: 18px; color: #333; }
 .mcr-dialog .el-dialog__body { padding: 20px 24px; }
 .mcr-dialog .el-dialog__footer { padding: 0 24px 20px; }
-.mcr-dialog .el-dialog__footer .el-button { width: 80px; height: 32px; }
+.mcr-dialog .el-dialog__footer .el-button { height: 32px; }
 .mcr-dialog .el-dialog__footer .el-button + .el-button { margin-left: 16px; }
 
-/* 小尺寸按钮统一 32px（EP 的 small 为 24px，线上为 32px） */
-.mcr-dialog .el-button--small { height: 32px; }
-
-/* 「应用到所有」按钮（92×32，主色 #197afb，与线上一致） */
+/* 「应用」按钮（92×32，主色 #197afb） */
 .mcr-dialog .mcr-apply {
   width: 92px;
-  margin-left: 16px;
   padding: 0;
   font-size: 12px;
   background: #197afb;
@@ -369,10 +500,4 @@ function confirm() {
 .mcr-dialog .el-dialog__footer .el-button--primary:hover { background: #4a9bff; border-color: #4a9bff; }
 /* 页脚次按钮（线上边框 #d0d0d0） */
 .mcr-dialog .el-dialog__footer .el-button:not(.el-button--primary) { border-color: #d0d0d0; color: #666; }
-
-/* 「指定素材」禁用态仍保留气泡 */
-.mcr-radio-text { display: inline-block; }
-
-/* 气泡（白底 + 1px #ebeef5 边框 + 12px 内边距，与线上一致） */
-.mcr-pop { padding: 12px !important; font-size: 12px !important; line-height: 18px !important; color: #606266 !important; }
 </style>

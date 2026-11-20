@@ -50,40 +50,6 @@
         </el-table-column>
       </el-table>
 
-      <!-- 电商平台多ROI系数（广告独有字段） -->
-      <div class="roi-multi-head">
-        <span class="roi-multi-title">电商平台多ROI系数</span>
-        <span class="roi-multi-tip">按电商平台分别设置 ROI 系数，最多 4 个平台</span>
-      </div>
-      <el-table :data="multiRows" border size="small" class="roi-table" max-height="200">
-        <el-table-column label="电商平台" width="200">
-          <template #default="{ row }">
-            <el-select v-model="row.shop_platform" size="small" class="roi-cell-input">
-              <el-option label="拼多多" value="PDD" />
-              <el-option label="淘宝" value="TB" />
-              <el-option label="京东" value="JD" />
-              <el-option label="其他" value="OTHER" />
-            </el-select>
-          </template>
-        </el-table-column>
-        <el-table-column label="ROI系数" min-width="220">
-          <template #default="{ row }">
-            <el-input
-              :model-value="row.roi_goal"
-              placeholder="请输入ROI系数"
-              size="small"
-              class="roi-cell-input"
-              @input="(v) => (row.roi_goal = toRoiStr(v))"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="80" align="center">
-          <template #default="{ $index }">
-            <el-button link type="danger" @click="multiRows.splice($index, 1)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-button size="small" class="roi-add" @click="addMultiRow">添加平台</el-button>
     </div>
 
     <template #footer>
@@ -108,8 +74,6 @@ const OP = '修改ROI系数';
 
 /** 已勾选广告（每个广告一行，行内单独填写 ROI 系数） */
 const rows = ref([]);
-/** 电商平台多ROI系数（广告独有字段） */
-const multiRows = ref([]);
 
 function init() {
   const list = (props.rows || []).filter((r) => !r.__summary);
@@ -120,16 +84,6 @@ function init() {
     roi_goal: '',
     first_roi_goal: '',
   }));
-  multiRows.value = [];
-}
-
-/** 添加电商平台 */
-function addMultiRow() {
-  if (multiRows.value.length >= 4) {
-    ElMessage.warning('最多可设置 4 个电商平台');
-    return;
-  }
-  multiRows.value = [...multiRows.value, { shop_platform: 'TB', roi_goal: '' }];
 }
 
 /** ROI 系数输入：仅保留数字与小数点，最多 4 位小数 */
@@ -167,7 +121,6 @@ function confirm() {
   const form = {
     roi_goal: filled[0].roi_goal,
     first_roi_goal: filled[0].first_roi_goal,
-    shop_multi_roi_goals: multiRows.value.filter((r) => r.roi_goal !== ''),
   };
   const cfg = getBatchOpConfig('promotion', OP);
   let payload = null;
@@ -211,12 +164,6 @@ function confirm() {
 
 /* 单元格内的 ROI 系数输入框（占满单元格，32px 高） */
 .roi-cell-input { width: 100%; --el-input-height: 32px; }
-
-/* 电商平台多ROI系数（广告独有） */
-.roi-multi-head { display: flex; align-items: center; gap: 12px; margin: 20px 0 10px; }
-.roi-multi-title { font-size: 14px; font-weight: 600; color: #333; }
-.roi-multi-tip { font-size: 12px; color: #999; }
-.roi-add { margin-top: 10px; }
 </style>
 
 <style>
