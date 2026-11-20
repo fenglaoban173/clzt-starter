@@ -3025,3 +3025,46 @@
 - **测试脚本同步调整**（均在 `C:/tmp/`，不在仓库内）：`verify_r77.py` / `verify_r78.py` 的批量操作期望 20 → 19 项；`verify_r77.py` 的「新建标题含 AI助手」改为「不含 AI助手」；`verify_r71.py` 的 OPS 列表移除「修改附加创意组件」（7 → 6 项）。
 
 - **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
+
+---
+
+## 九十六、移除「广告管理」分组文件夹图标、央广智投左侧图标替换为央广时代 logo、账户列表手动同步弹窗两侧面板底部对齐（2026-11-20，需求 R81）
+
+（配图 2 张：图 左侧菜单「广告管理」（去掉文件夹图标）；图 账户列表「手动同步」弹窗（左右两块底部未对齐）。）
+
+### ① 线上对照与改动结论
+
+| 项 | 线上形态 | 本地落地 |
+| --- | --- | --- |
+| 1. 分组图标 | 左侧「广告管理」分组标题前**无文件夹图标**（仅右侧一个展开箭头） | `AppLayout.vue` 的 `el-sub-menu` 标题模板移除 `<el-icon><Folder /></el-icon>`，标题只保留文字；Element Plus 自带的右侧 `el-sub-menu__icon-arrow` 保留 |
+| 2. 品牌图标 | 顶栏「央广智投」左侧为央广时代 logo（`https://auth.ygsdmedia.cn/static/img/logo.b43d49ad.png`，原图 209×67） | 品牌位改为 `<img class="brand-logo">`，CSS `height:22px; width:auto; object-fit:contain` **等比缩小**（实测渲染 68.625×22，宽高比 3.1193 ≈ 原图 3.1194，未变形） |
+| 3. 手动同步弹窗 | 「项目和广告」弹窗左右两块**等高、底部对齐** | `views/media/Accounts.vue` 内嵌的「同步项目与广告」弹窗按同样思路改造：`.sync-panels` 去掉 `align-items:flex-start` 改为 `stretch`；两块 `.sync-panel` 改为 `display:flex; flex-direction:column; height:470px`；`.panel-list`/`.list-scroll`/`.sel-body`/`.sel-scroll` 改为 `flex:1 + min-height:0` 的自适应滚动区，分页器 `flex:none` 贴底 |
+
+### ② 改动明细
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/layout/AppLayout.vue` | ① 品牌位 `<el-icon class="brand-logo"><Grid /></el-icon>` → `<img class="brand-logo" src="https://auth.ygsdmedia.cn/static/img/logo.b43d49ad.png" alt="央广时代">`；② `.brand-logo` 样式由 `color:#2563eb` 改为 `display:block; height:22px; width:auto; max-width:80px; object-fit:contain`；③ `el-sub-menu` 标题模板移除 `<el-icon><Folder /></el-icon>`（仅保留文字 span）。 |
+| `frontend/src/views/media/Accounts.vue` | 「手动同步（同步项目与广告）」弹窗样式对齐：`.sync-panels` 改 `align-items:stretch`；`.sync-panel` 改 flex 纵向容器并定高 470px；`.panel-head`/`.panel-search`/`.check-all`/`.sync-pager` 改 `flex:none`；`.panel-list`/`.list-scroll`/`.sel-body`/`.sel-scroll` 改 `flex:1; min-height:0`（内部滚动，不撑高外框）。 |
+
+> 说明：本轮按需求改动了 `layout/AppLayout.vue` 与 `views/media/Accounts.vue`；未改动 `mock/data.js`、`api/*`、`main.js`。
+
+### ③ 验证
+
+- **构建**：`npm run build` 通过（10.39s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（`C:/tmp/verify_r81.py`，覆盖 `/build/ads` 与 `/media/accounts`）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 汇总 | `total: 23 ok: 23 fail: 0`，`PAGEERRORS: []` |
+| 品牌 logo | 顶栏为 1 个 `<img class="brand-logo">`，`src` 正确；图片实际加载成功（`naturalWidth=209`、`naturalHeight=67`）；渲染尺寸 68.625×22，宽高比 3.1193 与原图 3.1194 一致（**等比缩小、无变形**）；logo 右边缘 ≤ 「央广智投」文字左边缘 |
+| 分组图标 | 「广告管理」标题文字保留；标题内 `.el-icon` 仅剩 1 个且类名为 `el-sub-menu__icon-arrow`（右侧箭头），**文件夹图标已移除**；标题首个元素为文字 `SPAN`（左侧无图标） |
+| 手动同步弹窗（账户列表） | 左右两块**等高 472px、顶部同为 221、底部同为 693（差 0px，底部对齐）**；分页器贴合左面板底部（间距 1px）；左右头部高度一致（39px）；勾选账户后已选区出现 1 条且两块仍底部对齐 |
+| 对照「项目和广告」 | 共享弹窗 `.sp-left`/`.sp-right` 等高 461px、底部同为 627（同样底部对齐，两处一致） |
+
+- **截图**：`C:/tmp/r81_brand.png`（顶栏 logo）、`C:/tmp/r81_sidebar.png`（左侧菜单）、`C:/tmp/r81_sync_accounts.png`（账户列表手动同步弹窗）、`C:/tmp/r81_sync_projects.png`（项目和广告手动同步弹窗）。
+
+- **回归**：`verify_r80.py` 26/26、`verify_r79.py` 52/52、`verify_r78.py` 61/61、`verify_r77.py` 60/60、`verify_r76.py` 7/7、`verify_r75.py` 11/11、`verify_r74.py` 4/4、`verify_r73.py` 9/9、`verify_r72.py` 12/12、`verify_r72b.py` 12/12、`verify_r72c.py` 12/12、`verify_r71.py` 6/6（clean 6/6）、`verify_r71b.py`、`verify_r71c.py`、`verify_r70.py`、`verify_r68.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r57.py`、`r32_check.py`、`r32_live.py` 全部通过，`PAGEERRORS` 均为空。
+
+- **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。

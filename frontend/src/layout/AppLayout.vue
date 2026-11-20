@@ -3,7 +3,8 @@
     <!-- 顶部一级导航 -->
     <el-header class="app-header">
       <div class="brand">
-        <el-icon class="brand-logo"><Grid /></el-icon>
+        <!-- R81：左侧图标替换为央广时代 logo（等比缩小） -->
+        <img class="brand-logo" src="https://auth.ygsdmedia.cn/static/img/logo.b43d49ad.png" alt="央广时代" />
         <span>央广智投</span>
       </div>
 
@@ -66,7 +67,7 @@
           <template v-for="g in sideMenus" :key="g.title">
             <el-sub-menu v-if="g.children" :index="g.title">
               <template #title>
-                <el-icon><Folder /></el-icon>
+                <!-- R81：移除分组标题前的文件夹图标 -->
                 <span>{{ g.title }}</span>
               </template>
               <el-menu-item
@@ -398,7 +399,8 @@ async function onUserMenu(command) {
   border-bottom: 1px solid #e5e6eb;
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px; color: #1d2129; white-space: nowrap; }
-.brand-logo { color: #2563eb; }
+/* R81：央广时代 logo，等比缩小（原始 209×67） */
+.brand-logo { display: block; height: 22px; width: auto; max-width: 80px; object-fit: contain; }
 .top-nav { flex: 1; display: flex; height: 56px; }
 .nav-item { position: relative; height: 56px; line-height: 56px; padding: 0 18px; font-size: 17px; color: #4e5969; cursor: pointer; }
 .nav-item.active { color: #2563eb; font-weight: 600; }
