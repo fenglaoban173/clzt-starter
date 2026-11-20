@@ -3206,3 +3206,11 @@
 - **截图**：`C:/tmp/r84_accounts_filter.png`、`C:/tmp/r84_projects_filter.png`、`C:/tmp/r84_ads_filter.png`（三页筛选区布局无错位）。
 
 - **遗留项**：`verify_r69b.py` / `verify_r48_regress.py` 的既有失败项沿用 R71/R72/R73 结论，非本轮引入。
+
+### ④ 推送与部署（2026-11-20）
+
+- **推送**：`git push origin main`（`c46a41e..7dc1f38`），仓库 <https://github.com/fenglaoban173/clzt-starter>。
+- **CI**：`Build & Deploy to GitHub Pages`（run `44715160105`）**构建 + 发布全部成功**；CI 以 `VITE_BASE=/clzt-starter/` 构建，本地同参数构建亦通过（8.57s）。
+- **线上地址**：<https://fenglaoban173.github.io/clzt-starter/>
+- **线上复验**（`C:/tmp/verify_r84_live.py`，Playwright 直连线上站点）：**17 项全部通过，失败项：无**，`PAGEERRORS: []` —— 部门树形 5 项（编导/剪辑/默认部门/优化/技术）且可搜索；账户主体/智投项目/优化师多选回显 `+ 1`；优化目标与深度优化目标各 163 项；深度优化方式 10 项；投放模式含「全部」；广告类型 3 项、平台 4 项；项目状态级联一级 6 项 + 二级 4 项、广告状态级联一级 7 项 + 二级 16 项；关联商品与策略组 `is-filterable` 且可多选；广告页标签「创建时间」；学习期状态 3 项多选；默认文案「所有广告类型」「全部」。
+- **线上截图**：`C:/tmp/r84_live_ads.png`。
