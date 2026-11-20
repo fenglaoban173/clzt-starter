@@ -3068,3 +3068,53 @@
 - **回归**：`verify_r80.py` 26/26、`verify_r79.py` 52/52、`verify_r78.py` 61/61、`verify_r77.py` 60/60、`verify_r76.py` 7/7、`verify_r75.py` 11/11、`verify_r74.py` 4/4、`verify_r73.py` 9/9、`verify_r72.py` 12/12、`verify_r72b.py` 12/12、`verify_r72c.py` 12/12、`verify_r71.py` 6/6（clean 6/6）、`verify_r71b.py`、`verify_r71c.py`、`verify_r70.py`、`verify_r68.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r57.py`、`r32_check.py`、`r32_live.py` 全部通过，`PAGEERRORS` 均为空。
 
 - **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。
+
+---
+
+## 九十七、资产导航菜单精简、账户列表手动同步「已选」区域按项目弹窗改造、项目/广告列表补「启停」表头（2026-11-20，需求 R82）
+
+（配图 3 张：图 1 账户列表「手动同步」弹窗的「已选」区域样式参考；图 2 项目列表启停列表头；图 3 广告列表启停列表头。）
+
+### ① 线上对照与改动结论
+
+| 项 | 线上/参考形态 | 本地落地 |
+| --- | --- | --- |
+| 1. 资产导航菜单 | 资产模块只保留常用资产页 | 左侧「巨量资产-标准」与顶部「资产」mega 面板同步移除 9 项（资产组、小程序/小游戏、短剧推广链接、监测活动、穿山甲媒体包、试玩/直玩素材、创意组件、原生锚点模板、评论管理），各剩 **7 项**：巨量商品库、巨量应用、事件管理、自定义人群包、定向包、落地页、直达链接；`AssetList.vue` 无 `kind` 时的默认落地由「资产组」改为「巨量商品库」 |
+| 2. 账户列表手动同步「已选」 | 与「项目和广告」弹窗一致：**每行灰色矩形底（#f7f8fa / 圆角 2px / 高 38px）+ 右侧 ⊗ 移除按钮**，空态为文字「暂未选择媒体账户」 | `views/media/Accounts.vue` 的已选区改为 `.sel-item` 灰底卡片（`名称--账户ID` 文本 + `.sel-del` 移除按钮，新增 `syncAccountLabel` / `removeSyncOne`），空态由 `el-empty` 插图改为文字「暂未选择媒体账户」；弹窗宽度 820 → **1004px**、右侧「已选」面板 250 → **420px**（左侧媒体账户列表 442px），与项目和广告弹窗一致；两侧面板仍底部对齐 |
+| 3. 项目列表表头 | 启停开关列有表头文案 | `Projects.vue` 开关列补 `label="项目启停"`，列宽 58 → 90px |
+| 4. 广告列表表头 | 同上 | `Ads.vue` 开关列补 `label="广告启停"`，列宽 72 → 90px |
+
+### ② 改动明细
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/layout/AppLayout.vue` | ① `sideMenuConfig.asset` 的「巨量资产-标准」子项由 16 项精简为 7 项（移除上述 9 项）；② 顶部「资产」mega 面板的「巨量广告·标准」列同步移除同样 9 项（保留 文案库 / 动态链接）。 |
+| `frontend/src/views/asset/AssetList.vue` | 默认 `kind` 由 `'asset_group'` 改为 `'product'`（资产组已从菜单移除，避免落到隐藏页面）。 |
+| `frontend/src/views/media/Accounts.vue` | ① 已选区改为灰色矩形底 + ⊗ 移除按钮，文案 `名称--账户ID`；空态改文字「暂未选择媒体账户」；② 新增 `syncAccountLabel()` / `removeSyncOne()`，引入 `Close` 图标；③ 弹窗宽度 820 → 1004px，右侧面板 250 → 420px。 |
+| `frontend/src/views/build/Projects.vue` | 启停开关列表头补「项目启停」，列宽 90px。 |
+| `frontend/src/views/build/Ads.vue` | 启停开关列表头补「广告启停」，列宽 90px。 |
+
+> 说明：本轮按需求改动了 `layout/AppLayout.vue`、`views/asset/AssetList.vue`、`views/media/Accounts.vue`、`views/build/Projects.vue`、`views/build/Ads.vue`；未改动 `mock/data.js`、`api/*`、`main.js`。资产页本身（16 个 `views/asset/pages/*.vue`）保留，仅从菜单隐藏，直达 URL 仍可访问。
+
+### ③ 验证
+
+- **构建**：`npm run build` 通过（9.92s；仅 chunk 体积告警）。
+
+- **Playwright 实测**（`C:/tmp/verify_r82.py`）：
+
+| 校验项 | 实测结果 |
+| --- | --- |
+| 汇总 | `total: 55 ok: 55 fail: 0`，`PAGEERRORS: []` |
+| 左侧资产菜单 | 「巨量资产-标准」分组存在，子项 **7 项**；被移除的 9 项全部不在；保留的 7 项全部在 |
+| 顶部资产 mega 面板 | 「巨量广告·标准」列 = 巨量商品库、巨量应用、事件管理、自定义人群包、定向包、落地页、直达链接、文案库、动态链接；被移除的 9 项全部不在 |
+| 已选区域 | 勾选 3 个账户后出现 **3 行**；每行背景 `rgb(247,248,250)`、圆角 `2px`、高 `38px`；文本为「百度极速版词-央广-1--1869584151302635」；每行 1 个 `.sel-del` 移除按钮；计数「已选：3/500」；点 ⊗ 后剩 2 行、计数变「已选：2/500」；点「清空」后回到空态「暂未选择媒体账户」；面板左右**底部仍对齐**（472/472，底边同为 693），右侧「已选」面板宽 **422px** |
+| 项目列表表头 | 表头含「项目启停」（第 2 列，非空） |
+| 广告列表表头 | 表头含「广告启停」（第 2 列，非空） |
+
+- **附带自检**（`C:/tmp/check_r82_asset.py`）：保留的 7 个资产页（product / app / event / audience / orientation / landing_page / deep_link）逐个直达渲染，表格均正常，`PAGEERRORS: []`。
+
+- **截图**：`C:/tmp/r82_asset_sidebar.png`（资产侧栏）、`C:/tmp/r82_asset_mega.png`（资产下拉）、`C:/tmp/r82_sync_selected.png`（账户列表手动同步已选区）、`C:/tmp/r82_projects_head.png`、`C:/tmp/r82_ads_head.png`（两处启停表头）。
+
+- **回归**：`verify_r81.py` 23/23、`verify_r80.py` 26/26、`verify_r79.py` 52/52、`verify_r78.py` 61/61、`verify_r77.py` 60/60、`verify_r76.py` 7/7、`verify_r75.py` 11/11、`verify_r74.py` 4/4、`verify_r73.py` 9/9、`verify_r72.py` 12/12、`verify_r72b.py` 12/12、`verify_r72c.py` 12/12、`verify_r71.py` 6/6（clean 6/6）、`verify_r71b.py`、`verify_r71c.py`、`verify_r70.py`、`verify_r68.py`、`verify_r64.py`、`verify_r64b.py`、`verify_r57.py`、`r32_check.py`、`r32_live.py` 全部通过，`PAGEERRORS` 均为空。
+
+- **遗留失败（非本轮引入，沿用 R71/R72/R73 结论）**：`verify_r69b.py` 仍在查找 R70 已移除的「请求体预览」开关；`verify_r48_regress.py` 的「修改出价 / 批量修改投放时间 / 批量修改项目名称」三项期望通用弹窗、实际已改为项目专属弹窗。

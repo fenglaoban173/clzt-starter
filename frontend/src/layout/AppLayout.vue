@@ -187,23 +187,15 @@ const sideMenuConfig = {
   asset: [
     {
       // 顺序与创量标准版「巨量广告·标准 → 资产」侧栏一致
+      // R82：移除 资产组 / 小程序·小游戏 / 短剧推广链接 / 监测活动 / 穿山甲媒体包 / 试玩·直玩素材 / 创意组件 / 原生锚点模板 / 评论管理
       title: '巨量资产-标准', children: [
-        { title: '资产组', name: 'asset-list', query: { kind: 'asset_group' } },
         { title: '巨量商品库', name: 'asset-list', query: { kind: 'product' } },
         { title: '巨量应用', name: 'asset-list', query: { kind: 'app' } },
-        { title: '小程序/小游戏', name: 'asset-list', query: { kind: 'mini_game' } },
-        { title: '短剧推广链接', name: 'asset-list', query: { kind: 'drama_link' } },
-        { title: '监测活动', name: 'asset-list', query: { kind: 'monitor' } },
         { title: '事件管理', name: 'asset-list', query: { kind: 'event' } },
         { title: '自定义人群包', name: 'asset-list', query: { kind: 'audience' } },
-        { title: '穿山甲媒体包', name: 'asset-list', query: { kind: 'csj_package' } },
         { title: '定向包', name: 'asset-list', query: { kind: 'orientation' } },
         { title: '落地页', name: 'asset-list', query: { kind: 'landing_page' } },
-        { title: '试玩/直玩素材', name: 'asset-list', query: { kind: 'interactive' } },
         { title: '直达链接', name: 'asset-list', query: { kind: 'deep_link' } },
-        { title: '创意组件', name: 'asset-list', query: { kind: 'component' } },
-        { title: '原生锚点模板', name: 'asset-list', query: { kind: 'anchor' } },
-        { title: '评论管理', name: 'asset-list', query: { kind: 'comment' } },
       ],
     },
   ],
@@ -243,23 +235,17 @@ const assetColumns = [
   {
     head: '巨量广告·标准',
     icon: 'Promotion',
+    // R82：与左侧「巨量资产-标准」保持一致，移除同类菜单项
     items: [
-      { title: '资产组', kind: 'asset_group' },
       { title: '巨量商品库', kind: 'product' },
       { title: '巨量应用', kind: 'app' },
-      { title: '小程序/小游戏', kind: 'mini_game' },
-      { title: '短剧推广链接', kind: 'drama_link' },
-      { title: '监测活动', kind: 'monitor' },
       { title: '事件管理', kind: 'event' },
       { title: '自定义人群包', kind: 'audience' },
-      { title: '穿山甲媒体包', kind: 'csj_package' },
       { title: '定向包', kind: 'orientation' },
       { title: '落地页', kind: 'landing_page' },
-      { title: '试玩/直玩素材', kind: 'interactive' },
       { title: '直达链接', kind: 'deep_link' },
-      { title: '创意组件', kind: 'component' },
-      { title: '原生锚点模板', kind: 'anchor' },
-      { title: '评论管理', kind: 'comment' },
+      { title: '文案库', kind: 'copywrite' },
+      { title: '动态链接', kind: 'deep_link' },
     ],
   },
   {

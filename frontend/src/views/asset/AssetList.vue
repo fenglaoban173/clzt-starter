@@ -255,7 +255,8 @@ import {
 } from './assetGroupForm';
 
 const route = useRoute();
-const kind = ref(ASSET_KINDS.includes(route.query.kind) ? route.query.kind : 'asset_group');
+// R82：资产菜单移除「资产组」等 9 项后，默认落地到菜单里第一项「巨量商品库」
+const kind = ref(ASSET_KINDS.includes(route.query.kind) ? route.query.kind : 'product');
 const page = computed(() => getAssetPage(kind.value));
 const apiCfg = computed(() => KIND_CONFIG[kind.value] || {});
 

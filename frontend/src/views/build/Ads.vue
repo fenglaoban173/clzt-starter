@@ -178,8 +178,8 @@
           </template>
         </el-table-column>
 
-        <!-- 启停开关（线上为行内 el-switch，本地复刻该功能） -->
-        <el-table-column width="72" align="center" fixed="left">
+        <!-- 启停开关（线上为行内 el-switch，本地复刻该功能；R82：表头补充「广告启停」） -->
+        <el-table-column label="广告启停" width="90" align="center" fixed="left">
           <template #default="{ row }">
             <el-switch v-if="!row.__summary" v-model="row.enabled" size="small" @change="onToggle(row)" />
           </template>

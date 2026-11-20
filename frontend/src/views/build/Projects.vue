@@ -148,8 +148,8 @@
           </template>
         </el-table-column>
 
-        <!-- 启停开关 -->
-        <el-table-column width="58" align="center" fixed="left">
+        <!-- 启停开关（R82：表头补充「项目启停」） -->
+        <el-table-column label="项目启停" width="90" align="center" fixed="left">
           <template #default="{ row }">
             <el-switch v-if="!row.__total" v-model="row.enabled" size="small" @change="onToggle(row)" />
           </template>

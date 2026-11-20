@@ -209,7 +209,7 @@
     <el-dialog
       v-model="syncVisible"
       title="同步项目与广告"
-      width="820px"
+      width="1004px"
       class="sync-dialog"
       :close-on-click-modal="false"
     >
@@ -258,16 +258,19 @@
               />
             </div>
 
-            <!-- 右：已选账户 -->
+            <!-- 右：已选账户（R82：按「项目和广告」手动同步弹窗的样式：灰色矩形底 + 右侧移除按钮） -->
             <div class="sync-panel right">
               <div class="panel-head sel-head">
                 <span>已选：{{ syncChecked.length }}/500</span>
                 <el-button link type="primary" @click="syncChecked = []">清空</el-button>
               </div>
               <div class="sel-body">
-                <el-empty v-if="!syncCheckedAccounts.length" description="暂无数据" :image-size="90" />
+                <div v-if="!syncCheckedAccounts.length" class="sel-empty">暂未选择媒体账户</div>
                 <div v-else class="sel-scroll">
-                  <div v-for="a in syncCheckedAccounts" :key="a.id" class="sel-item">{{ a.name }}</div>
+                  <div v-for="a in syncCheckedAccounts" :key="a.id" class="sel-item">
+                    <span class="sel-name" :title="syncAccountLabel(a)">{{ syncAccountLabel(a) }}</span>
+                    <el-icon class="sel-del" title="移除" @click="removeSyncOne(a)"><Close /></el-icon>
+                  </div>
                 </div>
               </div>
             </div>
@@ -321,7 +324,7 @@
 import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { CaretBottom, Delete, Operation, Plus, Search } from '@element-plus/icons-vue';
+import { CaretBottom, Close, Delete, Operation, Plus, Search } from '@element-plus/icons-vue';
 import { mediaApi } from '@/api/media';
 import dayjs from 'dayjs';
 import BatchRenameDialog from './components/BatchRenameDialog.vue';
@@ -573,6 +576,14 @@ function toggleSyncOne(acc, val) {
     ? [...syncChecked.value, acc.id]
     : syncChecked.value.filter((id) => id !== acc.id);
 }
+/** R82：已选区域账户展示（与「项目和广告」手动同步弹窗一致：名称--账户ID） */
+function syncAccountLabel(a) {
+  return `${a.name}--${a.advertiser_id}`;
+}
+/** R82：已选区域单条移除 */
+function removeSyncOne(acc) {
+  syncChecked.value = syncChecked.value.filter((id) => id !== acc.id);
+}
 function onSyncConfirm() {
   const range = syncDateRange.value || [];
   ElMessage.success(`原型：已提交同步任务（账户 ${syncChecked.value.length} 个，更新时间 ${range[0] || '-'} 至 ${range[1] || '-'}）`);
@@ -760,7 +771,7 @@ onMounted(load);
   display: flex; flex-direction: column; height: 470px;
 }
 .sync-panel.left { flex: 1; min-width: 0; }
-.sync-panel.right { width: 250px; }
+.sync-panel.right { width: 420px; flex: none; }
 .panel-head {
   height: 38px; flex: none; display: flex; align-items: center; padding: 0 12px;
   border-bottom: 1px solid #e5e6eb; font-size: 14px; color: #1d2129;
@@ -782,8 +793,17 @@ onMounted(load);
 .list-empty { padding: 48px 0; text-align: center; color: #86909c; font-size: 14px; }
 .sync-pager { flex: none; padding: 8px 12px 10px; justify-content: flex-start; }
 .sel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
-.sel-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 12px; }
-.sel-item { padding: 8px 0; font-size: 14px; color: #1d2129; border-bottom: 1px dashed #f2f3f5; }
+.sel-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 12px; }
+/* R82：已选行按「项目和广告」弹窗样式：灰色矩形底 + 右侧移除按钮 */
+.sel-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  height: 38px; padding: 0 12px; margin-bottom: 8px;
+  background: #f7f8fa; border-radius: 2px; font-size: 14px; color: #1d2129;
+}
+.sel-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-del { color: #86909c; cursor: pointer; }
+.sel-del:hover { color: #f53f3f; }
+.sel-empty { padding: 30px 0; text-align: center; color: #86909c; font-size: 13px; }
 .sync-date { width: 320px !important; }
 .sync-tip { margin-top: 8px; font-size: 13px; color: #86909c; }
 </style>
