@@ -264,6 +264,15 @@
     <!-- 批量修改预算（按线上版式单独成弹窗：修改规则 / 预算 / 广告列表） -->
     <AdBudgetDialog v-model="budgetVisible" :rows="budgetRows" @confirm="onAdBudgetConfirm" />
 
+    <AdBidDialog v-model="bidVisible" :rows="batchRows" @confirm="onAdBidConfirm" />
+    <AdDeepBidDialog v-model="deepBidVisible" :rows="batchRows" @confirm="onAdDeepBidConfirm" />
+    <AdRoiCoefficientDialog v-model="roiCoefficientVisible" :rows="batchRows" @confirm="onAdRoiCoefficientConfirm" />
+    <AdDirectLinkDialog v-model="directLinkVisible" :rows="batchRows" @confirm="onAdDirectLinkConfirm" />
+    <AdOneClickRaiseDialog v-model="oneClickRaiseVisible" :rows="batchRows" @confirm="onAdOneClickRaiseConfirm" />
+    <AdNegativeWordDialog v-model="negativeWordVisible" :rows="batchRows" @confirm="onAdNegativeWordConfirm" />
+    <AdRenameDialog v-model="renameVisible" :rows="batchRows" @confirm="onAdRenameConfirm" />
+    <AdScheduleDialog v-model="scheduleVisible" :rows="batchRows" @confirm="onAdScheduleConfirm" />
+
     <!-- 广告详情 -->
     <AdDetailDrawer v-model="detailVisible" :row="detailRow" @view-project="onViewProject" />
 
@@ -287,12 +296,20 @@
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { CaretBottom, Close, Delete, EditPen, Operation, Search } from '@element-plus/icons-vue';
 import { buildApi, mediaApi } from '@/api/media';
 import CustomMetricDialog from '@/views/media/components/CustomMetricDialog.vue';
 import BatchOpDialog from './components/BatchOpDialog.vue';
 import AdBudgetDialog from './components/AdBudgetDialog.vue';
+import AdBidDialog from './components/AdBidDialog.vue';
+import AdDeepBidDialog from './components/AdDeepBidDialog.vue';
+import AdRoiCoefficientDialog from './components/AdRoiCoefficientDialog.vue';
+import AdDirectLinkDialog from './components/AdDirectLinkDialog.vue';
+import AdOneClickRaiseDialog from './components/AdOneClickRaiseDialog.vue';
+import AdNegativeWordDialog from './components/AdNegativeWordDialog.vue';
+import AdRenameDialog from './components/AdRenameDialog.vue';
+import AdScheduleDialog from './components/AdScheduleDialog.vue';
 import AdDetailDrawer from './components/AdDetailDrawer.vue';
 import SyncProjectDialog from './components/SyncProjectDialog.vue';
 import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
@@ -318,6 +335,14 @@ const batchRows = ref([]);
 const batchVisible = ref(false);
 const budgetVisible = ref(false);
 const budgetRows = ref([]);
+const bidVisible = ref(false);
+const deepBidVisible = ref(false);
+const roiCoefficientVisible = ref(false);
+const directLinkVisible = ref(false);
+const oneClickRaiseVisible = ref(false);
+const negativeWordVisible = ref(false);
+const renameVisible = ref(false);
+const scheduleVisible = ref(false);
 const tableRef = ref(null);
 const page = ref(1);
 const pagination = reactive({ current: 1, pageSize: 20, total: 0 });
@@ -659,20 +684,97 @@ function onMaterialSubmit(picked) {
 
 // ---------- 批量操作 ----------
 // 表单字段全部对齐巨量引擎开放平台接口（见 src/api/oceanengine.js）
-function onBatchOp(op) {
+// 启用 / 暂停 / 删除：与项目列表一致，用二次确认弹窗
+const AD_CONFIRM_OPS = {
+  启用: {
+    title: '启用广告',
+    message: (n) => `确定要启用所选的 ${n} 个广告吗？`,
+    done: (n) => `原型：已启用 ${n} 个广告`,
+  },
+  暂停: {
+    title: '暂停广告',
+    message: (n) => `确定要暂停所选的 ${n} 个广告吗？暂停后广告将不再投放。`,
+    done: (n) => `原型：已暂停 ${n} 个广告`,
+  },
+  删除: {
+    title: '删除广告',
+    message: (n) => `确定要删除所选的 ${n} 个广告吗？删除后不可恢复。`,
+    type: 'warning',
+    done: (n) => `原型：已删除 ${n} 个广告`,
+  },
+};
+
+async function onBatchOp(op) {
   batchOp.value = '';
   if (!selected.value.length) {
     ElMessage.warning('请先选择广告');
     return;
   }
+  const conf = AD_CONFIRM_OPS[op];
+  if (conf) {
+    const n = selected.value.length;
+    try {
+      await ElMessageBox.confirm(conf.message(n), conf.title, {
+        type: conf.type || 'info',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        closeOnClickModal: false,
+      });
+    } catch (e) {
+      return; // 取消
+    }
+    ElMessage.success(conf.done(n));
+    load();
+    return;
+  }
+  batchOpName.value = op;
+  batchRows.value = selected.value.map((r) => ({ ...r }));
   // 「修改预算」按线上版式单独成弹窗（修改规则 / 预算 / 广告列表）
   if (op === '修改预算') {
     budgetRows.value = selected.value.map((r) => ({ ...r }));
     budgetVisible.value = true;
     return;
   }
-  batchOpName.value = op;
-  batchRows.value = selected.value.map((r) => ({ ...r }));
+  // 「修改出价」按线上版式单独成弹窗（修改规则 / 出价 / 广告列表）
+  if (op === '修改出价') {
+    bidVisible.value = true;
+    return;
+  }
+  // 「修改深度出价」按出价弹窗版式单独成弹窗（修改规则 / 深度出价 / 广告列表）
+  if (op === '修改深度出价') {
+    deepBidVisible.value = true;
+    return;
+  }
+  // 「修改ROI系数」按列表形式单独成弹窗（每个广告单独填写 ROI 系数 / 首日ROI系数）
+  if (op === '修改ROI系数') {
+    roiCoefficientVisible.value = true;
+    return;
+  }
+  // 「修改直达链接」按线上版式单独成弹窗（直达链接输入 + 字数统计）
+  if (op === '修改直达链接') {
+    directLinkVisible.value = true;
+    return;
+  }
+  // 「开启一键起量」按线上版式单独成弹窗（预算设置规则 / 起量预算 / 起量生效时间 + 广告列表）
+  if (op === '开启一键起量') {
+    oneClickRaiseVisible.value = true;
+    return;
+  }
+  // 「修改广告否定词」按线上版式单独成弹窗（修改方式 / 短语否定词 / 精确否定词）
+  if (op === '修改广告否定词') {
+    negativeWordVisible.value = true;
+    return;
+  }
+  // 「批量修改广告名称」按线上版式单独成弹窗（自定义 / 关键词替换 / 表格导入）
+  if (op === '批量修改广告名称') {
+    renameVisible.value = true;
+    return;
+  }
+  // 「修改时段」按线上版式单独成「批量修改广告时段」弹窗（修改规则 / 生效时间 / 投放时段栅格）
+  if (op === '修改时段') {
+    scheduleVisible.value = true;
+    return;
+  }
   batchVisible.value = true;
 }
 
@@ -687,6 +789,46 @@ function onAdBudgetConfirm({ rows: list }) {
   load();
 }
 
+// 批量修改广告出价提交
+function onAdBidConfirm() {
+  load();
+}
+
+// 批量修改广告深度出价提交
+function onAdDeepBidConfirm() {
+  load();
+}
+
+// 批量修改广告 ROI 系数提交
+function onAdRoiCoefficientConfirm() {
+  load();
+}
+
+// 修改广告直达链接提交
+function onAdDirectLinkConfirm() {
+  load();
+}
+
+// 设置广告一键起量提交
+function onAdOneClickRaiseConfirm() {
+  load();
+}
+
+// 批量修改广告否定词提交
+function onAdNegativeWordConfirm() {
+  load();
+}
+
+// 批量修改广告名称提交
+function onAdRenameConfirm() {
+  load();
+}
+
+// 批量修改广告时段提交
+function onAdScheduleConfirm() {
+  load();
+}
+
 // 行内编辑（预算 / 出价）：打开对应的批量修改弹窗
 const editableCols = ['budget', 'bid'];
 function onEditCell(col, row) {
@@ -698,7 +840,7 @@ function onEditCell(col, row) {
   }
   batchOpName.value = '修改出价';
   batchRows.value = [{ ...row }];
-  batchVisible.value = true;
+  bidVisible.value = true;
 }
 
 // ---------- 广告详情 ----------

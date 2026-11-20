@@ -201,7 +201,10 @@ export const PROMOTION_BATCH_OPS = {
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      data: rows.map((r) => ({ promotion_id: r.id, bid: num(form.scope === 'each' ? r.__bid : form.bid) })),
+      data: rows.map((r) => ({
+        promotion_id: r.id,
+        bid: num(r.__bid !== undefined && r.__bid !== '' ? r.__bid : form.bid),
+      })),
     }),
   },
   修改深度出价: {
@@ -215,7 +218,10 @@ export const PROMOTION_BATCH_OPS = {
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      data: rows.map((r) => ({ promotion_id: r.id, deepbid: num(form.scope === 'each' ? r.__deepbid : form.deepbid) })),
+      data: rows.map((r) => ({
+        promotion_id: r.id,
+        deepbid: num(r.__deepbid !== undefined && r.__deepbid !== '' ? r.__deepbid : form.deepbid),
+      })),
     }),
   },
   修改ROI系数: {
@@ -232,6 +238,10 @@ export const PROMOTION_BATCH_OPS = {
       promotion_id: '{promotion_id}',
       roi_goal: num(form.roi_goal),
       first_roi_goal: num(form.first_roi_goal),
+      shop_multi_roi_goals: (form.shop_multi_roi_goals || []).map((m) => ({
+        shop_platform: m.shop_platform,
+        roi_goal: num(m.roi_goal),
+      })),
     }),
   },
   修改创意: {
@@ -339,12 +349,20 @@ export const PROMOTION_BATCH_OPS = {
     title: '批量修改时段',
     desc: (n) => `已选${n}条可操作广告计划`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/schedule_time/update/', name: '批量更新营销投放时段', scope: AUTH_PROMOTION },
+    // 线上「修改时段」走独立弹窗 AdScheduleDialog（对齐项目列表「修改项目排期」布局）：修改规则 / 生效时间 / 投放时段栅格
     fields: [
+      { key: 'schedule_scene', label: '修改规则', type: 'radio', apiField: 'data[].schedule_scene', required: true, default: 'REALTIME', options: ENUMS.scheduleScene, rule: 'REALTIME 立即生效 / NEXT_DAY 次日 0 点生效 / CUSTOM_TIME 自定义时间（需配合 effective_time）' },
+      { key: 'effective_time', label: '生效时间', type: 'datetime', apiField: 'data[].effective_time', placeholder: '请选择生效时间', visibleWhen: { schedule_scene: 'CUSTOM_TIME' }, rule: 'schedule_scene = CUSTOM_TIME 时必填' },
       { key: 'schedule_time', label: '投放时段', type: 'schedule', apiField: 'data[].schedule_time', required: true, rule: '格式是 48×7 位字符串（周一至周日，每天 48 个半小时区段，0 不投放 / 1 投放）；不传、全 0、全 1 均代表全时段投放；仅支持 delivery_mode = MANUAL 时修改单元层级投放时段；所选时段必须在营销所属项目的投放时段范围内' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
-      data: rows.map((r) => ({ promotion_id: r.id, schedule_time: form.schedule_time })),
+      data: rows.map((r) => ({
+        promotion_id: r.id,
+        schedule_scene: form.schedule_scene,
+        effective_time: form.effective_time,
+        schedule_time: form.schedule_time,
+      })),
     }),
   },
   修改附加创意组件: {
