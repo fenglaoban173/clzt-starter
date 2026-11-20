@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <!-- 起量方案：每个方案为一个板块；方案增多时在区域内纵向滚动，弹窗高度不变 -->
+      <!-- 起量方案：每个方案 = 一个矩形模块（重复周期 + 起量时间 + 该方案自己的广告列表） -->
       <div v-if="timeMode === 'appoint'" ref="plansBox" class="mcr-plans">
         <div v-for="(plan, pi) in plans" :key="plan.id" class="mcr-plan" :data-plan="plan.id">
           <div class="mcr-plan-head">起量方案 {{ pi + 1 }}</div>
@@ -114,42 +114,64 @@
                 </span>
               </div>
             </div>
+
+            <!-- 本方案的广告列表（表格在方案矩形内部） -->
+            <el-table
+              :key="`${plan.id}-${budgetRule}`"
+              :data="plan.rows"
+              border
+              size="small"
+              class="mcr-table"
+              max-height="300"
+              :span-method="(o) => spanBudgetCell(o, plan)"
+            >
+              <el-table-column label="广告" min-width="240">
+                <template #default="{ row }">
+                  <div class="mcr-cell">
+                    <div class="mcr-cell-title" :title="row.name">{{ row.name }}</div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="当日消耗" width="100" align="right">
+                <template #default="{ row }">{{ num(row.stat_cost) }}</template>
+              </el-table-column>
+              <el-table-column label="转化成本" width="100" align="right">
+                <template #default="{ row }">{{ num(row.convert_cost) }}</template>
+              </el-table-column>
+              <el-table-column label="当前预算" width="120" align="right">
+                <template #default="{ row }">{{ num(row.budget) }}</template>
+              </el-table-column>
+              <el-table-column label="出价" width="90" align="right">
+                <template #default="{ row }">{{ num(row.bid) }}</template>
+              </el-table-column>
+              <el-table-column :label="budgetColLabel" min-width="180">
+                <template #default="{ row }">
+                  <el-input
+                    v-if="budgetRule === 'each'"
+                    v-model="row.raiseBudget"
+                    placeholder="请输入起量预算"
+                    size="small"
+                    class="mcr-cell-input"
+                  />
+                  <div v-else class="mcr-uni-cell">
+                    <el-input
+                      v-model="plan.raiseBudget"
+                      placeholder="请输入起量预算"
+                      size="small"
+                      class="mcr-uni-input"
+                    />
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
           </div>
         </div>
+
+        <!-- 添加起量方案：整体新增一个「方案块 + 该方案广告列表」模块 -->
+        <button type="button" class="mcr-add-plan" @click="addPlan">
+          <span class="mcr-add-plan-plus">＋</span> 添加起量方案
+        </button>
       </div>
-
-      <!-- 广告列表 -->
-      <el-table :data="rows" border size="small" class="mcr-table" height="300">
-        <el-table-column label="广告" min-width="240">
-          <template #default="{ row }">
-            <div class="mcr-cell">
-              <div class="mcr-cell-title" :title="row.name">{{ row.name }}</div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="当日消耗" width="100" align="right">
-          <template #default="{ row }">{{ num(row.stat_cost) }}</template>
-        </el-table-column>
-        <el-table-column label="转化成本" width="100" align="right">
-          <template #default="{ row }">{{ num(row.convert_cost) }}</template>
-        </el-table-column>
-        <el-table-column label="当前预算" width="120" align="right">
-          <template #default="{ row }">{{ num(row.budget) }}</template>
-        </el-table-column>
-        <el-table-column label="出价" width="90" align="right">
-          <template #default="{ row }">{{ num(row.bid) }}</template>
-        </el-table-column>
-        <el-table-column label="分别设置起量预算" min-width="180">
-          <template #default="{ row }">
-            <el-input v-model="row.raiseBudget" placeholder="请输入起量预算" size="small" class="mcr-cell-input" />
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 添加起量方案 -->
-      <button v-if="timeMode === 'appoint'" type="button" class="mcr-add-plan" @click="addPlan">
-        <span class="mcr-add-plan-plus">＋</span> 添加起量方案
-      </button>
     </div>
 
     <template #footer>
@@ -180,7 +202,7 @@ const BUDGET_OPS = [
   { label: '等于原预算', value: 'equals' },
 ];
 
-/** 重复周几（每周重复时可选） */
+/** 重复周几（每周重复时可选，可多选） */
 const WEEKDAYS = [
   { label: '每天', value: 'EVERY_DAY' },
   { label: '每周一', value: 'PER_MONDAY' },
@@ -208,10 +230,15 @@ const budgetOp = ref('lower');
 const budget = ref('');
 // 起量生效时间：now 立即生效 / appoint 指定时间
 const timeMode = ref('appoint');
-// 起量方案列表（每个方案为一个板块）
+// 起量方案列表（每个方案自带一份广告列表）
 const plans = ref([]);
-// 起量方案区域（多方案时区域内纵向滚动）
+// 起量方案区域
 const plansBox = ref(null);
+
+/** 起量预算列标题：跟随「预算设置规则」切换 */
+const budgetColLabel = computed(() =>
+  budgetRule.value === 'all' ? '统一设置起量预算' : '分别设置起量预算'
+);
 
 /** 周期起量任务默认结束日期（今天 + 56 天） */
 const weeklyEndDate = computed(() => {
@@ -252,9 +279,18 @@ function init() {
   plans.value = [newPlan()];
 }
 
-/** 新建一个起量方案 */
+/** 新建一个起量方案（自带一份广告列表，预算互相独立） */
 function newPlan() {
-  return { id: Date.now() + Math.random(), repeat: 'once', weekdays: ['EVERY_DAY'], time: '' };
+  return {
+    id: Date.now() + Math.random(),
+    repeat: 'once',
+    weekdays: ['EVERY_DAY'],
+    time: '',
+    // 统一设置：整张表一个预算
+    raiseBudget: '',
+    // 分别设置：每条广告一个预算
+    rows: rows.value.map((r) => ({ ...r, raiseBudget: '' })),
+  };
 }
 
 /** 周几多选：选「每天」清空其它星期；选具体星期则取消「每天」 */
@@ -272,7 +308,16 @@ function toggleWeekday(plan, value) {
   plan.weekdays = next;
 }
 
-/** 添加起量方案：在最后一个方案下方新增一个板块，并滚动到新板块 */
+/** 统一设置时把最后一列合并成一格（整张表只填一个预算） */
+function spanBudgetCell({ columnIndex, rowIndex }, plan) {
+  if (budgetRule.value !== 'all') return undefined;
+  if (columnIndex !== 5) return undefined;
+  if (!plan.rows.length) return undefined;
+  if (rowIndex === 0) return [plan.rows.length, 1];
+  return [0, 0];
+}
+
+/** 添加起量方案：在最后一个方案下方整体新增一个「方案块 + 广告列表」模块 */
 async function addPlan() {
   const plan = newPlan();
   plans.value = [...plans.value, plan];
@@ -282,16 +327,26 @@ async function addPlan() {
   if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
 }
 
-/** 起量预算应用到所有广告 */
+/** 起量预算批量应用到所有方案的广告 */
 function applyBudgetAll() {
   const val = budget.value;
   if (val === '') {
     ElMessage.warning('请输入起量预算');
     return;
   }
-  rows.value.forEach((r) => {
-    r.raiseBudget = val;
+  plans.value.forEach((p) => {
+    p.raiseBudget = val;
+    p.rows.forEach((r) => {
+      r.raiseBudget = val;
+    });
   });
+}
+
+/** 取某个方案的起量预算（统一设置取整表值，分别设置取首个已填值） */
+function planBudget(plan) {
+  if (budgetRule.value === 'all') return plan.raiseBudget || '';
+  const hit = (plan.rows || []).find((r) => r.raiseBudget !== '');
+  return hit ? hit.raiseBudget : '';
 }
 
 function close() {
@@ -299,8 +354,8 @@ function close() {
 }
 
 function confirm() {
-  const hasBudget = rows.value.some((r) => r.raiseBudget !== '');
-  if (!hasBudget) {
+  const noBudget = plans.value.some((p) => !planBudget(p));
+  if (noBudget) {
     ElMessage.warning('请输入起量预算');
     return;
   }
@@ -317,10 +372,11 @@ function confirm() {
     budget_op: budgetOp.value,
     is_effective_now: timeMode.value === 'now' ? '立即生效' : '指定时间',
     plans: plans.value.map((p) => ({
-      raise_budget: budget.value || rows.value[0]?.raiseBudget || '',
+      raise_budget: planBudget(p),
       is_effective_now: timeMode.value === 'now' ? '立即生效' : '指定时间',
       raise_time: p.time,
       repeated_day: p.repeat === 'weekly' ? (p.weekdays || []) : undefined,
+      rows: (p.rows || []).map((r) => ({ ad_id: r.pid, raise_budget: r.raiseBudget })),
     })),
   };
   const cfg = getBatchOpConfig('promotion', OP);
@@ -386,18 +442,9 @@ function confirm() {
   line-height: 16px;
 }
 
-/* 起量方案区域：每个方案为一个板块；区域高度固定，方案增多时在区域内纵向滚动，弹窗高度不变 */
-.mcr-plans {
-  height: 256px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  padding-right: 2px;
-}
-
-/* 起量方案卡片 */
+/* 起量方案矩形模块：重复周期 + 起量时间 + 该方案的广告列表 */
 .mcr-plan { margin-bottom: 16px; border: 1px solid #e8eaec; }
-.mcr-plan:last-child { margin-bottom: 0; }
+.mcr-plan:last-child { margin-bottom: 16px; }
 .mcr-plan-head {
   padding: 12px 16px;
   border-bottom: 1px solid #e8eaec;
@@ -406,8 +453,8 @@ function confirm() {
   font-weight: 700;
   color: #333;
 }
-.mcr-plan-body { padding: 18px 16px 0; }
-.mcr-plan-body .mcr-item:last-child { margin-bottom: 18px; }
+.mcr-plan-body { padding: 18px 16px 16px; }
+.mcr-plan-body .mcr-item:last-of-type { margin-bottom: 18px; }
 
 /* 说明文案（12px #999） */
 .mcr-tip { margin: 0 0 10px; font-size: 12px; line-height: 18px; color: #999; }
@@ -449,7 +496,7 @@ function confirm() {
 .mcr-add-plan {
   width: 100%;
   height: 40px;
-  margin-top: 18px;
+  margin-top: 4px;
   border: 1px dashed #dcdfe6;
   border-radius: 2px;
   background: #fff;
@@ -472,6 +519,10 @@ function confirm() {
 
 /* 单元格内的输入框（占满单元格，32px 高） */
 .mcr-cell-input { width: 100%; --el-input-height: 32px; }
+
+/* 统一设置：最后一列合并成一格，输入框吸顶可见 */
+.mcr-uni-cell { position: sticky; top: 0; z-index: 1; background: #fff; padding: 2px 0; }
+.mcr-uni-input { width: 100%; --el-input-height: 32px; }
 
 /* 分段按钮（选中为蓝字 + 浅蓝底 + 蓝框，与线上一致） */
 .mcr-radio :deep(.el-radio-button__inner) {
@@ -497,13 +548,12 @@ function confirm() {
   background: #fff;
   border-color: #ebeef5;
 }
-/* 「预算设置规则」未选中项无边框（与线上一致） */
+/* 气泡内文字 */
 .mcr-radio-plain :deep(.el-radio-button:not(.is-active) .el-radio-button__inner) {
   border-color: transparent;
   background: transparent;
 }
 
-/* 气泡内文字 */
 .mcr-radio-text { display: inline-block; }
 </style>
 
@@ -512,6 +562,7 @@ function confirm() {
 .mcr-dialog {
   display: flex;
   flex-direction: column;
+  height: min(800px, 95vh);
   max-height: 95vh;
   padding: 0;
 }

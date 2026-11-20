@@ -270,6 +270,7 @@ export const PROMOTION_BATCH_OPS = {
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
       promotion_id: '{promotion_id}',
+      // 每个起量方案一条：方案级起量预算 + 该方案自己的广告列表逐条预算
       raise_info: (form.plans && form.plans.length ? form.plans : [form]).map((p) => ({
         raise_budget: num(p.raise_budget),
         is_effective_now: p.is_effective_now === '立即生效',
@@ -282,6 +283,11 @@ export const PROMOTION_BATCH_OPS = {
                 repeated_day:
                   p.repeated_day && p.repeated_day.length ? p.repeated_day : undefined,
               },
+        // 「分别设置」时每条广告各自的起量预算（原型字段，线上按广告维度下发）
+        raise_budgets: (p.rows || []).map((r) => ({
+          ad_id: r.ad_id,
+          raise_budget: num(r.raise_budget),
+        })),
       })),
     }),
   },
