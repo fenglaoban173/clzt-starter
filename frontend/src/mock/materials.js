@@ -67,6 +67,46 @@ export const MATERIAL_LIBRARY = BASE_NAMES.map((name, i) => {
 export const MATERIAL_MEDIA = [];
 
 // ---------------------------------------------------------------------------
+// R77：线上「创意素材」选择器除 素材库 / 媒体素材 外，还有
+// 鹰剪 / 收藏夹 / 组织素材 / 组织素材-实时 四个页签，这里补齐本地 mock
+// ---------------------------------------------------------------------------
+
+// 鹰剪：智能剪辑生成的素材
+export const MATERIAL_YINGJIAN = BASE_NAMES.slice(0, 12).map((name, i) => ({
+  ...MATERIAL_LIBRARY[i],
+  id: 71001 + i,
+  name: `鹰剪-${name}`,
+  remark: '智能剪辑生成',
+  ad_count: 0,
+  today_ad_count: 0,
+  status: '未使用',
+}));
+
+// 收藏夹：用户收藏的素材
+export const MATERIAL_FAVORITE = BASE_NAMES.slice(4, 14).map((name, i) => ({
+  ...MATERIAL_LIBRARY[i + 4],
+  id: 72001 + i,
+  remark: '已收藏',
+}));
+
+// 组织素材：组织账户共享的素材
+export const MATERIAL_ORG = BASE_NAMES.slice(0, 16).map((name, i) => ({
+  ...MATERIAL_LIBRARY[i],
+  id: 73001 + i,
+  name: `组织-${name}`,
+  remark: '组织共享',
+}));
+
+// 组织素材-实时：组织素材实时同步
+export const MATERIAL_ORG_LIVE = BASE_NAMES.slice(8, 20).map((name, i) => ({
+  ...MATERIAL_LIBRARY[i + 8],
+  id: 74001 + i,
+  name: `组织实时-${name}`,
+  remark: '实时同步',
+  status: '使用中',
+}));
+
+// ---------------------------------------------------------------------------
 // 查询条件与选项：全部对齐线上「创意素材」弹窗（2026-11 线上实抓）
 // ---------------------------------------------------------------------------
 

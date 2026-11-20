@@ -41,6 +41,14 @@
               class="ald-input"
               @blur="syncUrls"
             />
+            <!-- R77：新增的落地页支持删除（至少保留一条） -->
+            <el-button
+              v-if="urls.length > 1"
+              link
+              type="danger"
+              class="ald-del"
+              @click="removeUrl(i)"
+            >删除</el-button>
           </div>
         </div>
         <div class="ald-row">
@@ -120,6 +128,15 @@ function init() {
 /** 新增一条落地页链接 */
 function addUrl() {
   urls.value = [...urls.value, { url: '' }];
+}
+
+/** 删除一条落地页链接（至少保留一条） */
+function removeUrl(i) {
+  if (urls.value.length <= 1) {
+    ElMessage.warning('至少保留一条落地页链接');
+    return;
+  }
+  urls.value = urls.value.filter((_, idx) => idx !== i);
 }
 
 /** 把输入框里的链接同步到 form */
@@ -221,6 +238,10 @@ function confirm() {
 
 /* 落地页链接输入框（500px / 32px） */
 .ald-input { width: 500px; --el-input-height: 32px; }
+
+/* 「删除」按钮（红色文字链接，紧跟输入框） */
+.ald-del { margin-left: 12px; font-size: 12px; }
+.ald-del:hover { color: #ff4d4f; }
 
 /* 「添加」按钮（160×32） */
 .ald-add { width: 160px; height: 32px; padding: 0; font-size: 12px; }

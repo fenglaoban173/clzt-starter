@@ -384,6 +384,7 @@ import dayjs from 'dayjs';
 import { mediaApi } from '@/api/media';
 import {
   MATERIAL_LIBRARY, MATERIAL_MEDIA,
+  MATERIAL_YINGJIAN, MATERIAL_FAVORITE, MATERIAL_ORG, MATERIAL_ORG_LIVE,
   MATERIAL_FILTER_OPTIONS as OPTS,
   MATERIAL_FILTER_RULE_DEFAULT,
   MATERIAL_FILTER_RULE_MEDIA_DEFAULT,
@@ -398,7 +399,11 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 // 页签：素材库 / 媒体素材（线上另有「魔剪 / 收藏夹」，按需求移除）
 const TABS = [
   { key: 'library', label: '素材库', data: MATERIAL_LIBRARY },
+  { key: 'yingjian', label: '鹰剪', data: MATERIAL_YINGJIAN },
+  { key: 'favorite', label: '收藏夹', data: MATERIAL_FAVORITE },
   { key: 'media', label: '媒体素材', data: MATERIAL_MEDIA },
+  { key: 'org', label: '组织素材', data: MATERIAL_ORG },
+  { key: 'orgLive', label: '组织素材-实时', data: MATERIAL_ORG_LIVE },
 ];
 
 // 级联面板参数：素材目录（单选 · 悬停展开）、素材标签（多选 · 勾选）

@@ -31,8 +31,6 @@ const num = (v) => (v === '' || v === null || v === undefined ? undefined : Numb
 export const ONLINE_ONLY_TOAST = {
   修改深度出价: '所选广告不支持修改深度转化出价！',
   修改ROI系数: '所选广告无ROI系数，操作取消！',
-  修改多直达链接: '仅支持【电商推广 - 通投广告】',
-  修改来源: '不支持修改应用推广的广告',
   '修改字节小程序/小游戏链接': '所选广告全部不支持修改字节小程序/小游戏链接，操作取消',
   修改短剧专辑链接: '所选广告全部不支持修改短剧专辑链接，操作取消',
 };
@@ -318,40 +316,32 @@ export const PROMOTION_BATCH_OPS = {
     ],
     build: (rows, form) => ({ advertiser_id: '{advertiser_id}', promotion_id: '{promotion_id}', open_url: form.open_url }),
   },
-  修改多直达链接: {
-    title: '修改多直达链接',
-    desc: (n) => `已选中${n}个广告`,
-    api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（open_urls）', scope: AUTH_PROMOTION },
-    notes: ['仅支持【电商推广 - 通投广告】。'],
-    fields: [
-      { key: 'open_urls', label: '直达链接组', type: 'links', apiField: 'open_urls[]', required: true, placeholder: '请输入直达链接', rule: '电商优选直达链接组，数量限制 1～10 个' },
-    ],
-    build: (rows, form) => ({ advertiser_id: '{advertiser_id}', promotion_id: '{promotion_id}', open_urls: form.open_urls || [] }),
-  },
-  修改来源: {
-    title: '修改来源',
-    desc: (n) => `已选中${n}个广告`,
-    api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（source）', scope: AUTH_PROMOTION },
-    notes: ['不支持修改应用推广的广告。'],
-    fields: [
-      { key: 'source', label: '来源', type: 'input', apiField: 'source', required: true, placeholder: '请输入单元来源', rule: '单元来源，字数限制 2～10 字（英文字符 4～20）；landing_type = LINK / MICRO_GAME / SHOP / QUICK_APP 时必填' },
-    ],
-    build: (rows, form) => ({ advertiser_id: '{advertiser_id}', promotion_id: '{promotion_id}', source: form.source }),
-  },
   修改广告标题和素材: {
     title: '修改广告标题和素材',
-    desc: (n) => `已选${n}个广告`,
+    desc: (n) => `已选中${n}个广告`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（title_material_list / promotion_materials）', scope: AUTH_PROMOTION },
+    // R77：线上「修改广告标题和素材」走独立弹窗 AdTitleMaterialDialog（修改创意标题 / 创意标题库 / 修改创意素材 / 选择素材）
     fields: [
-      { key: 'titleMode', label: '修改创意标题', type: 'radio', apiField: 'title_material_list[].title', required: true, default: '不启用', options: ['不启用', '启用'] },
-      { key: 'titles', label: '创意标题', type: 'links', apiField: 'title_material_list[].title', required: true, placeholder: '已选：0/10，点击添加文案', visibleWhen: { titleMode: '启用' }, rule: '标题素材上限 10 个，非直播链路必填；创意标题长度 5～30 字（两个英文字符占 1 字）' },
-      { key: 'materialMode', label: '修改创意素材', type: 'radio', apiField: 'promotion_materials', required: true, default: '不启用', options: ['不启用', '启用'] },
-      { key: 'materials', label: '创意素材', type: 'material', apiField: 'promotion_materials', visibleWhen: { materialMode: '启用' }, rule: '视频素材 video_material_list 与图片素材 image_material_list 最少传入一种，各上限 10 个' },
+      { key: 'titleMode', label: '修改创意标题', type: 'radio', apiField: 'title_material_list[].title', required: true, default: '启用', options: ['不启用', '启用'], rule: '不启用时不修改标题；启用后所有广告标题被覆盖为选中文案' },
+      { key: 'titles', label: '创意标题', type: 'links', apiField: 'title_material_list[].title', required: true, placeholder: '已选：0/10，点击添加文案', visibleWhen: { titleMode: '启用' }, rule: '标题素材上限 10 个，非直播链路必填；创意标题长度 5～55 字（两个英文字符占 1 字）' },
+      { key: 'materialMode', label: '修改创意素材', type: 'radio', apiField: 'promotion_materials', required: true, default: '启用', options: ['不启用', '启用'] },
+      { key: 'uploadScope', label: '视频上传至', type: 'select', apiField: 'promotion_materials.video_material_list', default: '升级版工作台组织', options: ['升级版工作台组织', '广告主账户'], visibleWhen: { materialMode: '启用' }, rule: '组织上传需在升级版工作台「素材-视频管理」处操作共享' },
+      { key: 'orgAccount', label: '组织账户', type: 'select', apiField: 'promotion_materials.video_material_list', required: true, visibleWhen: { materialMode: '启用' }, rule: '选择素材所属的组织账户' },
+      { key: 'videos', label: '视频素材', type: 'material', apiField: 'promotion_materials.video_material_list', visibleWhen: { materialMode: '启用' }, rule: '视频素材最多 50 个；包含手动投放时最多 10 个视频' },
+      { key: 'images', label: '图片素材', type: 'material', apiField: 'promotion_materials.image_material_list', visibleWhen: { materialMode: '启用' }, rule: '图片素材最多 50 个；包含手动投放时最多 10 张图片' },
     ],
     build: (rows, form) => ({
       advertiser_id: '{advertiser_id}',
       promotion_id: '{promotion_id}',
-      title_material_list: form.titleMode === '启用' ? (form.titles || []).map((t) => ({ title: t })) : undefined,
+      title_material_list: form.titleMode === '启用'
+        ? (form.titles || []).map((t) => ({ title: typeof t === 'string' ? t : t.text }))
+        : undefined,
+      promotion_materials: form.materialMode === '启用'
+        ? {
+          video_material_list: (form.videos || []).map((v) => ({ video_id: v.id, video_name: v.name })),
+          image_material_list: (form.images || []).map((v) => ({ image_id: v.id, image_name: v.name })),
+        }
+        : undefined,
     }),
   },
   修改时段: {
