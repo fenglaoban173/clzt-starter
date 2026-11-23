@@ -800,7 +800,7 @@ function onSelectionChange(rows) { selectedRows.value = rows; }
 /** 字段条件启用态：enabledWhen = { field, value }，不满足时置灰（线上实测联动） */
 function isFieldLocked(f) {
   if (!f.enabledWhen) return false;
-  return form.value[f.enabledWhen.field] !== f.enabledWhen.value;
+  return form[f.enabledWhen.field] !== f.enabledWhen.value;
 }
 function onBatchOp(v) {
   if (!v) return;
