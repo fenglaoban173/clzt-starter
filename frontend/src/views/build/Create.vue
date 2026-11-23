@@ -238,11 +238,6 @@
         </template>
       </div>
 
-      <!-- 线上：创量定向升级提示条 -->
-      <div v-if="isUpgrade" class="cfg-notice">
-        <el-icon class="cfg-notice__icon"><WarningFilled /></el-icon>
-        <span>创量定向已升级至提交任务时获取最新定向信息，点击 <a class="cfg-notice__link">查看</a> 此处最新定向内容（仅检查查展示/提交时为准）</span>
-      </div>
     </div>
 
     <!-- 底部操作条 -->
@@ -2241,7 +2236,7 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowDown, ArrowUp, Close, Tickets, WarningFilled } from '@element-plus/icons-vue';
+import { ArrowDown, ArrowUp, Close, Tickets } from '@element-plus/icons-vue';
 import { mediaApi, assetApi, buildApi } from '@/api/media';
 import {
   LANDING_TYPES, APP_PROMOTION_TYPES, MARKETING_GOALS, AD_TYPES, DELIVERY_MODES,
@@ -3546,8 +3541,6 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__title { white-space: nowrap; }
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
-.cfg-notice { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 12px; background: #fff7e8; border: 1px solid #ffe4ba; border-radius: 4px; font-size: 12px; color: #d25f00; }
-.cfg-notice__link { color: #197afb; cursor: pointer; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
 .related-tips { font-size: 12px; color: #e6a23c; line-height: 1.7; margin-bottom: 10px; }
 .related-tips p { margin: 0; }
