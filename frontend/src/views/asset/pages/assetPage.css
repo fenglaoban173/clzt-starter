@@ -103,6 +103,9 @@ body.asset-scope .el-button:disabled {
   background: #fff; border: 1px solid #e8eaec; border-radius: 3px;
 }
 .filter-label { font-size: 12px; color: #666; margin-right: 4px; white-space: nowrap; }
+/* 线上筛选格：标签与取值同处一个边框内（内层下拉不再画自己的框） */
+.filter-cell .el-select__wrapper { box-shadow: none !important; padding-left: 0; background: transparent; }
+.filter-cell .el-select__selection { padding-left: 0; }
 .filter-select { width: 169px; }
 .filter-select .el-input__inner { height: 28px; font-size: 12px; color: #666; }
 .filter-clear { font-size: 12px; color: #197afb; cursor: pointer; margin: 6px 0 0 4px; }

@@ -126,7 +126,7 @@
         :key="c.label"
         :label="c.label"
         :prop="c.prop"
-        :width="c.width"
+        :min-width="c.width"
         :align="c.align"
         :header-class-name="c.action ? 'operate-column' : undefined"
         :class-name="c.action ? 'operate-column' : undefined"
