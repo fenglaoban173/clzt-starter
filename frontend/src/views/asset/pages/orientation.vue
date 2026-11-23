@@ -183,10 +183,8 @@
           :disabled="!selectedRows.length"
           @change="onBatchOp"
         >
-          <el-option label="共享" value="share" />
-          <el-option label="添加巨量项目" value="addProject" />
-          <el-option label="复制" value="copy" />
-          <el-option label="删除" value="delete" />
+          <el-option label="修改产品" value="editProduct" />
+          <el-option label="修改创量项目" value="editProject" />
         </el-select>
 
         <span v-if="selectedRows.length" class="ori-count">

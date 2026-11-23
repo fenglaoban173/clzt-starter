@@ -105,6 +105,20 @@
         :loading="syncingKey === b.key"
         @click="onButton(b)"
       >{{ b.text }}</el-button>
+
+      <!-- 批量操作（线上：应用分包为 删除 / 修改媒体账户） -->
+      <el-select
+        v-if="activeConfig.batch && activeConfig.batch.length"
+        v-model="batchOp"
+        class="batch-select"
+        size="small"
+        clearable
+        placeholder="批量操作"
+        :disabled="!selectedRows.length"
+        @change="onBatchOp"
+      >
+        <el-option v-for="o in activeConfig.batch" :key="o.value" :label="o.label" :value="o.value" />
+      </el-select>
     </div>
 
     <!-- ④ 列表（线上 el-table--border，表头/行高 56px） -->
@@ -113,6 +127,7 @@
       row-key="id"
       border
       class="asset-table app-table"
+      @selection-change="onSelectionChange"
     >
       <el-table-column
         v-if="activeConfig.selection"
@@ -488,6 +503,11 @@ const TAB_CONFIG = {
       { key: 'fetchSp', text: '获取应用分包', width: 120 },
       { key: 'newSp', text: '新建应用分包', width: 120, type: 'default', plain: true },
     ],
+    // 批量操作（线上实测选项）
+    batch: [
+      { label: '删除', value: 'delete' },
+      { label: '修改媒体账户', value: 'editAccount' },
+    ],
     selection: true,
     selectionWidth: 48,
     columns: [
@@ -771,6 +791,16 @@ async function copyLink(url) {
   } catch (e) {
     ElMessage.warning('复制失败，请手动复制');
   }
+}
+
+/* 批量操作与勾选状态（线上：应用分包为 删除 / 修改媒体账户） */
+const selectedRows = ref([]);
+const batchOp = ref('');
+function onSelectionChange(rows) { selectedRows.value = rows; }
+function onBatchOp(v) {
+  if (!v) return;
+  ElMessage.info(`原型：批量${v}`);
+  batchOp.value = '';
 }
 
 /** 功能按钮 */

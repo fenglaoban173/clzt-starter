@@ -143,6 +143,20 @@
       >
         <el-icon class="lp-create-btn__icon"><Plus /></el-icon>{{ b.text }}
       </el-button>
+
+      <!-- 批量操作（线上：第三方落地页为 批量删除 / 生成直达链接 / 修改关联账户 / 修改创量项目） -->
+      <el-select
+        v-if="batchOptions.length"
+        v-model="batchOp"
+        class="batch-select"
+        size="small"
+        clearable
+        placeholder="批量操作"
+        :disabled="!selectedRows.length"
+        @change="onBatchOp"
+      >
+        <el-option v-for="o in batchOptions" :key="o.value" :label="o.label" :value="o.value" />
+      </el-select>
     </div>
 
     <!-- ④ 列表（线上 el-table--border，8 列、无分页） -->
@@ -152,6 +166,7 @@
       class="asset-table"
       empty-text="暂无数据"
       :style="{ '--row-pad': activeTab === '橙子落地页' ? '30px' : '8px' }"
+      @selection-change="onSelectionChange"
     >
       <el-table-column
         v-if="tabCfg.selection"
@@ -564,6 +579,16 @@ const TAB_BUTTONS = {
   ],
 };
 
+/** 各页签的批量操作选项（线上实测） */
+const TAB_BATCH = {
+  第三方落地页: [
+    { label: '批量删除', value: 'batchDelete' },
+    { label: '生成直达链接', value: 'genDeepLink' },
+    { label: '修改关联账户', value: 'editAccount' },
+    { label: '修改创量项目', value: 'editProject' },
+  ],
+};
+
 /** 各页签的列定义与新建按钮文案（切页签后列/数据会变化） */
 const TAB_CONFIG = {
   橙子落地页模板: {
@@ -726,6 +751,16 @@ function nameOf(full) {
 /* ------------------------------ 计算 ------------------------------ */
 
 const currentColumns = computed(() => TAB_CONFIG[activeTab.value].columns);
+/** 当前页签的批量操作选项 */
+const batchOptions = computed(() => TAB_BATCH[activeTab.value] || []);
+const selectedRows = ref([]);
+const batchOp = ref('');
+function onSelectionChange(rows) { selectedRows.value = rows; }
+function onBatchOp(v) {
+  if (!v) return;
+  ElMessage.info(`原型：批量${v}`);
+  batchOp.value = '';
+}
 const createText = computed(() => TAB_CONFIG[activeTab.value].createText);
 /** 当前页签配置（列设置 / 复选框列 / 行内操作都按页签走） */
 const tabCfg = computed(() => TAB_CONFIG[activeTab.value]);
