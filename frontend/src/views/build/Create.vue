@@ -262,8 +262,8 @@
             <template #default="{ row }">
               <el-checkbox
                 v-if="row.first"
-                :model-value="row.checked"
-                @change="(v) => toggleRowAd(row, v)"
+                :model-value="previewProjectChecked"
+                @change="setProjectChecked"
               />
             </template>
           </el-table-column>
@@ -300,8 +300,8 @@
               </template>
               <template #default="{ row }">
                 <el-checkbox
-                  :model-value="row.checked"
-                  @change="(v) => toggleRowAd(row, v)"
+                  :model-value="previewChecked.has(row.key)"
+                  @change="(v) => setRowChecked(row.key, v)"
                 />
               </template>
             </el-table-column>
@@ -2164,7 +2164,7 @@ const previewRows = computed(() => {
       assets: base.assets || acc.project?.assets || '',
       status: base.status || '待提交',
     };
-    out.push({ g: { project: acc.project }, ad, span: n, first: i === 0, checked: false });
+    out.push({ g: { project: acc.project }, ad, span: n, first: i === 0, key: `${previewAccountIdx.value}-${i}` });
   }
   return out;
 });
@@ -2173,19 +2173,36 @@ function previewSpanMethod({ row, columnIndex }) {
   if (columnIndex <= 4) return row.first ? [row.span, 1] : [0, 1];
   return [1, 1];
 }
-/* 广告组勾选：全选 / 半选 / 单条勾选 */
-const previewAllChecked = computed(() => previewRows.value.length > 0 && previewRows.value.every((r) => r.checked));
-const previewIndeterminate = computed(() => previewRows.value.some((r) => r.checked) && !previewAllChecked.value);
-function toggleAllAd(val) {
-  previewRows.value.forEach((r) => { r.checked = val; });
+/* 勾选状态放在响应式 Set 里（computed 产出的普通对象改字段不触发更新，会导致勾不上） */
+const previewChecked = reactive(new Set());
+const previewAllChecked = computed(() => previewRows.value.length > 0 && previewRows.value.every((r) => previewChecked.has(r.key)));
+const previewIndeterminate = computed(() => previewRows.value.some((r) => previewChecked.has(r.key)) && !previewAllChecked.value);
+/* 项目级勾选：勾中即选中该项目下全部广告 */
+const previewProjectChecked = computed(() => previewRows.value.length > 0 && previewRows.value.every((r) => previewChecked.has(r.key)));
+function setRowChecked(key, val) {
+  if (val) previewChecked.add(key); else previewChecked.delete(key);
 }
-function toggleRowAd(row, val) {
-  row.checked = val;
+function setProjectChecked(val) {
+  previewRows.value.forEach((r) => {
+    if (val) previewChecked.add(r.key); else previewChecked.delete(r.key);
+  });
+}
+function toggleAllAd(val) {
+  previewRows.value.forEach((r) => {
+    if (val) previewChecked.add(r.key); else previewChecked.delete(r.key);
+  });
 }
 function onPreviewBatch(cmd) {
-  if (cmd === 'delAd') ElMessage.success('已删除选中广告（原型模拟）');
-  else if (cmd === 'renameAd') ElMessage.success('修改广告名称（原型模拟）');
-  else if (cmd === 'renameProject') ElMessage.success('修改项目名称（原型模拟）');
+  const picked = previewRows.value.filter((r) => previewChecked.has(r.key)).length;
+  if (!picked) { ElMessage.warning('请先勾选需要操作的广告'); return; }
+  if (cmd === 'delAd') {
+    ElMessage.success(`已删除 ${picked} 条广告（原型模拟）`);
+    previewChecked.clear();
+  } else if (cmd === 'renameAd') {
+    ElMessage.success(`修改 ${picked} 条广告名称（原型模拟）`);
+  } else if (cmd === 'renameProject') {
+    ElMessage.success(`修改 ${picked} 条广告所属项目名称（原型模拟）`);
+  }
 }
 const submitting = ref(false);
 const preview = ref(null);
