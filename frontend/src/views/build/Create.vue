@@ -148,7 +148,14 @@
           <div class="col-head"><span class="col-head__title">{{ cardTitle.ad }}</span></div>
           <div class="col-body">
             <div class="col-line">广告名称: {{ form.ad.name_template || '未设置' }}</div>
+            <div class="col-line">广告预算: {{ form.ad.budget ?? '无' }}</div>
+            <div class="col-line">广告出价: {{ form.ad.bid ?? '无' }}</div>
             <div class="col-line">产品名称: {{ form.ad.product_name || form.project.app_name || '无' }}</div>
+            <div class="col-line">广告评论: {{ form.ad.comment || '无' }}</div>
+            <div class="col-line">客户下载次数: {{ form.ad.download_count ?? '无' }}</div>
+            <div class="col-line">所属渠道: {{ form.ad.channel || '无' }}</div>
+            <div class="col-line">品牌名称: {{ form.ad.brand_name || '无' }}</div>
+            <div class="col-line">二级品牌名称: {{ form.ad.brand_name_2 || '无' }}</div>
           </div>
           <div class="col-foot">
             <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -180,7 +187,7 @@
         <div class="col">
           <div class="col-head">
             <span class="col-head__title">{{ cardTitle.title }}</span>
-            <span class="col-count">已选: {{ titleCount }}/{{ isUni ? 100 : (isUpgrade ? 40 : 200) }}</span>
+            <span class="col-count">已选: {{ titleCount }}/{{ isUni ? 100 : 200 }}</span>
             <el-button link type="primary" class="col-head__act" @click="shuffleTitles">乱序</el-button>
             <el-button link type="primary" class="col-head__act" @click="clearTitles">清空</el-button>
           </div>
