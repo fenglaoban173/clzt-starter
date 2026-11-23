@@ -134,7 +134,7 @@
           class="tool-btn pd-batch-btn"
           :disabled="!selectedRows.length"
         >
-          批量操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          批量操作<span v-if="selectedRows.length">({{ selectedRows.length }})</span><el-icon class="el-icon--right"><ArrowDown /></el-icon>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
