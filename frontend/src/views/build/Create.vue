@@ -1479,27 +1479,44 @@
       <!-- 线上「广告基本信息」面板（实测 1016px）：直达链接类型 / 来源 / 匹配方式 -->
       <el-form label-position="left" label-width="120px" class="ad-basic-form">
         <el-form-item label="推广身份">
-          <el-select v-model="form.ad.promotion_identity" style="width: 100%">
-            <el-option label="应用" value="APP" />
-            <el-option label="游戏" value="GAME" />
-          </el-select>
+          <el-radio-group v-model="form.ad.promotion_identity" size="small">
+            <el-radio-button value="AWEME">抖音号</el-radio-button>
+            <el-radio-button value="ACCOUNT">账户信息</el-radio-button>
+          </el-radio-group>
         </el-form-item>
         <el-form-item label="抖音号">
+          <template #label>
+            <span class="q-label">抖音号</span>
+            <el-tooltip content="抖音号作为推广身份，可获得更多流量；需在巨量广告-账户-账号管理中完成授权。" placement="top">
+              <el-icon class="q-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
           <el-select v-model="form.ad.aweme_id" multiple filterable placeholder="请选择抖音号" style="width: 100%">
             <el-option v-for="a in awemeList" :key="a.aweme_id" :label="a.nickname" :value="a.aweme_id" />
           </el-select>
         </el-form-item>
         <el-form-item label="账户信息">
+          <template #label>
+            <span class="q-label">账户信息</span>
+            <el-tooltip content="账户信息作为推广身份，无法获得更多流量" placement="top">
+              <el-icon class="q-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
           <el-select v-model="form.ad.account_ids" multiple filterable placeholder="请选择账户" style="width: 100%">
             <el-option v-for="a in selectedAccounts" :key="a.id" :label="a.name" :value="a.id" />
           </el-select>
         </el-form-item>
+        <div class="ad-promote-tips">
+          <div>选择账户信息作为推广身份，无法获得更多流量</div>
+          <div>推荐使用抖音号作为推广身份</div>
+        </div>
         <el-form-item label="直达链接类型">
           <el-radio-group v-model="form.ad.link_type">
             <el-radio value="DEEPLINK">Deeplink直达链接</el-radio>
             <el-radio value="DEEPLINK_ULINK">Deeplink+Ulink直达链接</el-radio>
             <el-radio value="ULINK">Ulink直达链接</el-radio>
           </el-radio-group>
+          <div class="ad-warn-hint">该直达链接类型仅Deeplink生效</div>
         </el-form-item>
         <el-form-item label="直达链接来源">
           <el-radio-group v-model="form.ad.link_source">
@@ -1516,6 +1533,24 @@
             <el-radio value="ACCOUNT">每个账户选择一个直达链接</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="选择直达链接">
+          <el-button type="primary" size="small" @click="ElMessage.info('原型：选择直达链接')">选择直达链接</el-button>
+        </el-form-item>
+        <el-table :data="adLinkRows" size="small" border class="ad-link-table">
+          <el-table-column label="账户" min-width="240">
+            <template #default="{ row }">
+              <div class="ad-link-cell">
+                <span>{{ row.account }}</span>
+                <span class="ad-link-cell__id">{{ row.accountId }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="直达链接" min-width="240">
+            <template #default="{ row }">
+              <el-tag v-if="row.url" closable class="ad-link-tag" @close="removeAdLink(row)">{{ row.url }}</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
       </el-form>
       <el-form :model="form.ad" class="drawer-form" label-position="top">
         <div class="form-section">
@@ -1536,9 +1571,36 @@
         <div class="form-section">
           <div class="form-section__title">行动号召</div>
         <el-form-item label="行动号召文案">
-          <el-select v-model="form.ad.cta_tags" multiple filterable allow-create default-first-option placeholder="输入后回车添加，2-6 字" style="width: 100%">
-            <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
-          </el-select>
+          <div class="sell-ops">
+            <el-input
+              v-model="ctaInput"
+              class="sell-input"
+              placeholder="空格分隔，最多10个，每个标签不超过6个字"
+              @keyup.enter="addCtaTags"
+            />
+            <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加（同车铺）')">添加（同车铺）</el-button>
+            <el-button size="small" @click="ElMessage.info('原型：查看推荐')">查看推荐</el-button>
+          </div>
+          <div class="sell-ops sell-ops--tpl">
+            <el-select v-model="ctaTemplate" class="sell-tpl" clearable placeholder="选择模板">
+              <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
+            </el-select>
+            <el-button size="small" @click="ElMessage.info('原型：保存为模板')">保存为模板</el-button>
+          </div>
+          <div class="sell-tags sell-tags--grid">
+            <div class="sell-tags__head">
+              <span>已选标签</span>
+              <el-button link type="primary" @click="form.ad.cta_tags = []">清空</el-button>
+            </div>
+            <el-tag
+              v-for="(t, ti) in form.ad.cta_tags"
+              :key="t + ti"
+              closable
+              class="sell-tag"
+              @close="form.ad.cta_tags.splice(ti, 1)"
+            >{{ t }}</el-tag>
+            <span v-if="!form.ad.cta_tags.length" class="sell-tags__empty">暂无</span>
+          </div>
         </el-form-item>
         <el-row :gutter="12">
           <el-col :span="8"><el-button size="small" @click="ElMessage.info('原型：查看推荐文案')">查看推荐</el-button></el-col>
@@ -2550,6 +2612,24 @@ const projInfoFolded = ref(false);
 const relatedVisible = ref(false);
 /* ---- 广告基本信息面板：广告预算与出价 / 定位到指定段 ---- */
 const adBudgetVisible = ref(false);
+/* ---- 广告基本信息：直达链接行 / 行动号召输入 ---- */
+const adLinkRows = ref([
+  { account: '央广-雷盟-知乎-APP内付费-124-792335571-在投', accountId: '1873758649506203', url: 'zhhuz://market/paid_column/...' },
+  { account: '央广-雷盟-知乎-APP内付费-118-792335571-在投', accountId: '1873758652234324', url: 'zhhuz://market/paid_column/...' },
+  { account: '央广-雷盟-知乎-APP内付费-116-792335571-在投', accountId: '1873758652954056', url: 'zhhuz://market/paid_column/...' },
+  { account: '央广-雷盟-知乎-APP内付费-120-792335571-在投', accountId: '1873758651659018', url: 'zhhuz://market/paid_column/...' },
+]);
+function removeAdLink(row) {
+  row.url = '';
+}
+const ctaInput = ref('');
+const ctaTemplate = ref('');
+function addCtaTags() {
+  const tags = String(ctaInput.value || '').split(/[\s,，]+/).map((t) => t.trim()).filter(Boolean);
+  if (!tags.length) { ElMessage.warning('请输入行动号召文案'); return; }
+  form.ad.cta_tags = [...new Set([...(form.ad.cta_tags || []), ...tags])].slice(0, 10);
+  ctaInput.value = '';
+}
 /* 线上问号气泡文案（实测） */
 const TIPS = {
   bid_strategy: '代表当前项目内全部广告的成本考量及出价方式',
@@ -3868,6 +3948,15 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .sell-ops--tpl { margin-bottom: 10px; }
 .sell-tpl { width: 220px; }
 .sell-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e5e6eb; border-radius: 4px; }
+.sell-tags--grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.sell-tags--grid .sell-tags__head { grid-column: 1 / -1; width: auto; }
+.sell-input { flex: 1; }
+.ad-promote-tips { font-size: 12px; color: #86909c; line-height: 1.8; margin: -4px 0 14px 120px; }
+.ad-warn-hint { width: 100%; font-size: 12px; color: #e6a23c; margin-top: 4px; }
+.ad-link-table { margin: 4px 0 12px; }
+.ad-link-cell { display: flex; flex-direction: column; font-size: 12px; color: #1d2129; }
+.ad-link-cell__id { color: #86909c; }
+.ad-link-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .sell-tags__head { width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: #86909c; }
 .sell-tag { margin: 0; }
 .sell-tags__empty { font-size: 12px; color: #c9cdd4; }
