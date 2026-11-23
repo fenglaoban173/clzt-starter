@@ -251,6 +251,22 @@
           border
           :span-method="previewSpanMethod"
         >
+          <el-table-column width="48" align="center">
+            <template #header>
+              <el-checkbox
+                :model-value="previewAllChecked"
+                :indeterminate="previewIndeterminate"
+                @change="toggleAllAd"
+              />
+            </template>
+            <template #default="{ row }">
+              <el-checkbox
+                v-if="row.first"
+                :model-value="row.checked"
+                @change="(v) => toggleRowAd(row, v)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column label="项目">
             <el-table-column label="项目信息" min-width="240">
               <template #default="{ row }">
@@ -274,6 +290,21 @@
             </el-table-column>
           </el-table-column>
           <el-table-column label="广告">
+            <el-table-column width="48" align="center">
+              <template #header>
+                <el-checkbox
+                  :model-value="previewAllChecked"
+                  :indeterminate="previewIndeterminate"
+                  @change="toggleAllAd"
+                />
+              </template>
+              <template #default="{ row }">
+                <el-checkbox
+                  :model-value="row.checked"
+                  @change="(v) => toggleRowAd(row, v)"
+                />
+              </template>
+            </el-table-column>
             <el-table-column label="广告名称" min-width="230">
               <template #default="{ row }">
                 <el-link type="primary" class="pv-link">{{ row.ad.name }}</el-link>
@@ -2133,14 +2164,23 @@ const previewRows = computed(() => {
       assets: base.assets || acc.project?.assets || '',
       status: base.status || '待提交',
     };
-    out.push({ g: { project: acc.project }, ad, span: n });
+    out.push({ g: { project: acc.project }, ad, span: n, first: i === 0, checked: false });
   }
   return out;
 });
-/* 项目四列在首行做跨行合并（span-method 返回 [rowspan, colspan]） */
+/* 项目侧（含勾选列）在组内首行做跨行合并，其余行隐藏（span-method 返回 [rowspan, colspan]） */
 function previewSpanMethod({ row, columnIndex }) {
-  if (columnIndex < 4) return [row.span, 1];
+  if (columnIndex <= 4) return row.first ? [row.span, 1] : [0, 1];
   return [1, 1];
+}
+/* 广告组勾选：全选 / 半选 / 单条勾选 */
+const previewAllChecked = computed(() => previewRows.value.length > 0 && previewRows.value.every((r) => r.checked));
+const previewIndeterminate = computed(() => previewRows.value.some((r) => r.checked) && !previewAllChecked.value);
+function toggleAllAd(val) {
+  previewRows.value.forEach((r) => { r.checked = val; });
+}
+function toggleRowAd(row, val) {
+  row.checked = val;
 }
 function onPreviewBatch(cmd) {
   if (cmd === 'delAd') ElMessage.success('已删除选中广告（原型模拟）');
@@ -3278,6 +3318,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .stat-row__item b { color: #1d2129; font-weight: 600; }
 .preview-batch { margin-left: auto; }
 .preview-table { margin-top: 4px; }
+/* 线上：合并的项目单元格与广告行内容均顶对齐 */
+.preview-table :deep(.el-table__cell) { vertical-align: top; }
 .pv-cell { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #4e5969; line-height: 1.5; }
 .pv-link { font-size: 12px; }
 .stat-block { padding: 4px 0; }
