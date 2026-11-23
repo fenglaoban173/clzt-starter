@@ -209,6 +209,7 @@
       <el-form v-if="formMode === 'form'" :model="form" label-width="120px" size="small" class="app-new-form">
         <el-form-item
           v-for="f in formFields"
+          v-show="isFieldVisible(f)"
           :key="f.key"
           :label="f.label"
           :required="!!f.required"
@@ -804,6 +805,12 @@ function isFieldLocked(f) {
   if (!f.enabledWhen) return false;
   return form[f.enabledWhen.field] !== f.enabledWhen.value;
 }
+/** 字段条件显示：visibleWhen = { field, value }，只有取到该值才显示（线上实测联动：
+ *  导入监测活动里「应用类型」选 iOS / 鸿蒙 时，应用来源/工作台/基于账户获取应用/巨量应用/下载链接来源 整组隐藏） */
+function isFieldVisible(f) {
+  if (!f.visibleWhen) return true;
+  return form[f.visibleWhen.field] === f.visibleWhen.value;
+}
 function onBatchOp(v) {
   if (!v) return;
   ElMessage.info(`原型：批量${v}`);
@@ -849,12 +856,12 @@ async function onButton(b) {
   if (b.key === 'importMonitor') {
     // 线上「导入监测活动」弹窗：宽 800px，8 字段
     openForm('导入监测活动', '800px', [
-      { key: 'appType', label: '应用类型', type: 'radio', options: [{ value: '安卓', label: '安卓' }, { value: 'iOS', label: 'iOS' }, { value: '鸿蒙', label: '鸿蒙' }] },
-      { key: 'source', label: '应用来源', type: 'radio', options: [{ value: '已有应用', label: '已有应用' }, { value: '内广应用', label: '内广应用' }] },
-      { key: 'workspace', label: '工作台', type: 'radio', options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
-      { key: 'baseAccount', label: '基于账户获取应用', type: 'select', placeholder: '全部', options: ACCOUNT_OPTIONS },
-      { key: 'appName', label: '巨量应用', type: 'select', required: true, placeholder: '所有应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
-      { key: 'linkSource', label: '下载链接来源', type: 'radio', options: [{ value: '母包链接', label: '母包链接' }, { value: '分包', label: '分包' }, { value: '下载短链', label: '下载短链' }] },
+      { key: 'appType', label: '应用类型', type: 'radio', default: '安卓', options: [{ value: '安卓', label: '安卓' }, { value: 'iOS', label: 'iOS' }, { value: '鸿蒙', label: '鸿蒙' }] },
+      { key: 'source', label: '应用来源', type: 'radio', visibleWhen: { field: 'appType', value: '安卓' }, options: [{ value: '已有应用', label: '已有应用' }, { value: '内广应用', label: '内广应用' }] },
+      { key: 'workspace', label: '工作台', type: 'radio', visibleWhen: { field: 'appType', value: '安卓' }, options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
+      { key: 'baseAccount', label: '基于账户获取应用', type: 'select', visibleWhen: { field: 'appType', value: '安卓' }, placeholder: '全部', options: ACCOUNT_OPTIONS },
+      { key: 'appName', label: '巨量应用', type: 'select', required: true, visibleWhen: { field: 'appType', value: '安卓' }, placeholder: '所有应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'linkSource', label: '下载链接来源', type: 'radio', visibleWhen: { field: 'appType', value: '安卓' }, options: [{ value: '母包链接', label: '母包链接' }, { value: '分包', label: '分包' }, { value: '下载短链', label: '下载短链' }] },
       { key: 'template', label: '获取模板文件', type: 'input', placeholder: '请输入模板文件地址' },
       { key: 'file', label: '导入文件', type: 'input', required: true, placeholder: '请输入导入文件地址' },
     ]);

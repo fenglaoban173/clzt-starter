@@ -307,6 +307,26 @@
             <el-form-item label="视频播完" prop="playEndLink">
               <el-input v-model="createForm.playEndLink" size="small" placeholder="请输入视频播完链接" />
             </el-form-item>
+
+            <!-- Deeplink 三件套（线上实测）：Deeplink生成方式=自动生成 时，
+                 「设置多个直达链接」「Deeplink直达链接」整组隐藏 -->
+            <el-form-item label="Deeplink生成方式" prop="deeplinkWay">
+              <el-radio-group v-model="createForm.deeplinkWay" size="small">
+                <el-radio-button value="手动填写">手动填写</el-radio-button>
+                <el-radio-button value="自动生成">自动生成</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item v-if="createForm.deeplinkWay !== '自动生成'" label="设置多个直达链接" prop="multiLink">
+              <el-radio-group v-model="createForm.multiLink" size="small">
+                <el-radio-button value="启用">启用</el-radio-button>
+                <el-radio-button value="不启用">不启用</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item v-if="createForm.deeplinkWay !== '自动生成'" label="Deeplink直达链接" prop="deeplinkUrl">
+              <el-input v-model="createForm.deeplinkUrl" size="small" placeholder="请输入Deeplink直达链接" />
+            </el-form-item>
           </template>
 
           <el-form-item v-if="activeTab !== '第三方落地页'" label="媒体账户" prop="account" required>
@@ -383,7 +403,7 @@
             <div class="lp-transfer__tip">仅支持审核中和已上线状态的落地页存为模板</div>
           </el-form-item>
 
-          <el-form-item label="头条落地页模板名称" prop="name" required>
+          <el-form-item v-if="activeTab !== '第三方落地页'" label="头条落地页模板名称" prop="name" required>
             <el-input
               v-model="createForm.name"
               class="lp-dialog-input"
@@ -985,6 +1005,7 @@ const createForm = ref({
   templateType: '应用下载', account: '', pages: [], name: '',
   relAccount: '', project: '', link: '', remark: '', product: '',
   touchLink: '', showLink: '', validPlayLink: '', playLink: '', playEndLink: '',
+  deeplinkWay: '手动填写', multiLink: '不启用', deeplinkUrl: '',
 });
 const lpKeyword = ref('');
 const lpPage = ref(1);

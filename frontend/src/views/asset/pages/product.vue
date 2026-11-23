@@ -276,7 +276,8 @@
                 </el-checkbox-group>
               </el-form-item>
 
-              <el-form-item label="链接来源">
+              <!-- 联动（线上实测）：工作台来源=新版工作台 时隐藏「链接来源」整组 -->
+              <el-form-item v-if="form.workbench !== '新版工作台'" label="链接来源">
                 <el-radio-group v-model="form.linkSource" class="ag-radio">
                   <el-radio-button v-for="o in LINK_SOURCES" :key="o" :value="o">{{ o }}</el-radio-button>
                 </el-radio-group>
