@@ -85,7 +85,13 @@
               <template #suffix>
                 <el-popover placement="bottom-end" :width="320" trigger="click" popper-class="pd-batch-popper">
                   <template #reference>
-                    <el-icon class="pd-more-icon" title="批量搜索"><MoreFilled /></el-icon>
+                    <el-icon class="pd-more-icon" title="批量搜索">
+                      <!-- 线上批量搜索图标是「圆 + 横线」，不是 MoreFilled 的三个点 -->
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                      </svg>
+                    </el-icon>
                   </template>
                   <div class="pd-batch">
                     <div class="pd-batch__hd">
