@@ -24,7 +24,7 @@
           >
             <el-option label="全部账户" value="all" />
             <el-option
-              v-for="a in accountOptions"
+              v-for="a in accountSelectOptions"
               :key="a.value"
               :label="a.label"
               :value="a.value"
@@ -363,6 +363,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { ASSET_ACCOUNT_OPTIONS } from './assetOptions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 
@@ -530,6 +531,12 @@ const searchField = ref('name');
 const searchKeyword = ref('');
 const batchText = ref('');
 const accountOptions = ref(MOCK_ACCOUNTS);
+/** 线上「媒体账户」下拉为 21 项（全部账户 + 20 个线上实测账户，顺序照抄线上）；
+ *  本地 mock 多出 13 个，按线上口径截断 */
+const accountSelectOptions = computed(() => [
+  { value: '', label: '全部账户', company: '' },
+  ...accountOptions.value.slice(0, 20),
+]);
 const accountLoading = ref(false);
 const pageNo = ref(1);
 const pageSize = ref(10);

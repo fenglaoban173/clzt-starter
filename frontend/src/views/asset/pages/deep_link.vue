@@ -349,6 +349,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { ASSET_ACCOUNT_OPTIONS } from './assetOptions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Search } from '@element-plus/icons-vue';
 
@@ -379,8 +380,14 @@ const OPTIMIZER_OPTIONS = [
   '申旭阳 (shenxuyang@ygsdmedia.com)',
 ];
 
+/** 媒体账户下拉：线上 20 个账户（顺序照抄线上 DOM） */
+const MOCK_ACCOUNTS = ASSET_ACCOUNT_OPTIONS.map((label) => ({
+  value: (label.match(/\((\d+)\)/) || [])[1] || '',
+  label,
+}));
+
 /** 媒体账户（线上为远程加载 /Media/Account/getMyMediaAccountLists，本地 mock 一组） */
-const MOCK_ACCOUNTS = [
+const MOCK_ACCOUNTS_LEGACY = [
   { value: '1846116421525516', label: '央广-亦芯-95分-拉新-通投-安卓-17(1846116421525516)' },
   { value: '1834419631681163', label: '上海得物信息集团有限公司1-50(1834419631681163)' },
   { value: '1869584158208068', label: '百度极速版调起-央广-12(1869584158208068)' },

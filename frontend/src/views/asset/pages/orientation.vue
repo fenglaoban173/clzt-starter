@@ -1060,11 +1060,8 @@ function openCreate() {
 }
 
 function openJyCreate() {
-  formMode.value = 'create';
-  editingId.value = null;
-  editingIsJy.value = true;
-  form.value = emptyForm();
-  formVisible.value = true;
+  // 线上「新建媒体定向包」同样是整页表单（23 字段），本地同形态
+  router.push({ name: 'orientation-create', query: { mode: 'jy' } });
 }
 
 function openEdit(row, isJy = false) {

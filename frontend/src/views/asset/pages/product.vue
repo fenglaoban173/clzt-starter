@@ -532,6 +532,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { ASSET_LIB_TYPE_OPTIONS, ASSET_ACCOUNT_OPTIONS } from './assetOptions';
 import { ElMessage } from 'element-plus';
 import { ArrowDown, Close, InfoFilled, MoreFilled, Search } from '@element-plus/icons-vue';
 
@@ -566,15 +567,8 @@ const TABS = [
 const WORKBENCH = ['旧版', '新版'];
 const WORKBENCH_SOURCES = ['旧版工作台', '新版工作台'];
 
-/** 商品库类型（线上 40 项，顺序照抄） */
-const LIB_TYPES = [
-  '通用', '游戏', '旅游-酒店', '旅游-路线', '旅游-门票', '交通票务', '汽车', '房产',
-  '招聘', '电商', '其他', '直播社交', '教育', '引流电商', '新汽车库', '视频咨询',
-  '新房', '药品', '保险', '通信', '医疗服务', '信贷', '财富', '家居服务',
-  '家具建材', '大额贷款', '旅行婚拍', '本地婚拍', '亲子摄影', '综合写真',
-  '岗位库', '招商加盟', '美容美发', '特妆', '保健品', 'IAP短剧库',
-  '房产基础库', '法律服务库', 'IAA短剧库',
-];
+/** 商品库类型（线上 36 项，顺序照抄线上 DOM） */
+const LIB_TYPES = ASSET_LIB_TYPE_OPTIONS;
 
 /** 关键词搜索的字段类型 */
 const SEARCH_FIELDS = [
@@ -623,13 +617,7 @@ const IMAGE_OPTIONS = [
 /** 商品库名称（线上「商品库-通用版」共 51 个商品库） */
 /** 同步商品弹窗（线上 el-dialog「同步商品」，宽 992px，4 字段：工作台 / 商品类型 / 所属账户 / 选择商品库） */
 const SYNC_GOODS_TYPES = ['商品-通用版', '商品-升级版'];
-const SYNC_ACCOUNT_OPTIONS = [
-  '北京高途云集教育科技有限公司--1(1861811345880074)',
-  '百度文库-央广时代-拉新-搜索-01(1866877399870663)',
-  '百度文库-央广时代-拉新-搜索-02(1866877399203047)',
-  '任意门-央广-代运营-36-安卓-UBA(1866489873996443)',
-  '央广-621059846-百度文库-1(1866877405575303)',
-];
+const SYNC_ACCOUNT_OPTIONS = ASSET_ACCOUNT_OPTIONS;
 const syncDialogVisible = ref(false);
 const syncForm = ref({ workspace: '旧版', goodsType: '商品-通用版', account: '', lib: '' });
 function openSyncDialog() {
