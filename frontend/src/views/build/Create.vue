@@ -1348,7 +1348,48 @@
     </el-drawer>
 
     <!-- 广告信息弹窗 -->
-    <el-drawer v-model="adVisible" :title="cardTitle.ad" size="780px" direction="rtl">
+    <el-drawer v-model="adVisible" :title="cardTitle.ad" size="1016px" direction="rtl">
+      <!-- 线上「广告基本信息」面板（实测 1016px）：直达链接类型 / 来源 / 匹配方式 -->
+      <el-form label-position="left" label-width="120px" class="ad-basic-form">
+        <el-form-item label="推广身份">
+          <el-select v-model="form.ad.promotion_identity" style="width: 100%">
+            <el-option label="应用" value="APP" />
+            <el-option label="游戏" value="GAME" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="抖音号">
+          <el-select v-model="form.ad.aweme_id" multiple filterable placeholder="请选择抖音号" style="width: 100%">
+            <el-option v-for="a in awemeList" :key="a.aweme_id" :label="a.nickname" :value="a.aweme_id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="账户信息">
+          <el-select v-model="form.ad.account_ids" multiple filterable placeholder="请选择账户" style="width: 100%">
+            <el-option v-for="a in selectedAccounts" :key="a.id" :label="a.name" :value="a.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="直达链接类型">
+          <el-radio-group v-model="form.ad.link_type">
+            <el-radio value="DEEPLINK">Deeplink直达链接</el-radio>
+            <el-radio value="DEEPLINK_ULINK">Deeplink+Ulink直达链接</el-radio>
+            <el-radio value="ULINK">Ulink直达链接</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="直达链接来源">
+          <el-radio-group v-model="form.ad.link_source">
+            <el-radio value="IMPORT">导入直达链接</el-radio>
+            <el-radio value="LP_AUTO">落地页自动关联</el-radio>
+            <el-radio value="DYNAMIC">动态链接生成</el-radio>
+            <el-radio value="LP_MANUAL">落地页自动生成</el-radio>
+            <el-radio value="MANUAL">手动填写</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="匹配方式">
+          <el-radio-group v-model="form.ad.link_match_mode">
+            <el-radio value="PROJECT">所有项目选择一个直达链接</el-radio>
+            <el-radio value="ACCOUNT">每个账户选择一个直达链接</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
       <el-form :model="form.ad" class="drawer-form" label-position="top">
         <div class="form-section">
           <div class="form-section__title">创意组件</div>
