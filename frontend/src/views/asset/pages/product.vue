@@ -594,8 +594,9 @@ const CATEGORY_OPTIONS = [
   { value: '单剧目-漫剧', label: '单剧目-漫剧' },
 ];
 
-/** 批量操作下拉（线上：创量创意云 / 万镜台） */
+/** 批量操作下拉（线上：共享 / 创量创意云 / 万镜台） */
 const BATCH_ITEMS = [
+  { command: 'share', icon: '共', title: '共享', subtitle: '批量共享商品库至其他媒体账户' },
   { command: '1', icon: '创', title: '创量创意云', subtitle: '内容资产创作管理平台' },
   { command: '4', icon: '万', title: '万镜台', subtitle: 'AI爆款视频创作平台' },
 ];
@@ -904,7 +905,9 @@ const carrierLinkText = computed(() => {
 
 const filteredPickerLibs = computed(() => {
   const kw = (libPickerKeyword.value || '').trim();
-  const list = DATA.lib.filter((r) => r.workspace === '旧版');
+  // 联动：指定商品库的候选跟着「工作台来源」走（旧版工作台 / 新版工作台）
+  const ws = form.value.workbench === '新版工作台' ? '新版' : '旧版';
+  const list = DATA.lib.filter((r) => r.workspace === ws);
   return kw ? list.filter((r) => r.name.indexOf(kw) > -1) : list;
 });
 
