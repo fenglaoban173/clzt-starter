@@ -228,7 +228,7 @@
           <el-button @click="targetingVisible = true">定向包</el-button>
           <el-button @click="projVisible = true">项目预算与出价</el-button>
           <el-button @click="deeplinkVisible = true">直达链接</el-button>
-          <el-button @click="openAdPanel()">产品信息</el-button>
+          <el-button @click="productVisible = true">产品信息</el-button>
           <el-button @click="openAdPanel('ad-settings')">广告设置</el-button>
           <el-button @click="openAdPanel('ad-budget')">广告预算与出价</el-button>
         </template>
@@ -1342,6 +1342,7 @@
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="竞价策略">
+              <template #label><span class="q-label">竞价策略</span><el-tooltip :content="TIPS.bid_strategy" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template>
               <el-select v-model="form.project.bid_strategy" style="width: 100%">
                 <el-option v-for="o in BID_STRATEGIES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
@@ -1370,6 +1371,7 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="出价方式">
+              <template #label><span class="q-label">出价方式</span><el-tooltip :content="TIPS.bid_strategy" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template>
               <el-select v-model="form.project.bid_method" style="width: 100%">
                 <el-option v-for="o in BID_METHODS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
@@ -1398,10 +1400,12 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="8">
-            <el-form-item label="自动截断"><el-switch v-model="form.project.auto_truncate" /></el-form-item>
+            <el-form-item label="自动截断">
+              <template #label><span class="q-label">自动截断</span><el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template><el-switch v-model="form.project.auto_truncate" /></el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="随机数后缀"><el-switch v-model="form.project.random_suffix" /></el-form-item>
+            <el-form-item label="随机数后缀">
+              <template #label><span class="q-label">随机数后缀</span><el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template><el-switch v-model="form.project.random_suffix" /></el-form-item>
           </el-col>
         </el-row>
         </div>
@@ -1465,6 +1469,13 @@
 
     <!-- 广告信息弹窗 -->
     <el-drawer v-model="adVisible" title="广告基本信息" size="1016px" direction="rtl">
+      <!-- 线上：右上角「预估广告数」浮层 -->
+      <div class="ad-est">
+        <div class="ad-est__title">预估广告数</div>
+        <div class="ad-est__row"><span>账户数：</span><b>{{ adEstimate.accounts }}</b></div>
+        <div class="ad-est__row"><span>项目数：</span><b>{{ adEstimate.projects }}</b></div>
+        <div class="ad-est__row"><span>广告数：</span><b>{{ adEstimate.ads }}</b></div>
+      </div>
       <!-- 线上「广告基本信息」面板（实测 1016px）：直达链接类型 / 来源 / 匹配方式 -->
       <el-form label-position="left" label-width="120px" class="ad-basic-form">
         <el-form-item label="推广身份">
@@ -1642,9 +1653,31 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="产品卖点">
-              <el-select v-model="form.ad.product_sell_points" multiple filterable allow-create default-first-option placeholder="输入后回车添加卖点" style="width: 100%">
-                <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
-              </el-select>
+              <div class="sell-hint">添加的商品是10个,每个不超过5张</div>
+              <div class="sell-ops">
+                <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加（同车铺）')">添加（同车铺）</el-button>
+                <el-button size="small" @click="ElMessage.info('原型：查看推荐')">查看推荐</el-button>
+              </div>
+              <div class="sell-ops sell-ops--tpl">
+                <el-select v-model="form.ad.sell_template" class="sell-tpl" clearable placeholder="选择模板">
+                  <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
+                </el-select>
+                <el-button size="small" @click="ElMessage.info('原型：保存为模板')">保存为模板</el-button>
+              </div>
+              <div class="sell-tags">
+                <div class="sell-tags__head">
+                  <span>已选标签</span>
+                  <el-button link type="primary" @click="form.ad.product_sell_points = []">清空</el-button>
+                </div>
+                <el-tag
+                  v-for="(t, ti) in form.ad.product_sell_points"
+                  :key="t + ti"
+                  closable
+                  class="sell-tag"
+                  @close="form.ad.product_sell_points.splice(ti, 1)"
+                >{{ t }}</el-tag>
+                <span v-if="!form.ad.product_sell_points.length" class="sell-tags__empty">暂无</span>
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -2470,7 +2503,7 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowDown, ArrowUp, Close, Tickets } from '@element-plus/icons-vue';
+import { ArrowDown, ArrowUp, Close, QuestionFilled, Tickets } from '@element-plus/icons-vue';
 import { mediaApi, assetApi, buildApi } from '@/api/media';
 import {
   LANDING_TYPES, APP_PROMOTION_TYPES, MARKETING_GOALS, AD_TYPES, DELIVERY_MODES,
@@ -2517,6 +2550,20 @@ const projInfoFolded = ref(false);
 const relatedVisible = ref(false);
 /* ---- 广告基本信息面板：广告预算与出价 / 定位到指定段 ---- */
 const adBudgetVisible = ref(false);
+/* 线上问号气泡文案（实测） */
+const TIPS = {
+  bid_strategy: '代表当前项目内全部广告的成本考量及出价方式',
+  project_budget: '当前项目内全部广告可消耗的最大预算，项目预算撞线后广告即使预算未消耗完成也会停投',
+  app_store: '应用商店直投勾选后，将优先跳转目标应用对应手机系统应用商店安装详情页，跳转失败则使用下载链接下载。请确保投放的应用在应用商店内已上架。',
+  auto_truncate: '使用通配符后可能存在名称过长问题，勾选后系统将自动截断超出部分的内容。（注意：自动截断后可能存在同名风险）',
+  ladder_bid: '阶梯出价是指根据您的出价范围，在生成的项目中做等差分配出价；随机出价是指会在出价范围内随机分配出价',
+  deep_bid: '填写深度转化率后，将根据公式：出价/付费率 自动计算深度转化出价，您也可以手动填写深度出价',
+};
+/* 预估广告数浮层（线上：账户数 / 项目数 / 广告数） */
+const adEstimate = computed(() => {
+  const rows = est.value.rows || [];
+  return { accounts: form.account_ids.length, projects: rows.length, ads: est.value.total || 0 };
+});
 const adBudget = reactive({
   config_mode: 'UNIFIED', bid_strategy: 'STABLE', optimize_goal: 'APP_PAY',
   deep_bid_mode: 'NONE', pay_mode: 'OCPM', folded: true, budget: '888888', bid: '39.5',
@@ -3810,6 +3857,20 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.q-label { margin-right: 4px; }
+.q-icon { color: #86909c; cursor: help; vertical-align: -2px; }
+.ad-est { position: absolute; right: 24px; top: 18px; z-index: 5; width: 200px; padding: 12px 14px; background: #fff; border: 1px solid #e5e6eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.08); font-size: 12px; color: #4e5969; }
+.ad-est__title { font-weight: 600; color: #1d2129; margin-bottom: 6px; }
+.ad-est__row { display: flex; justify-content: space-between; line-height: 1.9; }
+.ad-est__row b { color: #197afb; }
+.sell-hint { font-size: 12px; color: #86909c; margin-bottom: 6px; }
+.sell-ops { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sell-ops--tpl { margin-bottom: 10px; }
+.sell-tpl { width: 220px; }
+.sell-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e5e6eb; border-radius: 4px; }
+.sell-tags__head { width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: #86909c; }
+.sell-tag { margin: 0; }
+.sell-tags__empty { font-size: 12px; color: #c9cdd4; }
 .ad-tip { margin: 4px 0 12px; }
 .ad-rule-label { margin-right: 12px; }
 .ad-rule-fold { font-size: 12px; }
