@@ -119,7 +119,7 @@
               <div class="proj-block">
                 <div class="proj-block__head">
                   <span class="proj-block__title">定向包</span>
-                  <el-button link type="primary" class="proj-block__act" @click="openSection('targeting')">获取定向清单</el-button>
+                  <el-button link type="primary" class="proj-block__act" @click="openSection('targeting')">获取定向详情</el-button>
                 </div>
                 <div class="proj-block__body">
                   <div v-for="t in selectedTargetings" :key="t.id" class="proj-line">{{ t.name }}</div>
@@ -216,12 +216,14 @@
       <!-- 线上转化优化版：关联产品 / 分配或监测活动 / 定向包 / 项目预算与出价 / 产品信息 / 广告设置 -->
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
-          <el-button @click="openSection('related')">关联产品</el-button>
-          <el-button @click="openSection('monitor')">分配或监测活动</el-button>
+          <el-button @click="relatedVisible = true">关联产品</el-button>
+          <el-button @click="openSection('monitor')">分包与监测活动</el-button>
           <el-button @click="openSection('targeting')">定向包</el-button>
           <el-button @click="openSection('budget')">项目预算与出价</el-button>
+          <el-button @click="deeplinkVisible = true">直达链接</el-button>
           <el-button @click="productVisible = true">产品信息</el-button>
           <el-button @click="adSettingVisible = true">广告设置</el-button>
+          <el-button @click="openSection('adBudget')">广告预算与出价</el-button>
         </template>
         <template v-else>
           <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -388,7 +390,71 @@
       <el-empty v-else description="请先完成相应模块配置后，再预览内容" />
     </el-card>
 
-    <!-- 通用配置抽屉：关联产品 / 分配或监测活动 / 定向包 / 项目预算与出价 -->
+    <!-- 关联产品（线上：选择头条产品 弹窗 + 填写直达链接 抽屉） -->
+    <el-dialog v-model="relatedVisible" title="选择头条产品" width="900px" class="related-dialog" :close-on-click-modal="false">
+      <div class="related-tips">
+        <p>1、关联产品需依附在已批量 广告 进行配置，配置后通过刷新获取。</p>
+        <p>2、广告主账户余额不足时自动添加至媒体资产，可为缺少目标商品补充选择内容。</p>
+        <p>3、请确保所选产品已共享到媒体账户，避免填写失败。</p>
+      </div>
+      <div class="related-ver">
+        <span class="related-ver__label">产品版本</span>
+        <el-radio-group v-model="relatedForm.version" size="small">
+          <el-radio value="UPGRADE">升级版</el-radio>
+          <el-radio value="COMMON">通用版</el-radio>
+        </el-radio-group>
+        <span class="related-ver__hint">若找不到产品，请切换版本查询</span>
+        <el-button link type="primary" class="related-ver__clear" @click="clearRelatedAssets">清理所有资产</el-button>
+      </div>
+      <div class="related-filters">
+        <el-select v-model="relatedForm.product" class="related-filters__sel" filterable placeholder="请选择产品">
+          <el-option v-for="p in productPool" :key="p.id" :label="p.name" :value="p.id" />
+        </el-select>
+        <el-select v-model="relatedForm.category" class="related-filters__sel" filterable placeholder="请选择商品类目">
+          <el-option v-for="c in relatedCategories" :key="c" :label="c" :value="c" />
+        </el-select>
+        <el-button size="small" @click="onRelatedRefresh">刷新</el-button>
+        <el-input v-model="relatedForm.keyword" class="related-filters__kw" size="small" placeholder="请输入关键词" clearable @keyup.enter="onRelatedSearch" />
+        <el-button size="small" @click="onRelatedSearch">查询</el-button>
+      </div>
+      <div class="related-body">
+        <div class="related-list">
+          <el-checkbox-group v-model="relatedForm.picked">
+            <el-checkbox v-for="p in productPool" :key="p.id" :label="p.id">{{ p.name }}</el-checkbox>
+          </el-checkbox-group>
+        </div>
+        <div class="related-picked">
+          <div class="related-picked__head">
+            <span>已选({{ relatedForm.picked.length }})</span>
+            <el-button link type="primary" @click="relatedForm.picked = []">清空</el-button>
+          </div>
+          <div v-for="id in relatedForm.picked" :key="id" class="related-picked__item">
+            {{ (productPool.find(p => p.id === id) || {}).name }}
+            <el-icon class="related-picked__x" @click="relatedForm.picked = relatedForm.picked.filter(x => x !== id)"><Close /></el-icon>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="relatedVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmRelated">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 填写直达链接（线上抽屉） -->
+    <el-drawer v-model="deeplinkVisible" title="填写直达链接" size="520px" direction="rtl">
+      <div class="dl-form">
+        <div class="dl-form__row">
+          <span class="dl-form__label">输入Deeplink</span>
+          <el-input v-model="deeplinkForm.url" placeholder="zhhuz://market/paid_column/..." />
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="deeplinkVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmDeeplink">确定</el-button>
+      </template>
+    </el-drawer>
+
+    <!-- 通用配置抽屉：分包与监测活动 / 定向包 / 项目预算与出价 / 广告预算与出价 -->
     <el-drawer v-model="sectionVisible" :title="sectionTitle" size="780px" direction="rtl">
       <div v-if="sectionKey === 'related'" class="sec-list">
         <el-checkbox v-for="p in productPool" :key="p.id" :label="p.id">{{ p.name }}</el-checkbox>
@@ -406,6 +472,14 @@
         </el-form-item>
         <el-form-item label="项目收益出价">
           <el-input-number v-model="form.project.group_bid" :min="0" :step="0.5" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <el-form v-else-if="sectionKey === 'adBudget'" label-position="left" label-width="120px">
+        <el-form-item label="广告预算">
+          <el-input-number v-model="form.ad_budget" :min="0" :step="100" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="广告出价">
+          <el-input-number v-model="form.ad_bid" :min="0" :step="0.5" style="width: 100%" />
         </el-form-item>
       </el-form>
     </el-drawer>
@@ -2210,6 +2284,26 @@ const projColTitle = computed(() => (
 const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
 const projInfoFolded = ref(false);
+/* ---- 关联产品（线上「选择头条产品」）+ 直达链接 ---- */
+const relatedVisible = ref(false);
+const deeplinkVisible = ref(false);
+const relatedForm = reactive({ version: 'UPGRADE', product: '', category: '', keyword: '', picked: [] });
+const deeplinkForm = reactive({ url: '' });
+const relatedCategories = ['知乎推流商品库', '通用商品库', '教育商品库'];
+function clearRelatedAssets() { relatedForm.picked = []; }
+function onRelatedRefresh() { ElMessage.success('已刷新资产（原型模拟）'); }
+function onRelatedSearch() { ElMessage.success(`已按「${relatedForm.keyword || '全部'}」查询（原型模拟）`); }
+function confirmRelated() {
+  if (!relatedForm.picked.length) { ElMessage.warning('请选择产品'); return; }
+  form.project.product_ids = relatedForm.picked.slice();
+  ElMessage.success(`已关联 ${relatedForm.picked.length} 个产品`);
+  relatedVisible = false;
+}
+function confirmDeeplink() {
+  if (!deeplinkForm.url.trim()) { ElMessage.warning('请输入 Deeplink'); return; }
+  ElMessage.success('Deeplink 已保存（原型模拟）');
+  deeplinkVisible = false;
+}
 const sectionVisible = ref(false);
 const sectionKey = ref('');
 const sectionTitle = computed(() => ({
@@ -3455,6 +3549,22 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .cfg-notice { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 12px; background: #fff7e8; border: 1px solid #ffe4ba; border-radius: 4px; font-size: 12px; color: #d25f00; }
 .cfg-notice__link { color: #197afb; cursor: pointer; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.related-tips { font-size: 12px; color: #e6a23c; line-height: 1.7; margin-bottom: 10px; }
+.related-tips p { margin: 0; }
+.related-ver { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; color: #4e5969; }
+.related-ver__hint { color: #86909c; font-size: 12px; }
+.related-ver__clear { margin-left: auto; }
+.related-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.related-filters__sel { width: 300px; }
+.related-filters__kw { width: 200px; }
+.related-body { display: flex; gap: 12px; height: 320px; }
+.related-list { flex: 1; overflow: auto; border: 1px solid #e5e6eb; border-radius: 4px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.related-picked { width: 240px; border: 1px solid #e5e6eb; border-radius: 4px; padding: 10px; }
+.related-picked__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 8px; }
+.related-picked__item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #1d2129; padding: 4px 0; }
+.related-picked__x { cursor: pointer; color: #86909c; }
+.dl-form__row { display: flex; align-items: center; gap: 12px; }
+.dl-form__label { font-size: 13px; color: #4e5969; white-space: nowrap; }
 .mode-split--links { display: flex; flex-direction: row; align-items: center; gap: 10px; width: 100%; flex-wrap: nowrap; }
 .mode-split--links .mode-split__text { white-space: nowrap; }
 .mode-split__link { font-size: 13px; white-space: nowrap; }
