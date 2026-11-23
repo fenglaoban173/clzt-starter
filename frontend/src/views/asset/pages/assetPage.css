@@ -131,6 +131,8 @@ body.asset-scope .el-button:disabled {
    线上实测：表头 14px/700 #909399 底色 #fafafa；表头单元格 12px #333；
    数据单元格 12px/400 #333；单元格分隔线 #e8eaec；行高由 --row-pad 控制（各页不同） */
 .asset-table { font-size: 12px; width: 100%; --row-pad: 8px; }
+/* 线上表格容器有 1px 外框（#ebeef5），EP 默认只给单元格描边 */
+.asset-table { border: 1px solid #ebeef5; }
 .asset-table .el-table__header th { background: #fafafa; color: #909399; font-size: 14px; font-weight: 700; padding: 0; }
 .asset-table .el-table__header th .cell { font-size: 12px; font-weight: 700; color: #333; }
 .asset-table .el-table__cell { font-size: 12px; color: #333; padding: var(--row-pad) 0; }

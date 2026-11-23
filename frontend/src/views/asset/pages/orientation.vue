@@ -669,10 +669,12 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Close, QuestionFilled, WarningFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({ kind: { type: String, default: '' } });
+const router = useRouter();
 
 /* ------------------------------------------------------------------ *
  * 线上固定选项（来源：创量线上「定向包」页采集规格 + 实页 DOM）
@@ -1053,11 +1055,8 @@ const emptyForm = () => ({
 const form = ref(emptyForm());
 
 function openCreate() {
-  formMode.value = 'create';
-  editingId.value = null;
-  editingIsJy.value = false;
-  form.value = emptyForm();
-  formVisible.value = true;
+  // 线上「新建创量定向包」是整页表单（audience/editor?tabType=creative），本地同形态
+  router.push({ name: 'orientation-create' });
 }
 
 function openJyCreate() {

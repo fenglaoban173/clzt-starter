@@ -202,6 +202,9 @@
           <el-select v-if="f.type === 'select'" v-model="form[f.key]" :placeholder="f.placeholder || `请选择${f.label}`" style="width: 100%">
             <el-option v-for="o in f.options" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
+          <el-radio-group v-else-if="f.type === 'radio'" v-model="form[f.key]">
+            <el-radio-button v-for="o in f.options" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
+          </el-radio-group>
           <el-input
             v-else
             v-model="form[f.key]"
@@ -298,6 +301,9 @@ const ACCOUNT_OPTIONS = [
 const CL_APP_OPTIONS = [{ value: '测试安卓应用(android)', label: '测试安卓应用(android)' }];
 
 /** 组织账户（线上「新版」工作台下的筛选项，共 10 条） */
+/** 创量项目（线上 4 项：知乎小说 / 漫剧端原生 / soul / 百度文库） */
+const PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'].map((v) => ({ value: v, label: v }));
+
 const ORG_ACCOUNT_OPTIONS = [
   '央广-红果-自负亏损测试',
   '央广漫剧R3',
@@ -777,31 +783,50 @@ async function onButton(b) {
     return;
   }
   if (b.key === 'newSp') {
-    openForm('新建应用分包', '640px', [
-      { key: 'channelNo', label: '渠道号', type: 'input', required: true, placeholder: '请输入渠道号' },
-      { key: 'appName', label: '巨量应用', type: 'select', required: true, options: APP_ROWS.slice(0, 10).map((a) => ({ value: a.name, label: a.name })) },
-      { key: 'account', label: '媒体账户', type: 'select', required: true, options: ACCOUNT_OPTIONS },
-      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注' },
-      { key: 'version', label: '版本信息', type: 'input', placeholder: '请输入版本信息' },
+    // 线上「新建应用分包」弹窗：宽 992px，4 字段（工作台 / 巨量应用 / 创建应用的账户 / 导入渠道号）
+    openForm('新建应用分包', '992px', [
+      { key: 'workspace', label: '工作台', type: 'radio', options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
+      { key: 'appName', label: '巨量应用', type: 'select', required: true, placeholder: '请选择巨量应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'account', label: '创建应用的账户', type: 'select', required: true, placeholder: '请选择媒体账户', options: ACCOUNT_OPTIONS },
+      { key: 'channelNo', label: '导入渠道号', type: 'textarea', placeholder: '请输入渠道号' },
     ]);
     return;
   }
   if (b.key === 'newMonitor') {
-    openForm('新建监测活动', '640px', [
-      { key: 'name', label: '监测活动名', type: 'input', required: true, placeholder: '请输入监测活动名' },
-      { key: 'appType', label: '应用类型', type: 'select', required: true, options: [{ value: '应用分包', label: '应用分包' }, { value: '落地页', label: '落地页' }] },
-      { key: 'source', label: '应用来源', type: 'select', options: [{ value: '手动创建', label: '手动创建' }, { value: 'API接入', label: 'API接入' }] },
-      { key: 'appName', label: '巨量应用', type: 'select', options: APP_ROWS.slice(0, 10).map((a) => ({ value: a.name, label: a.name })) },
-      { key: 'channelNo', label: '渠道号', type: 'input', placeholder: '请输入渠道号' },
-      { key: 'project', label: '投放项目', type: 'input', placeholder: '请输入投放项目' },
-      { key: 'account', label: '媒体账户', type: 'select', required: true, options: ACCOUNT_OPTIONS },
+    // 线上「新建监测活动」弹窗：宽 720px，10 字段
+    openForm('新建监测活动', '720px', [
+      { key: 'name', label: '活动名称', type: 'input', required: true, placeholder: '活动名称不超过50个字' },
+      { key: 'account', label: '媒体账户', type: 'select', placeholder: '不限', options: ACCOUNT_OPTIONS },
+      { key: 'project', label: '创量项目（选填）', type: 'select', placeholder: '不限', options: PROJECT_OPTIONS },
+      { key: 'appType', label: '应用类型', type: 'radio', required: true, options: [{ value: '安卓', label: '安卓' }, { value: 'iOS', label: 'iOS' }, { value: '鸿蒙', label: '鸿蒙' }] },
+      { key: 'showLink', label: '展示链接', type: 'input', placeholder: '请输入展示链接' },
+      { key: 'validLink', label: '有效触点链接', type: 'input', placeholder: '请输入有效触点链接' },
+      { key: 'playLink', label: '视频播放链接', type: 'input', placeholder: '请输入视频播放链接' },
+      { key: 'playEndLink', label: '视频播完链接', type: 'input', placeholder: '请输入视频播完链接' },
+      { key: 'validPlayLink', label: '视频有效播放链接', type: 'input', placeholder: '请输入视频有效播放链接' },
+      { key: 'activeLink', label: '激活监测链接', type: 'input', placeholder: '请输入激活监测链接' },
     ]);
     return;
   }
   if (b.key === 'importMonitor') {
+    // 线上「导入监测活动」弹窗：宽 800px，8 字段
+    openForm('导入监测活动', '800px', [
+      { key: 'appType', label: '应用类型', type: 'radio', options: [{ value: '安卓', label: '安卓' }, { value: 'iOS', label: 'iOS' }, { value: '鸿蒙', label: '鸿蒙' }] },
+      { key: 'source', label: '应用来源', type: 'radio', options: [{ value: '已有应用', label: '已有应用' }, { value: '内广应用', label: '内广应用' }] },
+      { key: 'workspace', label: '工作台', type: 'radio', options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
+      { key: 'baseAccount', label: '基于账户获取应用', type: 'select', placeholder: '全部', options: ACCOUNT_OPTIONS },
+      { key: 'appName', label: '巨量应用', type: 'select', required: true, placeholder: '所有应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'linkSource', label: '下载链接来源', type: 'radio', options: [{ value: '母包链接', label: '母包链接' }, { value: '分包', label: '分包' }, { value: '下载短链', label: '下载短链' }] },
+      { key: 'template', label: '获取模板文件', type: 'input', placeholder: '请输入模板文件地址' },
+      { key: 'file', label: '导入文件', type: 'input', required: true, placeholder: '请输入导入文件地址' },
+    ]);
+    return;
+  }
+  if (b.key === 'syncHarmony') {
+    // 线上「同步鸿蒙应用」弹窗：宽 670px（文件导入式，无表单字段）
     formMode.value = 'import';
-    formTitle.value = '批量导入监测活动';
-    formWidth.value = '560px';
+    formTitle.value = '同步鸿蒙应用';
+    formWidth.value = '670px';
     formVisible.value = true;
   }
 }

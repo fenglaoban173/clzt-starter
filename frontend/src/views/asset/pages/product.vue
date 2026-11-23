@@ -147,7 +147,7 @@
         </template>
       </el-dropdown>
 
-      <el-button type="primary" size="small" class="tool-btn" :loading="syncing" @click="onSync">同步资产</el-button>
+      <el-button type="primary" size="small" class="tool-btn" :loading="syncing" @click="openSyncDialog">同步资产</el-button>
 
       <el-button v-if="cfg.create" type="primary" size="small" class="tool-btn" @click="openDrawer">创建商品</el-button>
     </div>
@@ -486,6 +486,47 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ⑩ 同步商品 弹窗（线上 el-dialog，标题「同步商品」、宽 992px、4 字段） -->
+    <el-dialog
+      v-model="syncDialogVisible"
+      title="同步商品"
+      width="992px"
+      top="8vh"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-form :model="syncForm" label-width="150px" label-position="right" class="pd-dialog-form">
+        <el-form-item label="工作台">
+          <el-radio-group v-model="syncForm.workspace" size="small">
+            <el-radio-button value="旧版">旧版</el-radio-button>
+            <el-radio-button value="新版">新版</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="商品类型">
+          <el-radio-group v-model="syncForm.goodsType" size="small">
+            <el-radio-button v-for="t in SYNC_GOODS_TYPES" :key="t" :value="t">{{ t }}</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="所属账户" required>
+          <el-select v-model="syncForm.account" class="pd-dialog-select" size="small" filterable placeholder="请选择所属账户">
+            <el-option v-for="a in SYNC_ACCOUNT_OPTIONS" :key="a" :label="a" :value="a" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="选择商品库" required>
+          <el-input v-model="syncForm.lib" size="small" placeholder="请选择或输入商品库名称" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="operate-button">
+          <el-button size="small" plain @click="syncDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="onSyncSubmit">确 定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -580,6 +621,28 @@ const IMAGE_OPTIONS = [
 /* ------------------------------ mock 数据 ------------------------------ */
 
 /** 商品库名称（线上「商品库-通用版」共 51 个商品库） */
+/** 同步商品弹窗（线上 el-dialog「同步商品」，宽 992px，4 字段：工作台 / 商品类型 / 所属账户 / 选择商品库） */
+const SYNC_GOODS_TYPES = ['商品-通用版', '商品-升级版'];
+const SYNC_ACCOUNT_OPTIONS = [
+  '北京高途云集教育科技有限公司--1(1861811345880074)',
+  '百度文库-央广时代-拉新-搜索-01(1866877399870663)',
+  '百度文库-央广时代-拉新-搜索-02(1866877399203047)',
+  '任意门-央广-代运营-36-安卓-UBA(1866489873996443)',
+  '央广-621059846-百度文库-1(1866877405575303)',
+];
+const syncDialogVisible = ref(false);
+const syncForm = ref({ workspace: '旧版', goodsType: '商品-通用版', account: '', lib: '' });
+function openSyncDialog() {
+  syncForm.value = { workspace: '旧版', goodsType: '商品-通用版', account: '', lib: '' };
+  syncDialogVisible.value = true;
+}
+function onSyncSubmit() {
+  if (!syncForm.value.account) { ElMessage.warning('请选择所属账户'); return; }
+  if (!syncForm.value.lib) { ElMessage.warning('请选择商品库'); return; }
+  syncDialogVisible.value = false;
+  ElMessage.success('原型：已提交同步商品');
+}
+
 const LIB_NAMES = [
   'IAP-JNX-0415-2.9', '付费热门漫剧-女频', '付费热门漫剧-男频', '免费漫剧-男频', '免费漫剧-女频',
   '付费-男剧', '付费-女剧', '小说库', 'WS-IAA', 'NSZ 付费5分短剧库',

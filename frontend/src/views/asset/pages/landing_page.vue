@@ -14,43 +14,26 @@
     <!-- ② 查询条件（线上 form.filter-search-input） -->
     <div class="filter-row lp-filter-row">
       <div class="filter-left">
-        <!-- 媒体账户 -->
-        <div class="filter-cell">
-          <label class="filter-label">媒体账户：</label>
+        <!-- 查询条件（按页签切换，线上实测标签/占位/宽度/选项） -->
+        <div v-for="f in tabFilters" :key="f.key" class="filter-cell">
+          <label class="filter-label">{{ f.label }}：</label>
           <el-select
-            v-model="query.account"
+            v-model="query[f.key]"
             class="filter-select"
             size="small"
             filterable
-            placeholder="所有账户"
+            :placeholder="f.placeholder"
             @change="onFilterChange"
           >
-            <el-option v-for="a in ACCOUNT_OPTIONS" :key="a" :label="a" :value="a" />
+            <el-option v-for="o in f.options" :key="o" :label="o" :value="o" />
           </el-select>
-          <el-icon class="lp-icon-close" title="清空" @click="clearAccount"><Close /></el-icon>
-        </div>
-
-        <!-- 所属人员 -->
-        <div class="filter-cell">
-          <label class="filter-label">所属人员：</label>
-          <el-select
-            v-model="query.owner"
-            class="filter-select"
-            size="small"
-            filterable
-            placeholder="全部"
-            @change="onFilterChange"
-          >
-            <el-option v-for="o in OWNER_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-          <el-icon class="lp-icon-close" title="清空" @click="clearOwner"><Close /></el-icon>
+          <el-icon class="lp-icon-close" title="清空" @click="clearFilter(f.key)"><Close /></el-icon>
         </div>
 
         <!-- 关键词搜索：字段类型下拉 + 关键词输入 + 批量搜索气泡 + 🔍 -->
         <div class="lp-search">
           <el-select v-model="searchField" class="lp-search-field" size="small" placeholder="请选择">
-            <el-option label="名称" value="name" />
-            <el-option label="ID" value="id" />
+            <el-option v-for="f in tabSearchFields" :key="f" :label="f" :value="f" />
           </el-select>
           <el-input
             v-model="keyword"
@@ -151,9 +134,11 @@
       <el-button
         v-for="b in tabButtons"
         :key="b.key"
-        type="primary"
+        :type="b.plain ? 'default' : 'primary'"
+        :plain="!!b.plain"
         size="small"
         class="tool-btn lp-create-btn"
+        :style="{ width: b.width + 'px' }"
         @click="onToolbarButton(b)"
       >
         <el-icon class="lp-create-btn__icon"><Plus /></el-icon>{{ b.text }}
@@ -161,7 +146,13 @@
     </div>
 
     <!-- ④ 列表（线上 el-table--border，8 列、无分页） -->
-    <el-table :data="displayRows" border class="asset-table" empty-text="暂无数据">
+    <el-table
+      :data="displayRows"
+      border
+      class="asset-table"
+      empty-text="暂无数据"
+      :style="{ '--row-pad': activeTab === '橙子落地页' ? '30px' : '8px' }"
+    >
       <el-table-column
         v-if="tabCfg.selection"
         type="selection"
@@ -341,6 +332,50 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ⑥ 批量导入落地页 弹窗（线上 el-dialog「导入第三方落地页」，宽 800px，4 字段） -->
+    <el-dialog
+      v-model="importVisible"
+      title="导入第三方落地页"
+      width="800px"
+      top="15vh"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-form :model="importForm" label-width="150px" label-position="right" class="lp-dialog-form">
+        <el-form-item label="产品">
+          <el-select
+            v-model="importForm.product"
+            class="lp-dialog-select"
+            size="small"
+            placeholder="请选择创量产品"
+          >
+            <el-option v-for="p in LP_PRODUCT_OPTIONS" :key="p" :label="p" :value="p" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="直达链接生成方式">
+          <el-radio-group v-model="importForm.linkWay" size="small">
+            <el-radio-button value="手动填写">手动填写</el-radio-button>
+            <el-radio-button value="自动生成">自动生成</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="获取模板">
+          <el-input v-model="importForm.template" size="small" placeholder="请输入模板地址" />
+        </el-form-item>
+
+        <el-form-item label="导入文件">
+          <el-input v-model="importForm.file" size="small" placeholder="请粘贴或选择落地页文件地址" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button size="small" @click="importVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="onImportSubmit">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -369,6 +404,16 @@ defineProps({ kind: { type: String, default: '' } });
 
 /** 模板类型（线上「新建落地页模板」弹窗 4 项） */
 const TEMPLATE_TYPES = ['应用下载', '微信小程序', '微信小游戏', '抖音小程序/小游戏'];
+/** 橙子落地页「状态」（线上 5 项） */
+const LP_STATUS_OPTIONS = ['全部状态', '已上线', '已下线', '审核不通过', '删除或者禁止'];
+/** 橙子落地页「合法状态」（线上 3 项） */
+const LP_LEGAL_OPTIONS = ['不限', '不合法', '合法'];
+/** 程序化落地页组「状态」（线上 2 项） */
+const GROUP_STATUS_OPTIONS = ['可用', '不可用'];
+/** 第三方落地页「产品」（线上 2 项） */
+const LP_PRODUCT_OPTIONS = ['测试商品', '测试安卓应用(android)'];
+/** 第三方落地页「创量项目」（线上 4 项） */
+const LP_PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];
 
 /** 媒体账户下拉（线上 20 个账户） */
 const ACCOUNT_OPTIONS = [
@@ -466,20 +511,56 @@ const TABS = [
   '第三方落地页',
 ];
 
+/** 各页签的查询条件（线上实测：标签 / 占位 / 宽度 169px / 选项全文） */
+const TAB_FILTERS = {
+  橙子落地页模板: [
+    { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ACCOUNT_OPTIONS },
+    { key: 'owner', label: '所属人员', placeholder: '全部', options: OWNER_OPTIONS },
+  ],
+  创量落地页模板: [
+    { key: 'templateType', label: '模板类型', placeholder: '所有模板类型', options: TEMPLATE_TYPES },
+    { key: 'owner', label: '所属人员', placeholder: '全部', options: OWNER_OPTIONS },
+  ],
+  橙子落地页: [
+    { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ACCOUNT_OPTIONS },
+    { key: 'status', label: '状态', placeholder: '请选择状态', options: LP_STATUS_OPTIONS },
+    { key: 'legalStatus', label: '合法状态', placeholder: '请选择合法状态', options: LP_LEGAL_OPTIONS },
+  ],
+  程序化落地页组: [
+    { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ACCOUNT_OPTIONS },
+    { key: 'status', label: '状态', placeholder: '请选择状态', options: GROUP_STATUS_OPTIONS },
+  ],
+  第三方落地页: [
+    { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ACCOUNT_OPTIONS },
+    { key: 'creator', label: '创建人员', placeholder: '全部', options: OWNER_OPTIONS },
+    { key: 'product', label: '产品', placeholder: '不限', options: LP_PRODUCT_OPTIONS },
+    { key: 'project', label: '智投项目', placeholder: '全部', options: LP_PROJECT_OPTIONS },
+  ],
+};
+
+/** 各页签的搜索「字段类型」下拉（线上实测） */
+const TAB_SEARCH_FIELDS = {
+  橙子落地页模板: ['名称', 'ID'],
+  创量落地页模板: ['名称', 'ID'],
+  橙子落地页: ['名称', 'ID', '路径参数', '备注'],
+  程序化落地页组: ['名称', '组ID'],
+  第三方落地页: ['名称', 'ID'],
+};
+
 /** 各页签的工具栏按钮（线上实测）：随页签切换 */
 const TAB_BUTTONS = {
-  橙子落地页模板: [{ key: 'create', text: '新建模板' }],
-  创量落地页模板: [{ key: 'create', text: '新建模板' }],
+  橙子落地页模板: [{ key: 'create', text: '新建模板', width: 120 }],
+  创量落地页模板: [{ key: 'create', text: '新建模板', width: 120 }],
   橙子落地页: [
-    { key: 'syncAsset', text: '同步落地页资产' },
-    { key: 'create', text: '新建落地页' },
-    { key: 'useTemplate', text: '使用模板新建' },
+    { key: 'syncAsset', text: '同步落地页资产', plain: true, width: 116 },
+    { key: 'create', text: '新建落地页', width: 120 },
+    { key: 'useTemplate', text: '使用模板新建', width: 125 },
   ],
-  程序化落地页组: [{ key: 'syncGroup', text: '同步落地页组' }],
+  程序化落地页组: [{ key: 'syncGroup', text: '同步落地页组', width: 104 }],
   第三方落地页: [
-    { key: 'create', text: '新建落地页' },
-    { key: 'import', text: '批量导入落地页' },
-    { key: 'sync', text: '同步落地页' },
+    { key: 'create', text: '新建落地页', width: 120 },
+    { key: 'import', text: '批量导入落地页', width: 133 },
+    { key: 'sync', text: '同步落地页', width: 120 },
   ],
 };
 
@@ -618,9 +699,15 @@ TABS.forEach((t) => { ROWS[t] = buildRows(t); });
 /* ------------------------------ 状态 ------------------------------ */
 
 const activeTab = ref(TABS[0]);
-const query = ref({ account: '', owner: '' });
-/** 线上搜索框默认选中「名称」（占位文案「请选择」仅在未选中时显示） */
-const searchField = ref('name');
+const query = ref({
+  account: '', owner: '', templateType: '', status: '', legalStatus: '', creator: '', product: '', project: '',
+});
+/** 线上搜索框默认选中「名称」（占位文案「请选择」仅在未选中时显示）；
+ *  下拉项与线上同为中文标签，这里映射到内部字段名 */
+const SEARCH_FIELD_MAP = {
+  名称: 'name', ID: 'id', 路径参数: 'pathParams', 备注: 'remark', 组ID: 'groupId',
+};
+const searchField = ref('名称');
 const keyword = ref('');
 const batchText = ref('');
 /** 「设置」里勾选的列（默认全选） */
@@ -644,10 +731,27 @@ const createText = computed(() => TAB_CONFIG[activeTab.value].createText);
 const tabCfg = computed(() => TAB_CONFIG[activeTab.value]);
 /** 当前页签的工具栏按钮 */
 const tabButtons = computed(() => TAB_BUTTONS[activeTab.value] || []);
+/** 当前页签的查询条件 / 搜索字段类型 */
+const tabFilters = computed(() => TAB_FILTERS[activeTab.value] || []);
+const tabSearchFields = computed(() => TAB_SEARCH_FIELDS[activeTab.value] || ['名称', 'ID']);
+/** 清空单个筛选项 */
+function clearFilter(key) {
+  query.value[key] = '';
+  onFilterChange();
+}
 /** 工具栏按钮点击（新建类打开弹窗，其余原型提示） */
 function onToolbarButton(b) {
   if (b.key === 'create') { openCreate(); return; }
+  if (b.key === 'import') { importVisible.value = true; return; }
   ElMessage.info(`原型：${b.text}`);
+}
+
+/* ---------- 批量导入落地页（线上 el-dialog「导入第三方落地页」，宽 800px，4 字段） ---------- */
+const importVisible = ref(false);
+const importForm = ref({ product: '', linkWay: '手动填写', template: '', file: '' });
+function onImportSubmit() {
+  importVisible.value = false;
+  ElMessage.success('原型：已提交导入第三方落地页');
 }
 
 const shownColumns = computed(() => {
@@ -663,12 +767,28 @@ const filteredRows = computed(() => {
   if (acc) rows = rows.filter((r) => r.account === acc);
   const owner = query.value.owner;
   if (owner) rows = rows.filter((r) => r.owner === owner);
+  const creator = query.value.creator;
+  if (creator) rows = rows.filter((r) => r.creator === creator);
+  const product = query.value.product;
+  if (product) rows = rows.filter((r) => r.product === product);
+  const project = query.value.project;
+  if (project) rows = rows.filter((r) => r.project === project);
+  const status = query.value.status;
+  if (status) rows = rows.filter((r) => r.status === status);
   const kw = keyword.value.trim();
   if (kw) {
     const keys = kw.split(',').map((s) => s.trim()).filter(Boolean);
+    const field = SEARCH_FIELD_MAP[searchField.value] || 'name';
     rows = rows.filter((r) => {
-      if (searchField.value === 'id') {
-        return keys.some((k) => String(r.lpId).indexOf(k) > -1 || String(r.id).indexOf(k) > -1);
+      if (field === 'id' || field === 'groupId') {
+        return keys.some((k) => String(r.lpId).indexOf(k) > -1 || String(r.id).indexOf(k) > -1
+          || String(r.groupId).indexOf(k) > -1);
+      }
+      if (field === 'pathParams') {
+        return keys.some((k) => String(r.pathParams).indexOf(k) > -1);
+      }
+      if (field === 'remark') {
+        return keys.some((k) => String(r.remark).indexOf(k) > -1);
       }
       return keys.some(
         (k) => String(r.landing).indexOf(k) > -1 || String(r.template).indexOf(k) > -1,
@@ -688,7 +808,7 @@ function switchTab(tab) {
   activeTab.value = tab;
   visibleColProps.value = TAB_CONFIG[tab].columns.map((c) => c.prop);
   keyword.value = '';
-  searchField.value = 'name';
+  searchField.value = '名称';
 }
 
 function onFilterChange() {
@@ -713,15 +833,17 @@ function onBatchSearch() {
   const keys = batchText.value.split('\n').map((s) => s.trim()).filter(Boolean);
   if (!keys.length) { ElMessage.warning('请输入关键词'); return; }
   keyword.value = keys.join(',');
-  searchField.value = 'name';
+  searchField.value = '名称';
   onSearch();
   ElMessage.success(`已按 ${keys.length} 个关键词批量搜索`);
 }
 
 /** 「清空」：重置筛选 + 搜索 */
 function onClearFilters() {
-  query.value = { account: '', owner: '' };
-  searchField.value = 'name';
+  query.value = {
+    account: '', owner: '', templateType: '', status: '', legalStatus: '', creator: '', product: '', project: '',
+  };
+  searchField.value = '名称';
   keyword.value = '';
   batchText.value = '';
   onFilterChange();
