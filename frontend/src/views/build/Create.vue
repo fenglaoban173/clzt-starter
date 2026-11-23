@@ -828,6 +828,17 @@
     <!-- 项目配置弹窗 -->
     <el-drawer v-model="projVisible" :title="cardTitle.proj" size="1016px" direction="rtl">
       <el-form :model="form.project" class="drawer-form" label-position="top">
+        <!-- 资产组（线上首个分区，独立成段） -->
+        <div class="form-section">
+          <div class="form-section__title">资产组</div>
+          <el-form-item label="资产组">
+            <el-radio-group v-model="form.project.asset_group">
+              <el-radio value="OFF">不启用</el-radio>
+              <el-radio value="ON">启用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </div>
+
         <!-- 推广目的 -->
         <div class="form-section">
           <div class="form-section__title">推广目的</div>
@@ -847,10 +858,7 @@
           </el-col>
         </el-row>
 
-        <!-- 基础属性 -->
-        </div>
-        <div class="form-section">
-          <div class="form-section__title">基础属性</div>
+        <!-- 广告类型 / 投放类型 / 投放模式 / 营销场景 / 内广项目（线上同属「推广目的」段） -->
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="广告类型" required>
@@ -1645,7 +1653,16 @@
         </div>
           <!-- 广告预算与出价（线上：与广告设置同面板，滚动到本段） -->
           <div class="form-section" id="ad-budget">
-            <div class="form-section__title">广告预算与出价</div>
+            <div class="form-section__title">
+              广告预算与出价
+              <el-button link type="primary" class="sec-collapse" @click="adBudget.folded = !adBudget.folded">全部收起</el-button>
+            </div>
+            <div class="ad-summary">
+              <span>竞价策略: <b>{{ adBudgetSummary.bid_strategy }}</b></span>
+              <span>优化目标: <b>{{ adBudgetSummary.optimize_goal }}</b></span>
+              <span>深度优化方式: <b>{{ adBudgetSummary.deep_bid_mode }}</b></span>
+              <span>付费方式: <b>{{ adBudgetSummary.pay_mode }}</b></span>
+            </div>
             <el-form-item label="预算出价配置模式">
               <el-radio-group v-model="adBudget.config_mode" size="small">
                 <el-radio-button value="UNIFIED">统一配置</el-radio-button>
@@ -2666,6 +2683,13 @@ const relatedVisible = ref(false);
 const adBudgetVisible = ref(false);
 /* ---- 搜索快投（新建项目） ---- */
 const searchForm = reactive({ keyword: '', bid_coef: 'OFF', extend: 'OFF', service: false });
+/* 广告预算与出价汇总条（线上灰色条） */
+const adBudgetSummary = computed(() => ({
+  bid_strategy: { STABLE: '稳定成本（常规版）', COST_CAP: '成本上限（常规版）', MAX_CONV: '最大转化', CONTROL_COST: '控成本投放' }[adBudget.bid_strategy] || '',
+  optimize_goal: { APP_PAY: 'app内付费/无', ACTIVATE: '激活/无' }[adBudget.optimize_goal] || '',
+  deep_bid_mode: { NONE: '无', DOUBLE: '双出价' }[adBudget.deep_bid_mode] || '',
+  pay_mode: { OCPM: '目标转化出价-按展示付费', CPC: '目标转化出价-按点击付费' }[adBudget.pay_mode] || '',
+}));
 /* ---- 广告基本信息：直达链接行 / 行动号召输入 ---- */
 const adLinkRows = ref([
   { account: '央广-雷盟-知乎-APP内付费-124-792335571-在投', accountId: '1873758649506203', url: 'zhhuz://market/paid_column/...' },
@@ -3056,6 +3080,7 @@ const form = reactive({
   existing_projects: [],
   uni_rule_mode: 'max_count',
   project: {
+    asset_group: 'OFF',
     operation: 'ENABLE',
     objective: 'APP',
     landing_type: 'APP',
@@ -3991,6 +4016,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.sec-collapse { float: right; font-size: 12px; font-weight: 400; }
+.ad-summary { display: flex; gap: 28px; padding: 10px 12px; margin-bottom: 12px; background: #f5f6f7; border-radius: 4px; font-size: 12px; color: #86909c; }
+.ad-summary b { color: #1d2129; font-weight: 600; }
 .name-wildcards { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 13px; color: #4e5969; }
 .name-wildcards__label { color: #86909c; }
 .name-warn-hint { font-size: 12px; color: #e6a23c; margin-top: 8px; }
