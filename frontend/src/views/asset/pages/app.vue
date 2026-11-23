@@ -214,7 +214,7 @@
           :required="!!f.required"
           :error="formErrors[f.key] || ''"
         >
-          <el-select v-if="f.type === 'select'" v-model="form[f.key]" :placeholder="f.placeholder || `请选择${f.label}`" style="width: 100%">
+          <el-select v-if="f.type === 'select'" v-model="form[f.key]" :placeholder="f.placeholder || `请选择${f.label}`" :disabled="isFieldLocked(f)" style="width: 100%">
             <el-option v-for="o in f.options" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
           <el-radio-group v-else-if="f.type === 'radio'" v-model="form[f.key]">
@@ -797,6 +797,11 @@ async function copyLink(url) {
 const selectedRows = ref([]);
 const batchOp = ref('');
 function onSelectionChange(rows) { selectedRows.value = rows; }
+/** 字段条件启用态：enabledWhen = { field, value }，不满足时置灰（线上实测联动） */
+function isFieldLocked(f) {
+  if (!f.enabledWhen) return false;
+  return form.value[f.enabledWhen.field] !== f.enabledWhen.value;
+}
 function onBatchOp(v) {
   if (!v) return;
   ElMessage.info(`原型：批量${v}`);
@@ -815,9 +820,10 @@ async function onButton(b) {
   if (b.key === 'newSp') {
     // 线上「新建应用分包」弹窗：宽 992px，4 字段（工作台 / 巨量应用 / 创建应用的账户 / 导入渠道号）
     openForm('新建应用分包', '992px', [
-      { key: 'workspace', label: '工作台', type: 'radio', options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
+      { key: 'workspace', label: '工作台', type: 'radio', default: '旧版', options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
       { key: 'appName', label: '巨量应用', type: 'select', required: true, placeholder: '请选择巨量应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
-      { key: 'account', label: '创建应用的账户', type: 'select', required: true, placeholder: '请选择媒体账户', options: ACCOUNT_OPTIONS },
+      // 联动：线上「创建应用的账户」默认置灰，选「工作台 = 新版」后才可用
+      { key: 'account', label: '创建应用的账户', type: 'select', required: true, placeholder: '请选择媒体账户', options: ACCOUNT_OPTIONS, enabledWhen: { field: 'workspace', value: '新版' } },
       { key: 'channelNo', label: '导入渠道号', type: 'textarea', placeholder: '请输入渠道号' },
     ]);
     return;
@@ -880,7 +886,7 @@ function openForm(title, width, fields) {
   formFields.value = fields;
   Object.keys(form).forEach((k) => delete form[k]);
   Object.keys(formErrors).forEach((k) => delete formErrors[k]);
-  fields.forEach((f) => { form[f.key] = ''; });
+  fields.forEach((f) => { form[f.key] = f.default !== undefined ? f.default : ''; });
   formVisible.value = true;
 }
 

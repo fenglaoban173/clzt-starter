@@ -232,8 +232,8 @@
     <!-- ⑤ 新建落地页模板 弹窗（线上 el-dialog，标题「新建落地页模板」、宽 526px） -->
     <el-dialog
       v-model="createVisible"
-      title="新建落地页模板"
-      width="526px"
+      :title="activeTab === '第三方落地页' ? '新建落地页' : '新建落地页模板'"
+      :width="activeTab === '第三方落地页' ? '800px' : '526px'"
       top="15vh"
       :close-on-click-modal="false"
       header-class="lp-dialog-header"
@@ -250,13 +250,66 @@
           label-position="left"
           class="lp-dialog-form"
         >
-          <el-form-item label="模板类型" prop="templateType" required>
+          <el-form-item v-if="activeTab !== '第三方落地页'" label="模板类型" prop="templateType" required>
             <el-radio-group v-model="createForm.templateType" size="small">
               <el-radio-button v-for="t in TEMPLATE_TYPES" :key="t" :value="t">{{ t }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item label="媒体账户" prop="account" required>
+          <!-- 第三方落地页：线上「新建落地页」字段（线上实测 800px） -->
+          <template v-if="activeTab === '第三方落地页'">
+            <el-form-item label="关联媒体账户" prop="relAccount">
+              <el-select v-model="createForm.relAccount" class="lp-dialog-select" size="small" filterable placeholder="请选择媒体账户">
+                <el-option v-for="a in ACCOUNT_OPTIONS" :key="a" :label="a" :value="a" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="智投项目（选填）" prop="project">
+              <el-select v-model="createForm.project" class="lp-dialog-select" size="small" clearable placeholder="请选择智投项目">
+                <el-option v-for="p in LP_PROJECT_OPTIONS" :key="p" :label="p" :value="p" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="落地页名称" prop="name" required>
+              <el-input v-model="createForm.name" size="small" placeholder="请输入落地页名称" />
+            </el-form-item>
+
+            <el-form-item label="落地页链接" prop="link" required>
+              <el-input v-model="createForm.link" size="small" placeholder="请输入落地页链接" />
+            </el-form-item>
+
+            <el-form-item label="落地页备注" prop="remark">
+              <el-input v-model="createForm.remark" type="textarea" :rows="2" placeholder="请输入落地页备注" />
+            </el-form-item>
+
+            <el-form-item label="产品" prop="product">
+              <el-select v-model="createForm.product" class="lp-dialog-select" size="small" clearable placeholder="请选择产品">
+                <el-option v-for="p in LP_PRODUCT_OPTIONS" :key="p" :label="p" :value="p" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="有效触点链接" prop="touchLink">
+              <el-input v-model="createForm.touchLink" size="small" placeholder="请输入有效触点链接" />
+            </el-form-item>
+
+            <el-form-item label="展示监测链接" prop="showLink">
+              <el-input v-model="createForm.showLink" size="small" placeholder="请输入展示监测链接" />
+            </el-form-item>
+
+            <el-form-item label="视频有效播放链接" prop="validPlayLink">
+              <el-input v-model="createForm.validPlayLink" size="small" placeholder="请输入视频有效播放链接" />
+            </el-form-item>
+
+            <el-form-item label="视频播放" prop="playLink">
+              <el-input v-model="createForm.playLink" size="small" placeholder="请输入视频播放链接" />
+            </el-form-item>
+
+            <el-form-item label="视频播完" prop="playEndLink">
+              <el-input v-model="createForm.playEndLink" size="small" placeholder="请输入视频播完链接" />
+            </el-form-item>
+          </template>
+
+          <el-form-item v-if="activeTab !== '第三方落地页'" label="媒体账户" prop="account" required>
             <el-select
               v-model="createForm.account"
               class="lp-dialog-select"
@@ -268,7 +321,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="选择落地页" prop="pages" required>
+          <el-form-item v-if="activeTab !== '第三方落地页'" label="选择落地页" prop="pages" required>
             <div class="lp-transfer">
               <div class="lp-transfer__left">
                 <div class="lp-transfer__head">
@@ -927,7 +980,11 @@ const LP_PAGE_SIZE = 10;
 
 const createVisible = ref(false);
 const createFormRef = ref();
-const createForm = ref({ templateType: '应用下载', account: '', pages: [], name: '' });
+const createForm = ref({
+  templateType: '应用下载', account: '', pages: [], name: '',
+  relAccount: '', project: '', link: '', remark: '', product: '',
+  touchLink: '', showLink: '', validPlayLink: '', playLink: '', playEndLink: '',
+});
 const lpKeyword = ref('');
 const lpPage = ref(1);
 const allChecked = ref(false);
