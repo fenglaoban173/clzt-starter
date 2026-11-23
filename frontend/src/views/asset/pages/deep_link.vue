@@ -179,27 +179,27 @@
       @selection-change="onSelectionChange"
     >
       <el-table-column type="selection" width="60" fixed="left" align="center" />
-      <el-table-column prop="name" label="直达链接名称" width="200" fixed="left" show-overflow-tooltip />
-      <el-table-column prop="use_status" label="使用状态" width="90" align="center">
+      <el-table-column prop="name" label="直达链接名称" min-width="200" fixed="left" show-overflow-tooltip />
+      <el-table-column prop="use_status" label="使用状态" min-width="90" align="center">
         <template #default="{ row }">
           <el-tag size="small" :type="row.use_status === '已使用' ? 'success' : 'info'">
             {{ row.use_status }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" align="center">
+      <el-table-column label="操作" min-width="120" align="center">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
           <el-button link type="primary" size="small" @click="removeRow(row)">删除</el-button>
         </template>
       </el-table-column>
-      <el-table-column prop="id" label="ID" width="120" show-overflow-tooltip />
-      <el-table-column prop="deeplink" label="Deeplink直达链接" width="200" show-overflow-tooltip />
-      <el-table-column prop="ulink" label="Ulink直达链接" width="200" show-overflow-tooltip />
-      <el-table-column prop="advertiser_name" label="媒体账户" width="150" show-overflow-tooltip />
-      <el-table-column prop="optimizer" label="优化师" width="120" show-overflow-tooltip />
-      <el-table-column prop="created_at" label="创建时间" width="150" show-overflow-tooltip />
-      <el-table-column label="关联计划" width="150" show-overflow-tooltip>
+      <el-table-column prop="id" label="ID" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="deeplink" label="Deeplink直达链接" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="ulink" label="Ulink直达链接" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="advertiser_name" label="媒体账户" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="optimizer" label="优化师" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="created_at" label="创建时间" min-width="150" show-overflow-tooltip />
+      <el-table-column label="关联计划" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.plans && row.plans.length">{{ row.plans.join('、') }}</span>
           <span v-else>-</span>

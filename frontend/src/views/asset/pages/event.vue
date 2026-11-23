@@ -100,18 +100,18 @@
           class="asset-table event-table"
           empty-text="暂无数据"
         >
-          <el-table-column label="事件名称" prop="optimization_name" width="240" show-overflow-tooltip />
-          <el-table-column label="优化目标" prop="external_action_title" width="181" show-overflow-tooltip>
+          <el-table-column label="事件名称" prop="optimization_name" min-width="240" show-overflow-tooltip />
+          <el-table-column label="优化目标" prop="external_action_title" min-width="181" show-overflow-tooltip>
             <template #default="{ row }">{{ row.external_action_title || '无' }}</template>
           </el-table-column>
-          <el-table-column label="深度优化目标" prop="deep_external_action_str" width="181" show-overflow-tooltip>
+          <el-table-column label="深度优化目标" prop="deep_external_action_str" min-width="181" show-overflow-tooltip>
             <template #default="{ row }">{{ row.deep_external_action_str || '无' }}</template>
           </el-table-column>
-          <el-table-column label="价值类型" prop="value_type_title" width="181" show-overflow-tooltip />
-          <el-table-column label="事件回传方式" prop="track_types" width="80" show-overflow-tooltip>
+          <el-table-column label="价值类型" prop="value_type_title" min-width="181" show-overflow-tooltip />
+          <el-table-column label="事件回传方式" prop="track_types" min-width="80" show-overflow-tooltip>
             <template #default="{ row }">{{ trackText(row.track_types) }}</template>
           </el-table-column>
-          <el-table-column label="媒体账户" prop="advertiser_nick" width="181" show-overflow-tooltip />
+          <el-table-column label="媒体账户" prop="advertiser_nick" min-width="181" show-overflow-tooltip />
         </el-table>
       </div>
     </div>

@@ -179,7 +179,8 @@
         v-for="col in shownColumns"
         :key="col.prop"
         :label="col.label"
-        :min-width="col.width"
+        :width="col.fixed ? col.width : undefined"
+        :min-width="col.fixed ? undefined : col.width"
         :fixed="col.fixed || false"
         :align="col.align || 'left'"
         show-overflow-tooltip

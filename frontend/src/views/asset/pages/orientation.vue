@@ -203,8 +203,8 @@
         @selection-change="onSelectionChange"
       >
         <el-table-column type="selection" width="48" fixed="left" align="center" />
-        <el-table-column prop="name" label="定向包名称" width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="400">
+        <el-table-column prop="name" label="定向包名称" min-width="200" show-overflow-tooltip />
+        <el-table-column label="操作" min-width="400">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openShare(row)">共享</el-button>
             <el-button link type="primary" size="small" @click="openAddProject(row)">添加巨量项目</el-button>
@@ -213,16 +213,16 @@
             <el-button link type="primary" size="small" @click="removeRow(row)">删除</el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="package_id" label="定向包ID" width="80" />
-        <el-table-column prop="description" label="定向描述" width="200" show-overflow-tooltip />
-        <el-table-column prop="package_type" label="定向包类型" width="120" show-overflow-tooltip />
-        <el-table-column prop="delivery_range" label="投放范围" width="100" />
-        <el-table-column prop="product" label="产品" width="120" show-overflow-tooltip />
-        <el-table-column prop="project" label="智投项目" width="120" show-overflow-tooltip />
-        <el-table-column prop="company" label="主体" width="210" show-overflow-tooltip />
-        <el-table-column prop="creator" label="创建人员" width="100" />
-        <el-table-column prop="related_count" label="关联项目数" width="100" />
-        <el-table-column prop="create_time" label="创建时间" width="150" />
+        <el-table-column prop="package_id" label="定向包ID" min-width="80" />
+        <el-table-column prop="description" label="定向描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="package_type" label="定向包类型" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="delivery_range" label="投放范围" min-width="100" />
+        <el-table-column prop="product" label="产品" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="project" label="智投项目" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="company" label="主体" min-width="210" show-overflow-tooltip />
+        <el-table-column prop="creator" label="创建人员" min-width="100" />
+        <el-table-column prop="related_count" label="关联项目数" min-width="100" />
+        <el-table-column prop="create_time" label="创建时间" min-width="150" />
 
         <template #empty>
           <div class="ori-empty">暂无数据</div>
@@ -324,20 +324,20 @@
         @selection-change="(rows) => (jySelectedRows = rows)"
       >
         <el-table-column type="selection" width="48" fixed="left" align="center" />
-        <el-table-column prop="name" label="定向包名称" width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="100">
+        <el-table-column prop="name" label="定向包名称" min-width="200" show-overflow-tooltip />
+        <el-table-column label="操作" min-width="100">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openEdit(row, true)">编辑</el-button>
             <el-button link type="primary" size="small" @click="copyRow(row, true)">复制</el-button>
             <el-button link type="primary" size="small" @click="removeRow(row, true)">删除</el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="package_id" label="定向包ID" width="80" />
-        <el-table-column prop="description" label="定向描述" width="200" show-overflow-tooltip />
-        <el-table-column prop="package_type" label="定向包类型" width="120" show-overflow-tooltip />
-        <el-table-column prop="delivery_range" label="投放范围" width="100" />
-        <el-table-column prop="account" label="媒体账户" width="100" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="创建时间" width="150" />
+        <el-table-column prop="package_id" label="定向包ID" min-width="80" />
+        <el-table-column prop="description" label="定向描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="package_type" label="定向包类型" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="delivery_range" label="投放范围" min-width="100" />
+        <el-table-column prop="account" label="媒体账户" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="创建时间" min-width="150" />
 
         <template #empty>
           <div class="ori-empty">请选择媒体账户</div>
