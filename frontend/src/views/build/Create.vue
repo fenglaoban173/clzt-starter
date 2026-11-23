@@ -2619,10 +2619,10 @@ const PROJECT_RULES = [
   { value: 'BY_ASSET', label: '按资产组', desc: '项目数量与资产组数量相等，项目中的广告都使用相同的资产组', disabled: true },
 ];
 const AD_RULES = [
-  { value: 'BY_CREATIVE', label: '按创意组数', desc: '基于创意组数生成广告，自动匹配标题包，标题包不同时循环使用' },
+  { value: 'BY_CREATIVE', label: '按创意组数', desc: '基于创意组数生成广告，自动匹配标题包，标题包不足时循环使用' },
   { value: 'BY_CREATIVE_TITLE', label: '按创意组*标题包', desc: '基于创意组*标题包自动生成广告' },
   { value: 'BY_PROJECT_CREATIVE', label: '按项目数*创意组', desc: '基于项目数*创意组自动生成广告' },
-  { value: 'BY_COUNT', label: '指定数量', desc: '先指定广告数量，自动循环使用素材和标题，多选少补' },
+  { value: 'BY_COUNT', label: '指定数量', desc: '先指定广告数量，自动循环使用素材和标题，多退少补' },
   { value: 'BY_CREATIVE_ASSET', label: '按创意组*资产组', desc: '基于创意组*资产组自动生成广告', disabled: true },
   { value: 'BY_CREATIVE_TITLE_ASSET', label: '按创意组*标题包*资产组', desc: '基于创意组*标题包*资产组自动生成广告', disabled: true },
 ];
