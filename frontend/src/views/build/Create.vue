@@ -2,7 +2,7 @@
   <div v-loading="submitting" class="batch-page">
     <!-- 顶部标题栏 -->
     <div class="top-bar">
-      <div class="page-title">程序化批量 / {{ mediaTitle }}</div>
+      <div class="page-title">{{ isUpgrade ? '转化优化版' : '程序化批量' }} / 巨量广告</div>
       <div class="top-right">
         <el-tag v-if="strategyGroup" type="primary" effect="light">
           已套用策略组：{{ strategyGroup.name }}
@@ -17,6 +17,11 @@
         <div class="seg">
           <el-button type="primary" @click="strategyVisible = true">选择策略</el-button>
           <el-button type="primary" @click="taskVisible = true">选择任务</el-button>
+          <span v-if="taskSelected" class="picked-task">
+            已选「任务」: {{ taskSelected.name }}
+            <el-icon class="picked-task__x" title="重新选择" @click="taskVisible = true"><Close /></el-icon>
+            <el-button link type="primary" class="picked-task__edit" @click="taskVisible = true">更改</el-button>
+          </span>
         </div>
         <div class="est-wrap">
           <div class="est" @click="estOpen = !estOpen">
@@ -48,7 +53,8 @@
             </template>
             <span class="rule-box__value" :class="{ placeholder: !form.account_ids.length }">{{ accountSummary }}</span>
           </el-tooltip>
-          <el-button link type="primary" class="rule-box__act" @click="acctVisible = true">更改</el-button>
+          <span v-if="form.account_ids.length" class="rule-box__count">已选 {{ form.account_ids.length }} 个</span>
+          <el-button link type="primary" class="rule-box__act" @click="acctVisible = true">重选</el-button>
         </div>
         <div class="rule-box" v-if="isUpgrade">
           <span class="rule-box__label">规则配置</span>
@@ -76,13 +82,51 @@
           <div class="col-body col-body--center">
             <!-- 未选媒体账户时，线上仅展示居中的「请选择媒体账户」入口 -->
             <el-link v-if="!form.account_ids.length" type="primary" class="col-pick" @click="acctVisible = true">请选择媒体账户</el-link>
-            <div v-else class="mode-split">
-              <div class="mode-split__cell" :class="{ active: form.create_mode === 'EXIST' }" @click="openExisting">
-                <span class="mode-split__text">选择已有项目</span>
+            <div v-else class="proj-col">
+            <div class="mode-split" :class="{ 'mode-split--links': isUpgrade }">
+              <template v-if="isUpgrade">
+                <span class="mode-split__text">{{ form.create_mode === 'EXIST' ? '已有项目' : '新建项目' }}</span>
+                <el-button link type="primary" class="mode-split__link" @click="openExisting">从已有项目创建</el-button>
+                <el-button link type="primary" class="mode-split__link" @click="toggleCreateMode">切换</el-button>
+              </template>
+              <template v-else>
+                <div class="mode-split__cell" :class="{ active: form.create_mode === 'EXIST' }" @click="openExisting">
+                  <span class="mode-split__text">选择已有项目</span>
+                </div>
+                <div class="mode-split__cell" :class="{ active: form.create_mode === 'NEW' }" @click="switchToNewProject">
+                  <span class="mode-split__text">新建项目</span>
+                </div>
+              </template>
+            </div>
+            <!-- 线上：基本信息（可展开）+ 定向包 -->
+            <div v-if="isUpgrade && form.account_ids.length" class="proj-blocks">
+              <div class="proj-block">
+                <div class="proj-block__head">
+                  <span class="proj-block__title">基本信息</span>
+                  <el-button link type="primary" class="proj-block__act" @click="projInfoFolded = !projInfoFolded">
+                    {{ projInfoFolded ? '收起' : '展开' }}
+                  </el-button>
+                </div>
+                <div class="proj-block__body">
+                  <div class="proj-line">项目名称: {{ form.project.name || '—' }}</div>
+                  <div class="proj-line">项目组名: {{ form.project.group_name || '—' }}</div>
+                  <div class="proj-line">项目组总价: {{ form.project.group_price || '—' }}</div>
+                  <div class="proj-line">项目收益出价: {{ form.project.group_bid || '—' }}</div>
+                  <div class="proj-line">推广目的: {{ objectiveLabel }}</div>
+                  <div class="proj-line">应用推广: {{ form.project.app_name || '—' }}</div>
+                </div>
               </div>
-              <div class="mode-split__cell" :class="{ active: form.create_mode === 'NEW' }" @click="switchToNewProject">
-                <span class="mode-split__text">新建项目</span>
+              <div class="proj-block">
+                <div class="proj-block__head">
+                  <span class="proj-block__title">定向包</span>
+                  <el-button link type="primary" class="proj-block__act" @click="openSection('targeting')">获取定向清单</el-button>
+                </div>
+                <div class="proj-block__body">
+                  <div v-for="t in selectedTargetings" :key="t.id" class="proj-line">{{ t.name }}</div>
+                  <div class="proj-line">打通数据-策略</div>
+                </div>
               </div>
+            </div>
             </div>
           </div>
           <div class="col-foot">
@@ -136,7 +180,7 @@
         <div class="col">
           <div class="col-head">
             <span class="col-head__title">{{ cardTitle.title }}</span>
-            <span class="col-count">已选: {{ titleCount }}/{{ isUni ? 100 : 200 }}</span>
+            <span class="col-count">已选: {{ titleCount }}/{{ isUni ? 100 : (isUpgrade ? 40 : 200) }}</span>
             <el-button link type="primary" class="col-head__act" @click="shuffleTitles">乱序</el-button>
             <el-button link type="primary" class="col-head__act" @click="clearTitles">清空</el-button>
           </div>
@@ -169,17 +213,33 @@
         </div>
       </div>
 
-      <!-- 抖音号 / 产品信息 / 广告设置（项目信息配置完成后才出现，对齐线上默认页） -->
+      <!-- 线上转化优化版：关联产品 / 分配或监测活动 / 定向包 / 项目预算与出价 / 产品信息 / 广告设置 -->
       <div class="cfg-btns" v-if="projectConfigured">
-        <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
-          <span><el-button :disabled="!projectConfigured" @click="awemeVisible = true">抖音号</el-button></span>
-        </el-tooltip>
-        <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
-          <span><el-button :disabled="!projectConfigured" @click="productVisible = true">产品信息</el-button></span>
-        </el-tooltip>
-        <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
-          <span><el-button :disabled="!projectConfigured" @click="adSettingVisible = true">广告设置</el-button></span>
-        </el-tooltip>
+        <template v-if="isUpgrade">
+          <el-button @click="openSection('related')">关联产品</el-button>
+          <el-button @click="openSection('monitor')">分配或监测活动</el-button>
+          <el-button @click="openSection('targeting')">定向包</el-button>
+          <el-button @click="openSection('budget')">项目预算与出价</el-button>
+          <el-button @click="productVisible = true">产品信息</el-button>
+          <el-button @click="adSettingVisible = true">广告设置</el-button>
+        </template>
+        <template v-else>
+          <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
+            <span><el-button :disabled="!projectConfigured" @click="awemeVisible = true">抖音号</el-button></span>
+          </el-tooltip>
+          <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
+            <span><el-button :disabled="!projectConfigured" @click="productVisible = true">产品信息</el-button></span>
+          </el-tooltip>
+          <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
+            <span><el-button :disabled="!projectConfigured" @click="adSettingVisible = true">广告设置</el-button></span>
+          </el-tooltip>
+        </template>
+      </div>
+
+      <!-- 线上：创量定向升级提示条 -->
+      <div v-if="isUpgrade" class="cfg-notice">
+        <el-icon class="cfg-notice__icon"><WarningFilled /></el-icon>
+        <span>创量定向已升级至提交任务时获取最新定向信息，点击 <a class="cfg-notice__link">查看</a> 此处最新定向内容（仅检查查展示/提交时为准）</span>
       </div>
     </div>
 
@@ -325,8 +385,30 @@
           </el-table-column>
         </el-table>
       </template>
-      <el-empty v-else description="请先完成相应模块配置，再预览内容" />
+      <el-empty v-else description="请先完成相应模块配置后，再预览内容" />
     </el-card>
+
+    <!-- 通用配置抽屉：关联产品 / 分配或监测活动 / 定向包 / 项目预算与出价 -->
+    <el-drawer v-model="sectionVisible" :title="sectionTitle" size="780px" direction="rtl">
+      <div v-if="sectionKey === 'related'" class="sec-list">
+        <el-checkbox v-for="p in productPool" :key="p.id" :label="p.id">{{ p.name }}</el-checkbox>
+      </div>
+      <div v-else-if="sectionKey === 'monitor'" class="sec-list">
+        <el-checkbox v-for="m in monitorActivities" :key="m.id" :label="m.id">{{ m.name }}</el-checkbox>
+        <el-empty v-if="!monitorActivities.length" description="暂无可分配或监测的活动" :image-size="60" />
+      </div>
+      <div v-else-if="sectionKey === 'targeting'" class="sec-list">
+        <el-checkbox v-for="t in targetingPool" :key="t.id" :label="t.id">{{ t.name }}</el-checkbox>
+      </div>
+      <el-form v-else-if="sectionKey === 'budget'" label-position="left" label-width="120px">
+        <el-form-item label="项目组总价">
+          <el-input-number v-model="form.project.group_price" :min="0" :step="1000" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="项目收益出价">
+          <el-input-number v-model="form.project.group_bid" :min="0" :step="0.5" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+    </el-drawer>
 
     <!-- 账户选择弹窗（对齐线上：一行筛选 + 左侧账户表 + 右侧「已选」面板 + 分页） -->
     <el-dialog
@@ -487,7 +569,7 @@
     </el-dialog>
 
     <!-- 规则配置弹窗（卡片式，对齐线上：新建项目 / 已有项目 两套内容） -->
-    <el-dialog v-model="ruleVisible" title="规则配置" width="1136px" class="rule-dialog">
+    <el-dialog v-model="ruleVisible" title="规则配置" width="1140px" class="rule-dialog">
       <el-form label-position="left" label-width="160px" class="rule-form">
         <el-form-item label="创建方式">
           <el-radio-group v-model="form.create_mode">
@@ -1737,7 +1819,7 @@
     <StrategyGroupDialog v-model="strategyVisible" @confirm="onStrategyConfirm" />
 
     <!-- 选择任务弹窗 -->
-    <el-dialog v-model="taskVisible" title="选择任务" width="1024px" class="task-dialog" :close-on-click-modal="false">
+    <el-dialog v-model="taskVisible" title="选择任务" width="1025px" class="task-dialog" :close-on-click-modal="false">
       <div class="dlg-filter task-filter">
         <el-select v-model="taskFilter.account_id" clearable placeholder="媒体账户：全部" style="width: 210px">
           <el-option v-for="a in accounts" :key="a.id" :value="a.id" :label="a.name" />
@@ -2061,7 +2143,7 @@
     </el-dialog>
 
     <!-- 保存策略组弹窗 -->
-    <el-dialog v-model="saveVisible" title="保存策略组" width="520px" class="save-dialog">
+    <el-dialog v-model="saveVisible" title="保存策略组" width="560px" class="save-dialog">
       <el-form label-width="96px">
         <el-form-item label="策略组名称" required>
           <el-input v-model="sgForm.name" maxlength="50" show-word-limit placeholder="请输入策略组名称" />
@@ -2085,7 +2167,7 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowDown, ArrowUp, Tickets } from '@element-plus/icons-vue';
+import { ArrowDown, ArrowUp, Close, Tickets, WarningFilled } from '@element-plus/icons-vue';
 import { mediaApi, assetApi, buildApi } from '@/api/media';
 import {
   LANDING_TYPES, APP_PROMOTION_TYPES, MARKETING_GOALS, AD_TYPES, DELIVERY_MODES,
@@ -2126,6 +2208,34 @@ const projColTitle = computed(() => (
 ));
 
 const previewing = ref(false);
+/* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
+const projInfoFolded = ref(false);
+const sectionVisible = ref(false);
+const sectionKey = ref('');
+const sectionTitle = computed(() => ({
+  related: '关联产品', monitor: '分配或监测活动', targeting: '定向包', budget: '项目预算与出价',
+}[sectionKey.value] || ''));
+function openSection(key) { sectionKey.value = key; sectionVisible.value = true; }
+function toggleCreateMode() {
+  form.create_mode = form.create_mode === 'NEW' ? 'EXIST' : 'NEW';
+  ensureAdRuleAvailable();
+}
+const productPool = [
+  { id: 'p_1', name: '红果急漫跑剧' },
+  { id: 'p_2', name: '短剧-通用包' },
+  { id: 'p_3', name: '应用-通用包' },
+];
+const targetingPool = [
+  { id: 't_1', name: '红果-央广-46', desc: '打通数据-策略' },
+  { id: 't_2', name: '通用定向-安卓', desc: '打通数据-策略' },
+];
+const selectedTargetings = computed(() => {
+  const ids = (form.project.targeting_ids || []).map(String);
+  return targetingPool.filter((t) => ids.includes(String(t.id)));
+});
+const objectiveLabel = computed(() => ({
+  APP: '应用推广', GAME: '游戏推广', MINI_APP: '小程序推广',
+}[form.project.objective] || form.project.objective || '—'));
 /* ---- 预览区（线上：账户页签 + 项目/广告 两级表头 + 统计条） ---- */
 const previewAccountIdx = ref(0);
 const previewAccounts = computed(() => {
@@ -2583,7 +2693,7 @@ const ruleSummary = computed(() => {
   const ar = AD_RULES.find((r) => r.value === form.ad_rule)?.label || '';
   if (form.create_mode === 'EXIST') return `已有项目 广告规则: ${ar}`;
   const pr = PROJECT_RULES.find((r) => r.value === form.project_rule)?.label || '';
-  return `项目规则: ${pr} 广告规则: ${ar}`;
+  return `项目归属: ${pr} 应用规则: ${ar}`;
 });
 const externalActionLabel = computed(() => {
   const all = Object.values(EXTERNAL_ACTIONS).flat();
@@ -2674,6 +2784,11 @@ function confirmTask() {
   form.project.name = `${t.name}-新建项目`;
   form.project.budget = 999999;
   form.project.bid = 39.5;
+  form.project.group_name = `${t.name}-项目组`;
+  form.project.group_price = 999999;
+  form.project.group_bid = 39.5;
+  form.project.app_name = '红果急漫跑剧';
+  form.project.targeting_ids = ['t_1'];
   /* 线上回显：已选创意组 5（4 个视频组 + 1 个图片组） */
   const imgs = (mockDb.images || []).slice(0, 1);
   form.materials.creative_groups = [
@@ -3318,6 +3433,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .col-head .col-head__act + .col-head__act { margin-left: 0; }
 .col-body { flex: 1; padding: 12px 16px; overflow-y: auto; }
 .col-body--center { display: flex; align-items: center; justify-content: center; }
+.proj-col { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: flex-start; }
 .col-pick { font-size: 13px; }
 .col-line { font-size: 13px; color: #4e5969; margin-bottom: 8px; }
 .material-list { display: flex; flex-direction: column; gap: 6px; }
@@ -3326,6 +3442,22 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .action-bar { display: flex; justify-content: center; gap: 12px; background: #fff; border-radius: 6px; padding: 16px; }
 .preview-card { min-height: 280px; }
 .preview-title { font-size: 15px; font-weight: 600; }
+.picked-task { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #4e5969; margin-left: 4px; }
+.picked-task__x { cursor: pointer; color: #86909c; }
+.picked-task__edit { font-size: 13px; }
+.rule-box__count { padding: 0 12px; font-size: 12px; color: #86909c; border-left: 1px solid #e5e6eb; align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
+.proj-blocks { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; width: 100%; }
+.proj-block { border-top: 1px solid #f2f3f5; padding-top: 8px; width: 100%; }
+.proj-block__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #1d2129; font-weight: 600; }
+.proj-block__title { white-space: nowrap; }
+.proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
+.proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
+.cfg-notice { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 12px; background: #fff7e8; border: 1px solid #ffe4ba; border-radius: 4px; font-size: 12px; color: #d25f00; }
+.cfg-notice__link { color: #197afb; cursor: pointer; }
+.sec-list { display: flex; flex-direction: column; gap: 10px; }
+.mode-split--links { display: flex; flex-direction: row; align-items: center; gap: 10px; width: 100%; flex-wrap: nowrap; }
+.mode-split--links .mode-split__text { white-space: nowrap; }
+.mode-split__link { font-size: 13px; white-space: nowrap; }
 .preview-head { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
 .preview-tabs { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow: hidden; }
 .preview-tab { font-size: 13px; color: #4e5969; padding: 4px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
