@@ -53,6 +53,21 @@
               :placeholder="`请输入${f.label}`"
             />
 
+            <!-- 二级选择器展开态（原型占位） -->
+            <div v-if="subVisible(f)" class="oc-sub">
+              <div class="oc-sub__title">{{ subTitle(f) }}</div>
+              <div v-if="subOptions(f).length" class="oc-sub__chips">
+                <span
+                  v-for="o in subOptions(f)"
+                  :key="o"
+                  class="oc-chip"
+                  :class="{ 'oc-chip--on': subSel[f.key].includes(o) }"
+                  @click="toggleSub(f.key, o)"
+                >{{ o }}</span>
+              </div>
+              <div class="oc-sub__placeholder">{{ subPlaceholder(f) }}</div>
+            </div>
+
             <!-- 联动提示（线上原文） -->
             <div v-if="hintOf(f)" class="oc-hint">{{ hintOf(f) }}</div>
           </el-form-item>
@@ -110,7 +125,7 @@ const route = useRoute();
 
 /** 模式：jy = 巨量定向包（线上「新增媒体定向包」整页，23 字段）；默认 = 创量定向包（28 字段） */
 const isJy = computed(() => route.query.mode === 'jy');
-const pageTitle = computed(() => (isJy.value ? '新增媒体定向包' : '新增创量定向包'));
+const pageTitle = computed(() => (isJy.value ? '新增媒体定向包' : '新增智投定向包'));
 
 /** 企业名称（线上 12 项） */
 const COMPANY_OPTIONS = [
@@ -121,28 +136,35 @@ const COMPANY_OPTIONS = [
   '百度在线网络技术（北京）有限公司',
 ];
 
-/** 定向包类型 / 地域 / 行为兴趣（线上枚举） */
+/** 定向包类型（线上枚举） */
 const PACKAGE_TYPES = ['常规定向包', '智能定向包', 'DMP人群包'];
-const REGION_OPTIONS = ['不限', '按行政区域', '按商圈', '按省份', '按城市', '按区县'];
-const INTEREST_OPTIONS = ['不限', '系统推荐', '自定义'];
+
+/** 二级选择器 mock 选项（原型占位：线上为省市级联 / 年龄段多选 / 兴趣树 / 达人搜索） */
+const PROVINCE_OPTIONS = ['北京', '上海', '广东', '浙江', '江苏', '四川', '山东', '河南', '湖北', '福建'];
+const AGE_SEGMENT_OPTIONS = ['18-23岁', '24-30岁', '31-40岁', '41-50岁', '51岁以上'];
+const INTEREST_TAG_OPTIONS = ['资讯', '游戏', '短视频', '美妆', '美食', '旅游', '母婴', '财经', '体育', '汽车'];
 
 /** 28 个字段（顺序 / 标签 / 类型 / 可选项 与线上一致） */
 const FIELDS = [
   { key: 'name', label: '定向包名称', type: 'text', required: true, max: 40 },
   { key: 'desc', label: '定向包描述', type: 'textarea', required: true, max: 200 },
   { key: 'crossSubject', label: '跨主体使用', type: 'radio', options: ['不启用', '启用'] },
-  { key: 'project', label: '创量项目（选填）', type: 'select', options: ['测试商品', '测试安卓应用(android)'] },
+  { key: 'project', label: '智投项目（选填）', type: 'select', options: ['测试商品', '测试安卓应用(android)'] },
   { key: 'company', label: '企业名称', type: 'select', required: true, options: COMPANY_OPTIONS },
   { key: 'adType', label: '广告类型', type: 'radio', options: ['所有广告', '搜索广告'] },
   { key: 'pkgType', label: '定向包类型', type: 'select', required: true, options: PACKAGE_TYPES },
   { key: 'product', label: '产品（选填）', type: 'select', options: ['测试商品', '测试安卓应用(android)'] },
   { key: 'range', label: '投放范围', type: 'radio', required: true, options: ['默认', '穿山甲'] },
-  { key: 'region', label: '地域', type: 'select', options: REGION_OPTIONS },
+  { key: 'region', label: '地域', type: 'radio', options: ['不限', '按行政区划', '按商圈'],
+    sub: { show: (v) => v === '按行政区划', title: '选择省份（可多选，市级联后续选择）', options: PROVINCE_OPTIONS, placeholder: '原型占位：线上为省 → 市两级级联多选；按商圈为商圈名称搜索' } },
   { key: 'gender', label: '性别', type: 'radio', options: ['不限', '男', '女'] },
-  { key: 'age', label: '年龄', type: 'radio', options: ['不限', '原有分段', '更多分段'] },
+  { key: 'age', label: '年龄', type: 'radio', options: ['不限', '原有分段', '更多分段'],
+    sub: { show: (v) => v === '更多分段', title: '选择年龄段（可多选）', options: AGE_SEGMENT_OPTIONS, placeholder: '原型占位：线上为更细龄分段多选' } },
   { key: 'customAudience', label: '自定义人群', type: 'radio', options: ['不限', '同时定向排除'] },
-  { key: 'interest', label: '行为兴趣', type: 'select', options: INTEREST_OPTIONS },
-  { key: 'talent', label: '抖音达人', type: 'radio', options: ['不限', '自定义'] },
+  { key: 'interest', label: '行为兴趣', type: 'radio', options: ['不限', '系统推荐', '自定义'],
+    sub: { show: (v) => v === '自定义', title: '选择兴趣分类（可多选）', options: INTEREST_TAG_OPTIONS, placeholder: '原型占位：线上为兴趣分类树多选' } },
+  { key: 'talent', label: '抖音达人', type: 'radio', options: ['不限', '自定义'],
+    sub: { show: (v) => v === '自定义', title: '选择抖音达人', options: [], placeholder: '原型占位：线上按达人昵称 / 类目搜索后添加达人' } },
   { key: 'mediaOrient', label: '媒体定向', type: 'radio', options: ['不限', '游戏优质媒体', '自定义'] },
   { key: 'orientLogic', label: '定向逻辑', type: 'radio', options: ['定向', '排除'] },
   { key: 'platform', label: '平台', type: 'radio', options: ['不限', 'Android', 'iOS', 'PC'] },
@@ -171,7 +193,7 @@ const JY_FIELDS = [
   { key: 'gender', label: '性别', type: 'radio', options: ['不限', '男', '女'] },
   { key: 'age', label: '年龄', type: 'radio', options: ['不限', '原有分段', '更多分段'] },
   { key: 'customAudience', label: '自定义人群', type: 'radio', options: ['不限', '同时定向排除'] },
-  { key: 'interest', label: '行为兴趣', type: 'select', options: INTEREST_OPTIONS },
+  { key: 'interest', label: '行为兴趣', type: 'radio', options: ['不限', '系统推荐', '自定义'] },
   { key: 'mediaOrient', label: '媒体定向', type: 'radio', options: ['不限', '游戏优质媒体', '自定义'] },
   { key: 'orientLogic', label: '定向逻辑', type: 'radio', options: ['定向', '排除'] },
   { key: 'platform', label: '平台', type: 'radio', options: ['不限'] },
@@ -188,8 +210,8 @@ const JY_FIELDS = [
 /** 表单初值 */
 const form = reactive({
   name: '', desc: '', crossSubject: '不启用', project: '', company: '', adType: '所有广告',
-  pkgType: '', product: '', range: '默认', region: '', gender: '不限', age: '不限',
-  customAudience: '不限', interest: '', talent: '不限', mediaOrient: '不限', orientLogic: '定向',
+  pkgType: '', product: '', range: '默认', region: '不限', gender: '不限', age: '不限',
+  customAudience: '不限', interest: '不限', talent: '不限', mediaOrient: '不限', orientLogic: '定向',
   platform: '不限', brand: '不限', device: '不限', network: '不限', article: '不限',
   carrier: '不限', newUser: '不限', price: '不限', smartBid: '不启用', installed: '不限',
   converted: '不过滤', account: '', scene: '短视频',
@@ -205,6 +227,7 @@ const fields = computed(() => (isJy.value ? JY_FIELDS : FIELDS));
  *  ④ 「设备类型 → 平板」需要申请白名单 */
 function isLocked(f) {
   if (f.key === 'customAudience' && form.customAudience === '同时定向排除') return !form.company;
+  if (f.key === 'mediaOrient' && form.mediaOrient === '自定义') return !form.company;
   return false;
 }
 
@@ -212,14 +235,34 @@ function hintOf(f) {
   if (f.key === 'customAudience' && form.customAudience === '同时定向排除') {
     return form.company ? '' : '同时定向排除请先选择企业名称';
   }
-  if (f.key === 'mediaOrient' && form.mediaOrient === '自定义') return '请先选择企业名称';
+  if (f.key === 'mediaOrient' && form.mediaOrient === '自定义') {
+    return form.company ? '' : '请先选择企业名称';
+  }
+  if (f.key === 'brand' && form.brand === '按品牌') return '不支持ohayoo精品游戏';
+  if (f.key === 'article' && form.article === '文章分类') return '不支持ohayoo精品游戏';
   if (f.key === 'carrier' && form.carrier !== '不限') return '运营商定向仅对通信行业有效。';
   if (f.key === 'device' && form.device === '平板') return '使用该功能需要申请白名单';
   return '';
 }
 
+/* ---------- 二级选择器展开态（原型占位：省市级联 / 年龄段 / 兴趣树 / 达人搜索） ---------- */
+const subSel = reactive({ region: [], age: [], interest: [], talent: [] });
+
+function subVisible(f) {
+  return !!f.sub && f.sub.show(form[f.key]);
+}
+function subTitle(f) { return f.sub.title; }
+function subOptions(f) { return f.sub.options || []; }
+function subPlaceholder(f) { return f.sub.placeholder; }
+function toggleSub(key, o) {
+  const arr = subSel[key];
+  const i = arr.indexOf(o);
+  if (i > -1) arr.splice(i, 1); else arr.push(o);
+}
+
 function goBack() {
-  router.push({ name: 'orientation', query: { media: 'upgrade' } });
+  // 返回定向包列表（asset-list 按 query.kind 切换，定向包 = orientation）
+  router.push({ name: 'asset-list', query: { kind: 'orientation' } });
 }
 
 function onSave() {
@@ -249,6 +292,20 @@ const sideInfo = computed(() => form);
 .oc-select { width: 360px; }
 .oc-item--disabled :deep(.el-form-item__content) { opacity: 0.6; }
 .oc-hint { font-size: 12px; color: #ff9900; line-height: 18px; margin-top: 2px; }
+
+/* 二级选择器展开态 */
+.oc-sub {
+  margin: 6px 0 2px; padding: 10px 12px; background: #f7f8fa; border-radius: 4px; width: 560px;
+}
+.oc-sub__title { font-size: 12px; color: #606266; margin-bottom: 8px; }
+.oc-sub__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.oc-chip {
+  padding: 3px 10px; font-size: 12px; color: #606266; background: #fff;
+  border: 1px solid #dcdfe6; border-radius: 3px; cursor: pointer; user-select: none;
+}
+.oc-chip:hover { color: #197afb; border-color: #197afb; }
+.oc-chip--on { color: #fff; background: #197afb; border-color: #197afb; }
+.oc-sub__placeholder { font-size: 12px; color: #909399; margin-top: 8px; }
 .oc-side { width: 260px; flex: none; }
 .oc-side__block { background: #fff; padding: 12px 16px; margin-bottom: 16px; }
 .oc-side__title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; }

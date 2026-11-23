@@ -1,12 +1,12 @@
 <template>
   <div class="ori-page">
-    <!-- 二级页签（线上「创量定向包 / 巨量定向包」） -->
+    <!-- 二级页签（线上「智投定向包 / 巨量定向包」） -->
     <div class="asset-sub-tabs">
       <div
         class="asset-sub-tab"
         :class="{ active: tab === 'cl' }"
         @click="switchTab('cl')"
-      >创量定向包</div>
+      >智投定向包</div>
       <div
         class="asset-sub-tab"
         :class="{ active: tab === 'jy' }"
@@ -14,14 +14,14 @@
       >巨量定向包</div>
     </div>
 
-    <!-- ================= 创量定向包 ================= -->
+    <!-- ================= 智投定向包 ================= -->
     <template v-if="tab === 'cl'">
       <!-- ① 查询条件（线上 form.filter-search-input） -->
       <div class="filter-row">
         <div class="filter-left">
-          <!-- 智投项目 -->
+          <!-- 创量项目 -->
           <div class="filter-cell">
-            <label class="filter-label">智投项目：</label>
+            <label class="filter-label">创量项目：</label>
             <el-select
               v-model="query.project"
               class="filter-select"
@@ -166,10 +166,10 @@
       <!-- ② 功能按钮条（线上 .table-toolbar） -->
       <div class="table-toolbar">
         <el-button type="primary" size="small" class="tool-btn ori-tool-btn--wide" @click="openCreate">
-          <el-icon class="ori-btn-icon"><Plus /></el-icon>新建创量定向包
+          <el-icon class="ori-btn-icon"><Plus /></el-icon>新建智投定向包
         </el-button>
 
-        <el-button plain size="small" class="tool-btn" @click="openFetch">
+        <el-button plain size="small" class="tool-btn" style="width: 120px" @click="openFetch">
           获取巨量定向
         </el-button>
 
@@ -210,7 +210,7 @@
             <el-button link type="primary" size="small" @click="openAddProject(row)">添加巨量项目</el-button>
             <el-button link type="primary" size="small" @click="copyRow(row)">复制</el-button>
             <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="primary" size="small" @click="removeRow(row)">删除</el-button>
+            <el-button link type="danger" size="small" @click="removeRow(row)">删除</el-button>
           </template>
         </el-table-column>
         <el-table-column prop="package_id" label="定向包ID" min-width="80" />
@@ -218,7 +218,7 @@
         <el-table-column prop="package_type" label="定向包类型" min-width="120" show-overflow-tooltip />
         <el-table-column prop="delivery_range" label="投放范围" min-width="100" />
         <el-table-column prop="product" label="产品" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="project" label="智投项目" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="project" label="创量项目" min-width="120" show-overflow-tooltip />
         <el-table-column prop="company" label="主体" min-width="210" show-overflow-tooltip />
         <el-table-column prop="creator" label="创建人员" min-width="100" />
         <el-table-column prop="related_count" label="关联项目数" min-width="100" />
@@ -292,7 +292,7 @@
           <el-icon class="ori-btn-icon"><Plus /></el-icon>新建媒体定向包
         </el-button>
 
-        <el-button plain size="small" class="tool-btn" @click="onJySync">
+        <el-button plain size="small" class="tool-btn" style="width: 120px" @click="onJySync">
           同步巨量定向包
         </el-button>
 
@@ -329,7 +329,7 @@
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openEdit(row, true)">编辑</el-button>
             <el-button link type="primary" size="small" @click="copyRow(row, true)">复制</el-button>
-            <el-button link type="primary" size="small" @click="removeRow(row, true)">删除</el-button>
+            <el-button link type="danger" size="small" @click="removeRow(row, true)">删除</el-button>
           </template>
         </el-table-column>
         <el-table-column prop="package_id" label="定向包ID" min-width="80" />
@@ -356,7 +356,7 @@
       </div>
     </template>
 
-    <!-- ⑤ 新增 / 编辑 创量定向包（线上 /audience/editor 新增创量定向包） -->
+    <!-- ⑤ 新增 / 编辑 智投定向包（线上 /audience/editor 新增智投定向包） -->
     <el-drawer
       v-model="formVisible"
       size="1016px"
@@ -367,7 +367,7 @@
     >
       <div class="cl-drawer">
         <div class="drawer-header">
-          <span class="header-title">{{ formMode === 'create' ? '新增创量定向包' : '编辑创量定向包' }}</span>
+          <span class="header-title">{{ formMode === 'create' ? '新增智投定向包' : '编辑智投定向包' }}</span>
         </div>
 
         <div class="drawer-content">
@@ -410,7 +410,7 @@
                   </el-popover>
                 </el-form-item>
 
-                <el-form-item label="智投项目（选填）">
+                <el-form-item label="创量项目（选填）">
                   <el-select v-model="form.project" class="ag-select" placeholder="不限">
                     <el-option label="不限" value="" />
                     <el-option v-for="o in PROJECTS" :key="o" :label="o" :value="o" />
@@ -607,26 +607,60 @@
       </template>
     </el-dialog>
 
-    <!-- ⑦ 共享定向包 弹窗 -->
+    <!-- ⑦ 共享定向包 弹窗（线上：已选定向包 + 橙提示 + 左创量账户人员 / 右已选0/20） -->
     <el-dialog
       v-model="shareVisible"
       title="共享定向包"
-      width="560px"
+      width="640px"
       :close-on-click-modal="false"
       append-to-body
     >
-      <div class="ori-dialog__label">请选择要共享的成员：</div>
-      <el-select
-        v-model="shareTargets"
-        class="ori-dialog__select"
-        multiple
-        collapse-tags
-        collapse-tags-tooltip
-        filterable
-        placeholder="请选择成员"
-      >
-        <el-option v-for="c in CREATORS" :key="c.label" :label="c.label" :value="c.label" />
-      </el-select>
+      <div class="ori-share__picked">已选定向包：{{ shareRows[0] && shareRows[0].name }}</div>
+      <div class="ori-share__warn">
+        <i class="ori-share__warn-dot"></i>穿山甲媒体包、人群包内容不支持共享
+      </div>
+      <div class="ori-share__panels">
+        <!-- 左：创量账户人员列表 -->
+        <div class="ori-share__left">
+          <div class="ori-share__panel-title">创量账户</div>
+          <div class="ori-share__search">
+            <el-input
+              v-model="shareKeyword"
+              size="small"
+              clearable
+              placeholder="请输入关键词"
+              :prefix-icon="Search"
+            />
+          </div>
+          <div class="ori-share__list">
+            <el-checkbox
+              v-for="c in filteredCreators"
+              :key="c.label"
+              :value="c.name"
+              v-model="shareTargets"
+              class="ori-share__item"
+            >{{ c.name }}</el-checkbox>
+            <div v-if="!filteredCreators.length" class="ori-share__none">暂无数据</div>
+          </div>
+        </div>
+        <!-- 右：已选成员 -->
+        <div class="ori-share__right">
+          <div class="ori-share__right-head">
+            <span>已选：{{ shareTargets.length }}/20</span>
+            <a class="ori-share__clear" @click="shareTargets = []">清空全部</a>
+          </div>
+          <div class="ori-share__picked-list">
+            <div v-for="name in shareTargets" :key="name" class="ori-share__picked-item">
+              <span class="ori-share__picked-name">{{ name }}</span>
+              <el-icon class="ori-share__picked-x" @click="removeShareTarget(name)"><Close /></el-icon>
+            </div>
+            <div v-if="!shareTargets.length" class="ori-share__empty">
+              <div class="ori-share__empty-icon">▢</div>
+              <div>暂无数据</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <template #footer>
         <div class="dialog-footer">
           <div class="operate-button">
@@ -662,10 +696,79 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ⑨ 批量修改产品 弹窗 -->
+    <el-dialog
+      v-model="batchProductVisible"
+      title="修改产品"
+      width="520px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="ori-dialog__label">已选 <b>{{ batchRows.length }}</b> 条定向包，请选择目标产品：</div>
+      <el-select v-model="batchProduct" class="ori-dialog__select" filterable placeholder="请选择产品">
+        <el-option v-for="p in PRODUCTS" :key="p" :label="p" :value="p" />
+      </el-select>
+      <template #footer>
+        <div class="dialog-footer">
+          <div class="operate-button">
+            <el-button size="small" plain @click="batchProductVisible = false">取 消</el-button>
+            <el-button size="small" type="primary" @click="submitBatchProduct">确 定</el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- ⑩ 批量修改创量项目 弹窗 -->
+    <el-dialog
+      v-model="batchProjectVisible"
+      title="修改创量项目"
+      width="520px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="ori-dialog__label">已选 <b>{{ batchRows.length }}</b> 条定向包，请选择目标创量项目：</div>
+      <ProjectSelectField v-model="batchProject" :options="PROJECTS" placeholder="请选择创量项目" />
+      <template #footer>
+        <div class="dialog-footer">
+          <div class="operate-button">
+            <el-button size="small" plain @click="batchProjectVisible = false">取 消</el-button>
+            <el-button size="small" type="primary" @click="submitBatchProject">确 定</el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- ⑪ 同步巨量定向 弹窗（线上：标题"同步巨量定向"，单个媒体账户下拉） -->
+    <el-dialog
+      v-model="jySyncVisible"
+      title="同步巨量定向"
+      width="520px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-form label-width="90px" label-position="left">
+        <el-form-item label="媒体账户">
+          <el-select v-model="jySyncAccount" class="ori-dialog__select" filterable placeholder="请选择媒体账户">
+            <el-option v-for="a in ACCOUNTS" :key="a" :label="a" :value="a" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <div class="operate-button">
+            <el-button size="small" plain @click="jySyncVisible = false">取 消</el-button>
+            <el-button size="small" type="primary" @click="submitJySync">确 定</el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
+import { ASSET_ACCOUNT_OPTIONS_LINK } from './assetOptions';
+import ProjectSelectField from '../components/ProjectSelectField.vue';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -716,24 +819,11 @@ const PRODUCTS = ['测试商品', '测试安卓应用(android)'];
 
 const PACKAGE_TYPES = ['应用推广-Android', '应用推广-IOS', '应用推广-通用', '落地页推广-通用'];
 
-const ACCOUNTS = [
-  '北京高途云集教育科技有限公司-1 (18618113458800...)',
-  '百度文库-央广时代-拉新-搜索-01 (186687739987066...)',
-  '百度文库-央广时代-拉新-搜索-02 (186687739992304...)',
-  '百度文库-央广时代-拉新-搜索-03 (186684965176570...)',
-  '任意门-央广-代运营-36-安卓-UBA (186648987399640...)',
-  '任意门-央广-代运营-22-安卓-UBA (186648985895020...)',
-  '任意门-央广-代运营-10-ios-UBA (186648986030202...)',
-  '任意门-央广-代运营-23-安卓-UBA (186648985957860...)',
-  '任意门-央广-代运营-25-ios-UBA (186648986097610...)',
-  '任意门-央广-代运营-30-ios-UBA (186648986477680...)',
-  '上海置潮信息科技有限公司-23 (1872677289688)',
-  '上海得物信息集团有限公司1-50 (183441963168116...)',
-];
+const ACCOUNTS = ASSET_ACCOUNT_OPTIONS_LINK;
 
 /* ------------------------------------------------------------------ *
  * 组件内 mock 列表（线上 total_count = 25）
- * [名称, 描述, 定向包类型, 投放范围, 产品, 智投项目, 主体, 创建人员, 关联项目数, 创建时间]
+ * [名称, 描述, 定向包类型, 投放范围, 产品, 创量项目, 主体, 创建人员, 关联项目数, 创建时间]
  * ------------------------------------------------------------------ */
 const RAW = [
   ['红果短剧-定向', '通投', '应用推广-Android', '通投智选', '测试安卓应用(android)', '', '北京笔墨留香科技有限公司海淀第一分公司', '申旭阳', 0, '2026-11-18 15:36:41'],
@@ -808,7 +898,7 @@ function switchTab(t) {
 }
 
 /* ------------------------------------------------------------------ *
- * 查询条件（创量定向包）
+ * 查询条件（智投定向包）
  * ------------------------------------------------------------------ */
 const query = ref({ project: '', company: '', creators: [], product: '' });
 const searchField = ref('name');
@@ -950,8 +1040,21 @@ const jyPagedList = computed(() => {
   return jyFilteredList.value.slice(start, start + jyPageSize.value);
 });
 
+const jySyncVisible = ref(false);
+const jySyncAccount = ref('');
+
 function onJySync() {
-  ElMessage.success('巨量定向包同步成功');
+  jySyncAccount.value = '';
+  jySyncVisible.value = true;
+}
+
+function submitJySync() {
+  if (!jySyncAccount.value) {
+    ElMessage.warning('请选择媒体账户');
+    return;
+  }
+  ElMessage.success(`已同步账户「${jySyncAccount.value}」的巨量定向包`);
+  jySyncVisible.value = false;
 }
 
 function onJyBatchOp(op) {
@@ -1026,7 +1129,7 @@ function submitFetch() {
 }
 
 /* ------------------------------------------------------------------ *
- * 新建 / 编辑 定向包抽屉（线上 /audience/editor 新增创量定向包）
+ * 新建 / 编辑 定向包抽屉（线上 /audience/editor 新增智投定向包）
  * ------------------------------------------------------------------ */
 const formVisible = ref(false);
 const formMode = ref('create');
@@ -1053,7 +1156,7 @@ const emptyForm = () => ({
 const form = ref(emptyForm());
 
 function openCreate() {
-  // 线上「新建创量定向包」是整页表单（audience/editor?tabType=creative），本地同形态
+  // 线上「新建智投定向包」是整页表单（audience/editor?tabType=creative），本地同形态
   router.push({ name: 'orientation-create' });
 }
 
@@ -1116,7 +1219,7 @@ function submitForm() {
       related_count: 0,
       create_time: nowText(),
     });
-    ElMessage.success('创量定向包新建成功');
+    ElMessage.success('智投定向包新建成功');
   } else {
     const row = list.value.find((x) => x.id === editingId.value);
     if (row) {
@@ -1128,7 +1231,7 @@ function submitForm() {
       row.project = form.value.project || row.project;
       row.company = form.value.company || row.company;
     }
-    ElMessage.success('创量定向包修改成功');
+    ElMessage.success('智投定向包修改成功');
   }
   formVisible.value = false;
   onSearch();
@@ -1146,10 +1249,24 @@ function nowText() {
 const shareVisible = ref(false);
 const shareTargets = ref([]);
 const shareRows = ref([]);
+const shareKeyword = ref('');
+
+/** 左栏人员按关键词过滤（姓名 / 邮箱） */
+const filteredCreators = computed(() => {
+  const k = shareKeyword.value.trim();
+  if (!k) return CREATORS;
+  return CREATORS.filter((c) => c.name.includes(k) || c.label.includes(k));
+});
+
+/** 右栏移除单个已选成员 */
+function removeShareTarget(name) {
+  shareTargets.value = shareTargets.value.filter((n) => n !== name);
+}
 
 function openShare(row) {
   shareRows.value = [row];
   shareTargets.value = [];
+  shareKeyword.value = '';
   shareVisible.value = true;
 }
 
@@ -1220,6 +1337,12 @@ async function removeRow(row, isJy = false) {
   ElMessage.success('删除成功');
 }
 
+const batchRows = ref([]);
+const batchProductVisible = ref(false);
+const batchProjectVisible = ref(false);
+const batchProduct = ref('');
+const batchProject = ref('');
+
 async function onBatchOp(op) {
   const rows = selectedRows.value.slice();
   batchOp.value = '';
@@ -1228,48 +1351,34 @@ async function onBatchOp(op) {
     ElMessage.warning('请至少选择1行');
     return;
   }
-  if (op === 'share') {
-    shareRows.value = rows;
-    shareTargets.value = [];
-    shareVisible.value = true;
+  batchRows.value = rows;
+  if (op === 'editProduct') {
+    batchProduct.value = '';
+    batchProductVisible.value = true;
+  } else if (op === 'editProject') {
+    batchProject.value = '';
+    batchProjectVisible.value = true;
+  }
+}
+
+function submitBatchProduct() {
+  if (!batchProduct.value) {
+    ElMessage.warning('请选择产品');
     return;
   }
-  if (op === 'addProject') {
-    projectRows.value = rows;
-    projectForm.value = { pid: '', pname: '' };
-    projectVisible.value = true;
+  batchRows.value.forEach((r) => { r.product = batchProduct.value; });
+  ElMessage.success(`已为 ${batchRows.value.length} 条定向包修改产品`);
+  batchProductVisible.value = false;
+}
+
+function submitBatchProject() {
+  if (!batchProject.value) {
+    ElMessage.warning('请选择智投项目');
     return;
   }
-  if (op === 'copy') {
-    rows.forEach((r) => {
-      list.value.splice(list.value.indexOf(r) + 1, 0, {
-        ...r,
-        id: 17600000 + list.value.length * 37 + 3,
-        package_id: r.package_id + 1,
-        name: `${r.name}-副本`,
-        related_count: 0,
-        create_time: nowText(),
-      });
-    });
-    ElMessage.success(`已复制 ${rows.length} 条定向包`);
-    return;
-  }
-  if (op === 'delete') {
-    try {
-      await ElMessageBox.confirm('此操作将删除选中的定向包, 是否继续?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-        customClass: 'cl-message-box--mini',
-      });
-    } catch (e) {
-      return;
-    }
-    const ids = rows.map((r) => r.id);
-    list.value = list.value.filter((x) => ids.indexOf(x.id) === -1);
-    selectedRows.value = [];
-    ElMessage.success('全部删除成功');
-  }
+  batchRows.value.forEach((r) => { r.project = batchProject.value; });
+  ElMessage.success(`已为 ${batchRows.value.length} 条定向包修改智投项目`);
+  batchProjectVisible.value = false;
 }
 
 watch(pageSize, () => {
@@ -1313,7 +1422,7 @@ watch(pageSize, () => {
 /* ---------- 工具栏 ---------- */
 .ori-count { font-size: 12px; color: #666; }
 .ori-count__num { color: #197afb; }
-.ori-tool-btn--wide { width: 136px; }
+.ori-tool-btn--wide { width: 133px; }
 .ori-btn-icon { margin-right: 4px; vertical-align: -2px; }
 
 /* ---------- 列表 ---------- */
@@ -1363,4 +1472,34 @@ watch(pageSize, () => {
 /* ---------- 弹窗 ---------- */
 .ori-dialog__label { font-size: 13px; color: #333; margin-bottom: 8px; }
 .ori-dialog__select { width: 100%; }
+
+/* ---------- 共享定向包弹窗（左右面板） ---------- */
+.ori-share__picked { font-size: 13px; color: #303133; margin-bottom: 8px; }
+.ori-share__warn { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #e68a00; margin-bottom: 14px; }
+.ori-share__warn-dot { width: 8px; height: 8px; border-radius: 50%; background: #fa8c16; flex: none; }
+.ori-share__panels { display: flex; gap: 16px; height: 320px; }
+.ori-share__left,
+.ori-share__right { flex: 1; border: 1px solid #e8eaec; border-radius: 4px; display: flex; flex-direction: column; }
+.ori-share__panel-title { padding: 10px 14px; font-size: 13px; font-weight: 500; color: #333; border-bottom: 1px solid #f0f2f5; }
+.ori-share__search { padding: 10px 14px; }
+.ori-share__list { flex: 1; overflow-y: auto; padding: 4px 14px 12px; }
+.ori-share__item { display: flex; width: 100%; height: 30px; margin: 0; }
+.ori-share__item :deep(.el-checkbox__label) { flex: 1; font-size: 13px; color: #333; }
+.ori-share__none { padding: 24px 0; text-align: center; font-size: 13px; color: #909399; }
+.ori-share__right-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; font-size: 13px; color: #333; border-bottom: 1px solid #f0f2f5;
+}
+.ori-share__clear { color: #197afb; cursor: pointer; font-size: 13px; }
+.ori-share__clear:hover { text-decoration: underline; }
+.ori-share__picked-list { flex: 1; overflow-y: auto; padding: 10px 14px; }
+.ori-share__picked-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px; margin-bottom: 8px; background: #f5f7fa; border-radius: 4px;
+}
+.ori-share__picked-name { font-size: 13px; color: #333; }
+.ori-share__picked-x { color: #c0c4cc; cursor: pointer; }
+.ori-share__picked-x:hover { color: #197afb; }
+.ori-share__empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #c0c4cc; font-size: 13px; }
+.ori-share__empty-icon { font-size: 34px; line-height: 1; }
 </style>

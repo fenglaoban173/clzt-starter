@@ -61,8 +61,20 @@ body.asset-scope .el-button--primary {
   --el-button-active-bg-color: #1462c9;
   --el-button-active-border-color: #1462c9;
   --el-button-disabled-text-color: #fff;
-  --el-button-disabled-bg-color: #8cbdfd;
-  --el-button-disabled-border-color: #8cbdfd;
+  --el-button-disabled-bg-color: #a0cfff;
+  --el-button-disabled-border-color: #a0cfff;
+}
+/* 禁用态 primary：线上旧版 EP 写死 #a0cfff（rgb(160,207,255)），EP2.14 会按主题色算，需直接覆盖 */
+body.asset-scope .el-button--primary.is-disabled,
+body.asset-scope .el-button--primary:disabled,
+body.asset-scope .el-button--primary.is-disabled:hover,
+body.asset-scope .el-button--primary:disabled:hover {
+  --el-button-disabled-text-color: #fff;
+  --el-button-disabled-bg-color: #a0cfff;
+  --el-button-disabled-border-color: #a0cfff;
+  color: #ffffff;
+  background-color: #a0cfff;
+  border-color: #a0cfff;
 }
 /* plain 的默认态按钮（白底灰字）——线上旧版 EP 就是这个配色。
    注意：EP 2.14 把 --el-button-*-color 声明在按钮元素自身的 .el-button.is-plain 规则里，
@@ -157,8 +169,9 @@ body.asset-scope .el-button:disabled {
 .asset-table .el-table__header th .cell { font-size: 12px; font-weight: 700; color: #333; }
 .asset-table .el-table__cell { font-size: 12px; color: #333; padding: var(--row-pad) 0; }
 .asset-table .el-button { font-size: 12px; }
-.asset-table .el-button.is-link { margin-left: 10px; padding: 0; }
+.asset-table .el-button.is-link { margin-left: 10px; padding: 0; color: #197afb; }
 .asset-table .el-button.is-link:first-child { margin-left: 0; }
+.asset-table .el-button.is-link.el-button--danger { color: #f56c6c; }
 .asset-table .el-tag { font-size: 12px; }
 
 /* 名称 + 备注两行单元格 */

@@ -59,7 +59,6 @@
         :loading="syncing"
         @click="onSync"
       >同步事件管理</el-button>
-      <span class="event-tips">因接口限制，橙子落地页资产需在 <a class="event-tips-link" :href="LANDING_PAGE_URL" target="_blank" rel="noopener">落地页管理页面</a> 同步，无需在此处同步。</span>
     </div>
 
     <!-- ③ 主体：左「资产列表」 + 右「事件列表」（线上 .list-dispaly，两栏之间无间距） -->
@@ -157,7 +156,7 @@ const SEARCH_TYPES = [{ id: 'asset', label: '资产名称' }];
 /** 媒体账户下拉每次展示 10 条，可「搜索更多」继续展开（线上 showLimit = 10） */
 const ACCOUNT_PAGE_SIZE = 10;
 /** 线上媒体账户总数（实测下拉末尾显示「搜索更多(302)…」） */
-const TOTAL_ACCOUNT_COUNT = 302;
+const TOTAL_ACCOUNT_COUNT = 319;
 /** 左侧资产列表每页 20 条（线上 assetSearchData.page_size = 20） */
 const ASSET_PAGE_SIZE = 20;
 

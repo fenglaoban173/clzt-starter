@@ -297,10 +297,7 @@
     >
       <div class="aud-crowd-guide">
         注意：受媒体API能力限制，无法同步巨量引擎工作台新建/推送（共享）的人群包；若找不到人群包，建议您前往巨量广告平台新建/推送人群包后同步获取。
-        <el-popover placement="right" :width="800" trigger="hover">
-          <template #reference><a class="aud-crowd-guide__link">查看指引</a></template>
-          <img class="aud-crowd-guide__img" :src="CROWD_GUIDE_IMG" alt="人群包同步指引" />
-        </el-popover>
+        <a class="aud-crowd-guide__link" @click="guideVisible = true">查看指引</a>
       </div>
       <div class="aud-sync__label">请选择需要同步人群包的媒体账户：</div>
       <div class="aud-transfer aud-transfer--sync">
@@ -358,6 +355,31 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ⑦ 查看指引 弹窗（线上「查看指引」操作说明，来源图6） -->
+    <el-dialog
+      v-model="guideVisible"
+      title="头条人群包获取不到?"
+      width="640px"
+      :close-on-click-modal="false"
+      append-to-body
+      class="aud-dialog"
+    >
+      <p class="aud-guide__sub">麻烦联系客户确认下人群包来源，目前需要投放平台新建推送才可以，辛苦确认下。</p>
+      <div class="aud-guide__block aud-guide__block--no">
+        <div class="aud-guide__tag">不支持</div>
+        <p>在<b>巨量引擎工作台（纵横）</b>：资产 → 自定义人群包 → 人群列表，这里新建 / 推送的人群包，接口<b>不支持获取</b>。请咨询客户是否在巨量引擎（纵横）新建和推送了人群包。</p>
+      </div>
+      <div class="aud-guide__block aud-guide__block--yes">
+        <div class="aud-guide__tag">支持</div>
+        <p>在<b>巨量广告升级版（投放平台）</b>：人群列表，只能拉取投放平台<b>新建和推送</b>的人群包。</p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button size="small" type="primary" @click="guideVisible = false">我知道了</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -403,7 +425,6 @@ const AUDIENCE_STATUS = {
 
 const PUSH_STATUS = { 0: '未推送', 1: '推送中', 2: '已推送', 3: '推送失败' };
 
-const CROWD_GUIDE_IMG = 'https://tos.mobgi.com/web/native-ad-guide/audience-crowd-guide.png?t=1';
 const PUSH_LIMIT = 100;
 const SYNC_LIMIT = 200;
 
@@ -526,7 +547,7 @@ const list = ref(buildMockList());
 /* ------------------------------------------------------------------ *
  * 查询条件
  * ------------------------------------------------------------------ */
-const query = ref({ advertiser_id: 'all', select_type: '1' });
+const query = ref({ advertiser_id: '', select_type: '' });
 const searchField = ref('name');
 const searchKeyword = ref('');
 const batchText = ref('');
@@ -580,7 +601,7 @@ function onBatchSearch() {
 }
 
 function onClearFilters() {
-  query.value = { advertiser_id: 'all', select_type: '1' };
+  query.value = { advertiser_id: '', select_type: '' };
   searchField.value = 'name';
   searchKeyword.value = '';
   batchText.value = '';
@@ -698,6 +719,7 @@ function submitPush() {
  * 同步人群包弹窗
  * ------------------------------------------------------------------ */
 const syncVisible = ref(false);
+const guideVisible = ref(false);
 const syncLoading = ref(false);
 const syncForm = ref({ advertiser_ids: [] });
 const syncAccountKeyword = ref('');
@@ -882,6 +904,20 @@ watch(pageSize, () => { pageNo.value = 1; });
 
 .aud-crowd-guide { font-size: 13px; color: #f56c6c; line-height: 20px; }
 .aud-crowd-guide__link { color: #197afb; cursor: pointer; margin-left: 4px; }
-.aud-crowd-guide__img { max-width: 800px; }
 .aud-sync__label { margin-top: 14px; font-size: 13px; color: #333; }
+
+/* 查看指引弹窗 */
+.aud-guide__sub { font-size: 13px; color: #606266; line-height: 20px; margin-bottom: 14px; }
+.aud-guide__block {
+  display: flex; gap: 12px; padding: 12px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; line-height: 20px;
+}
+.aud-guide__block--no { background: #fef0f0; }
+.aud-guide__block--yes { background: #f0f9eb; }
+.aud-guide__tag {
+  flex: none; align-self: flex-start; padding: 1px 10px; border-radius: 3px;
+  font-size: 12px; color: #fff;
+}
+.aud-guide__block--no .aud-guide__tag { background: #f56c6c; }
+.aud-guide__block--yes .aud-guide__tag { background: #67c23a; }
+.aud-guide__block p { margin: 0; color: #333; }
 </style>

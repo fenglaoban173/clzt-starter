@@ -129,6 +129,12 @@
       </div>
     </div>
 
+    <!-- ②b 线上橙色提示条（仅第三方落地页） -->
+    <div v-if="activeTab === '第三方落地页'" class="lp-tip">
+      <el-icon class="lp-tip__icon"><WarningFilled /></el-icon>
+      若落地页使用在巨量广告创编，则无需填写监测链接.
+    </div>
+
     <!-- ③ 功能按钮条（线上 .table-toolbar，按页签切换） -->
     <div class="table-toolbar">
       <el-button
@@ -157,6 +163,12 @@
       >
         <el-option v-for="o in batchOptions" :key="o.value" :label="o.label" :value="o.value" />
       </el-select>
+
+      <!-- 线上勾选后工具栏右侧「已选 N 条 清空」 -->
+      <span v-if="selectedRows.length" class="lp-selected-info">
+        已选 {{ selectedRows.length }} 条
+        <a class="lp-selected-clear" @click="clearSelection">清空</a>
+      </span>
     </div>
 
     <!-- ④ 列表（线上 el-table--border，8 列、无分页） -->
@@ -172,7 +184,7 @@
         v-if="tabCfg.selection"
         type="selection"
         :width="tabCfg.selectionWidth || 60"
-        fixed="left"
+        :fixed="tabCfg.selectionFixed === false ? false : 'left'"
         align="center"
       />
       <el-table-column
@@ -192,6 +204,10 @@
             </div>
             <div class="desc-cell__desc">ID：{{ row.lpId }}</div>
           </div>
+
+          <span v-else-if="col.prop === 'useStatus'" class="lp-status">
+            <i class="lp-status__dot" :class="row.useStatus === '已使用' ? 'is-used' : 'is-unused'"></i>{{ row.useStatus }}
+          </span>
 
           <div v-else-if="col.prop === 'action'" class="lp-ops">
             <el-button
@@ -229,10 +245,22 @@
       </el-table-column>
     </el-table>
 
+    <!-- ④b 分页（线上：共N条 / 10条每页 / 页码） -->
+    <div class="lp-pager">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="filteredRows.length"
+        layout="total, sizes, prev, pager, next, jumper"
+        :page-sizes="[10, 20, 50, 100]"
+        size="small"
+      />
+    </div>
+
     <!-- ⑤ 新建落地页模板 弹窗（线上 el-dialog，标题「新建落地页模板」、宽 526px） -->
     <el-dialog
       v-model="createVisible"
-      :title="activeTab === '第三方落地页' ? '新建落地页' : '新建落地页模板'"
+      :title="dialogTitle"
       :width="activeTab === '第三方落地页' ? '800px' : '526px'"
       top="15vh"
       :close-on-click-modal="false"
@@ -264,8 +292,8 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="智投项目（选填）" prop="project">
-              <el-select v-model="createForm.project" class="lp-dialog-select" size="small" clearable placeholder="请选择智投项目">
+            <el-form-item label="创量项目（选填）" prop="project">
+              <el-select v-model="createForm.project" class="lp-dialog-select" size="small" clearable placeholder="请选择创量项目">
                 <el-option v-for="p in LP_PROJECT_OPTIONS" :key="p" :label="p" :value="p" />
               </el-select>
             </el-form-item>
@@ -322,6 +350,7 @@
                 <el-radio-button value="启用">启用</el-radio-button>
                 <el-radio-button value="不启用">不启用</el-radio-button>
               </el-radio-group>
+              <div class="lp-field-tip">媒体白名单功能，适合覆盖安装不同电商APP用户启用</div>
             </el-form-item>
 
             <el-form-item v-if="createForm.deeplinkWay !== '自动生成'" label="Deeplink直达链接" prop="deeplinkUrl">
@@ -466,7 +495,7 @@
             v-model="importForm.product"
             class="lp-dialog-select"
             size="small"
-            placeholder="请选择创量产品"
+            placeholder="请选择产品"
           >
             <el-option v-for="p in LP_PRODUCT_OPTIONS" :key="p" :label="p" :value="p" />
           </el-select>
@@ -480,11 +509,13 @@
         </el-form-item>
 
         <el-form-item label="获取模板">
-          <el-input v-model="importForm.template" size="small" placeholder="请输入模板地址" />
+          <el-button type="primary" size="small" @click="onDownloadTemplate">下载模板</el-button>
+          <div class="lp-field-tip lp-field-tip--warn">模板更新时间：2023-10-26，请下载最新模板后再提交</div>
         </el-form-item>
 
         <el-form-item label="导入文件">
-          <el-input v-model="importForm.file" size="small" placeholder="请粘贴或选择落地页文件地址" />
+          <el-button type="primary" size="small" @click="onPickImportFile">点击上传</el-button>
+          <span class="lp-field-tip-inline">仅支持上传xls文件</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -494,13 +525,95 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ⑦ 同步落地页 弹窗（线上：小牛电商授权型） -->
+    <el-dialog
+      v-model="syncVisible"
+      title="同步落地页"
+      width="560px"
+      top="18vh"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="lp-sync">
+        <div class="lp-sync__head">
+          <span class="lp-sync__logo">牛</span>
+          <span class="lp-sync__name">小牛电商</span>
+          <a class="lp-sync__auth" @click="onSyncAuth">去授权</a>
+        </div>
+        <p class="lp-sync__desc">同步小牛电商落地页到创量，可以直接选用CID链接搭建广告</p>
+        <p class="lp-sync__note">
+          只能同步2月1号后新建的链接，仅支持同步拼多多商品的巨量广告链接，包括一跳落地页链接、直达链接、监测链接；已经同步的链接，不会重复同步
+        </p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer lp-dialog-footer-ops">
+          <el-checkbox v-model="syncAuto" class="lp-sync__auto">若小牛电商上新，自动同步链接到创量</el-checkbox>
+          <el-button plain @click="syncVisible = false">取 消</el-button>
+          <el-button type="primary" disabled>开始同步</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- ⑧ 批量修改关联媒体账户 弹窗 -->
+    <el-dialog
+      v-model="batchAccountVisible"
+      title="修改关联媒体账户"
+      width="480px"
+      top="18vh"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="lp-batch-edit">
+        <p class="lp-batch-edit__count">已选落地页：{{ selectedRows.length }}</p>
+        <el-form label-width="90px" label-position="left">
+          <el-form-item label="媒体账户">
+            <el-select v-model="batchAccount" class="lp-dialog-select" size="small" filterable placeholder="请选择媒体账户">
+              <el-option v-for="a in ACCOUNT_OPTIONS" :key="a" :label="a" :value="a" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <div class="dialog-footer lp-dialog-footer-ops">
+          <el-button plain @click="batchAccountVisible = false">取 消</el-button>
+          <el-button type="primary" @click="submitBatchAccount">确 定</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- ⑨ 批量修改创量项目 弹窗 -->
+    <el-dialog
+      v-model="batchProjectVisible"
+      title="修改创量项目"
+      width="480px"
+      top="18vh"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="lp-batch-edit">
+        <p class="lp-batch-edit__count">已选落地页：{{ selectedRows.length }}</p>
+        <el-form label-width="90px" label-position="left">
+          <el-form-item label="创量项目">
+            <ProjectSelectField v-model="batchProject" :options="batchProjectOptions" placeholder="请选择创量项目" />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <div class="dialog-footer lp-dialog-footer-ops">
+          <el-button plain @click="batchProjectVisible = false">取 消</el-button>
+          <el-button type="primary" @click="submitBatchProject">确 定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Close, Plus, Search } from '@element-plus/icons-vue';
+import { Close, Plus, Search, WarningFilled } from '@element-plus/icons-vue';
+import ProjectSelectField from '../components/ProjectSelectField.vue';
 import './landing_page.css';
 
 /* ------------------------------------------------------------------ *
@@ -533,9 +646,14 @@ const LP_PRODUCT_OPTIONS = ['测试商品', '测试安卓应用(android)'];
 /** 第三方落地页「创量项目」（线上 4 项） */
 const LP_PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];
 
-/** 媒体账户下拉（线上 20 个账户） */
+/** 修改创量项目弹窗候选：含「不限」（清空项目），供 ProjectSelectField 使用 */
+const batchProjectOptions = [
+  { label: '不限', value: '' },
+  ...LP_PROJECT_OPTIONS.map((p) => ({ label: p, value: p })),
+];
+
+/** 媒体账户下拉（线上 20 个账户，顺序照抄线上） */
 const ACCOUNT_OPTIONS = [
-  '不限',
   '北京高途云集教育科技有限公司--1(1861811345880074)',
   '百度文库-央广时代-拉新-搜索-01(1866877399870663)',
   '百度文库-央广时代-拉新-搜索-02(1866877399203047)',
@@ -623,10 +741,6 @@ const LANDING_PAGE_OPTIONS = [
 /* ------------------------------ 页签 / 列定义 ------------------------------ */
 
 const TABS = [
-  '橙子落地页模板',
-  '创量落地页模板',
-  '橙子落地页',
-  '程序化落地页组',
   '第三方落地页',
 ];
 
@@ -650,10 +764,10 @@ const TAB_FILTERS = {
     { key: 'status', label: '状态', placeholder: '请选择状态', options: GROUP_STATUS_OPTIONS },
   ],
   第三方落地页: [
-    { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ACCOUNT_OPTIONS },
+    { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ['不限', ...ACCOUNT_OPTIONS] },
     { key: 'creator', label: '创建人员', placeholder: '全部', options: OWNER_OPTIONS },
     { key: 'product', label: '产品', placeholder: '不限', options: LP_PRODUCT_OPTIONS },
-    { key: 'project', label: '智投项目', placeholder: '全部', options: LP_PROJECT_OPTIONS },
+    { key: 'project', label: '创量项目', placeholder: '全部', options: LP_PROJECT_OPTIONS },
   ],
 };
 
@@ -711,6 +825,7 @@ const TAB_CONFIG = {
   创量落地页模板: {
     createText: '新建模板',
     selection: true,
+    selectionFixed: false,
     columns: [
       { prop: 'template', label: '模板名称', width: 194 },
       { prop: 'templateType', label: '模板类型', width: 191 },
@@ -722,6 +837,7 @@ const TAB_CONFIG = {
   橙子落地页: {
     createText: '新建落地页',
     selection: true,
+    selectionFixed: false,
     rowActions: ['预览', '转赠', '存为模板'],
     columns: [
       { prop: 'landing', label: '落地页', width: 900 },
@@ -860,10 +976,70 @@ const batchOptions = computed(() => TAB_BATCH[activeTab.value] || []);
 const selectedRows = ref([]);
 const batchOp = ref('');
 function onSelectionChange(rows) { selectedRows.value = rows; }
+
+/* ------------------------------ 分页 ------------------------------ */
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+/* ------------------------------ 新建 / 编辑 ------------------------------ */
+const editing = ref(false);
+/** 弹窗标题：新建/编辑 × 第三方落地页/落地页模板 */
+const dialogTitle = computed(() => {
+  const base = activeTab.value === '第三方落地页' ? '第三方落地页' : '落地页模板';
+  return `${editing.value ? '编辑' : '新建'}${base}`;
+});
+
+/* ------------------------------ 同步落地页（小牛电商） ------------------------------ */
+const syncVisible = ref(false);
+const syncAuto = ref(false);
+
+/* ------------------------------ 批量修改弹窗 ------------------------------ */
+const batchAccountVisible = ref(false);
+const batchAccount = ref('');
+const batchProjectVisible = ref(false);
+const batchProject = ref('');
+
+/** 批量操作四分支：批量删除 / 生成直达链接 / 修改关联账户 / 修改创量项目 */
 function onBatchOp(v) {
   if (!v) return;
-  ElMessage.info(`原型：批量${v}`);
   batchOp.value = '';
+  if (!selectedRows.value.length) return;
+  if (v === 'batchDelete') { onBatchDelete(); return; }
+  if (v === 'genDeepLink') { ElMessage.success(`已为 ${selectedRows.value.length} 条落地页生成直达链接`); return; }
+  if (v === 'editAccount') {
+    batchAccount.value = '';
+    batchAccountVisible.value = true;
+    return;
+  }
+  if (v === 'editProject') {
+    batchProject.value = '';
+    batchProjectVisible.value = true;
+  }
+}
+
+async function onBatchDelete() {
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedRows.value.length} 条落地页吗?`, '提示', {
+      confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning',
+      customClass: 'cl-message-box--mini',
+    });
+  } catch (e) { return; }
+  ElMessage.success('删除成功');
+  clearSelection();
+}
+
+function submitBatchAccount() {
+  batchAccountVisible.value = false;
+  ElMessage.success('已修改关联媒体账户');
+}
+function submitBatchProject() {
+  batchProjectVisible.value = false;
+  ElMessage.success('已修改创量项目');
+}
+
+/** 清空勾选 */
+function clearSelection() {
+  selectedRows.value = [];
 }
 const createText = computed(() => TAB_CONFIG[activeTab.value].createText);
 /** 当前页签配置（列设置 / 复选框列 / 行内操作都按页签走） */
@@ -882,8 +1058,23 @@ function clearFilter(key) {
 function onToolbarButton(b) {
   if (b.key === 'create') { openCreate(); return; }
   if (b.key === 'import') { importVisible.value = true; return; }
+  if (b.key === 'sync') { syncVisible.value = true; return; }
   ElMessage.info(`原型：${b.text}`);
 }
+
+/** 下载模板：下载 public 内置的第三方落地页导入模板（头条） */
+function onDownloadTemplate() {
+  const a = document.createElement('a');
+  a.href = '/third-landing-import-template.xlsx';
+  a.download = '第三方落地页导入模板(头条).xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+/** 选择导入文件（原型） */
+function onPickImportFile() { ElMessage.info('原型：请选择 xls 落地页文件'); }
+/** 同步弹窗：去授权（原型） */
+function onSyncAuth() { ElMessage.info('原型：跳转小牛电商授权页'); }
 
 /* ---------- 批量导入落地页（线上 el-dialog「导入第三方落地页」，宽 800px，4 字段） ---------- */
 const importVisible = ref(false);
@@ -937,7 +1128,10 @@ const filteredRows = computed(() => {
   return rows;
 });
 
-const displayRows = computed(() => filteredRows.value);
+const displayRows = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredRows.value.slice(start, start + pageSize.value);
+});
 
 /* ------------------------------ 方法 ------------------------------ */
 
@@ -948,6 +1142,8 @@ function switchTab(tab) {
   visibleColProps.value = TAB_CONFIG[tab].columns.map((c) => c.prop);
   keyword.value = '';
   searchField.value = '名称';
+  currentPage.value = 1;
+  selectedRows.value = [];
 }
 
 function onFilterChange() {
@@ -996,20 +1192,24 @@ function onView(row) {
   ElMessage.info(`查看模板：${row.template}`);
 }
 
-/** 行内操作（线上各页签不同：橙子落地页=预览/转赠/存为模板，第三方落地页=预览/编辑/复制/删除） */
+/** 行内操作（第三方落地页=预览/编辑/复制/删除） */
 function onRowAction(op, row) {
-  const map = { 预览: onView, 编辑: onEdit, 删除: onDelete };
-  if (map[op]) { map[op](row); return; }
+  if (op === '预览') { onPreview(row); return; }
+  if (op === '编辑') { openEdit(row); return; }
+  if (op === '复制') { ElMessage.success(`已复制落地页「${row.landing}」`); return; }
+  if (op === '删除') { onDelete(row); return; }
   ElMessage.info(`${op}：${row.landing || row.group || row.template}`);
 }
 
-function onEdit(row) {
-  ElMessage.info(`编辑模板：${row.template}`);
+/** 预览：新窗口打开落地页链接 */
+function onPreview(row) {
+  if (row.url) window.open(row.url, '_blank');
+  else ElMessage.info('暂无落地页链接可预览');
 }
 
 async function onDelete(row) {
   try {
-    await ElMessageBox.confirm('确定要删除该模板吗?', '提示', {
+    await ElMessageBox.confirm(`确定要删除落地页「${row.landing}」吗?`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
@@ -1075,9 +1275,31 @@ const allIndeterminate = computed(
 /** 线上「已选：0/1」：最多选 1 个，选满后其余选项置灰 */
 const maxReached = computed(() => createForm.value.pages.length >= MAX_PICK);
 
-/** 打开弹窗 */
+/** 打开新建弹窗 */
 function openCreate() {
+  editing.value = false;
   createForm.value = { account: '', pages: [], name: '' };
+  lpKeyword.value = '';
+  lpPage.value = 1;
+  allChecked.value = false;
+  createVisible.value = true;
+}
+
+/** 打开编辑弹窗：回显选中行，复用新建表单 */
+function openEdit(row) {
+  editing.value = true;
+  createForm.value = {
+    ...createForm.value,
+    relAccount: row.account || '',
+    project: row.project || '',
+    name: row.landing || '',
+    link: row.url || '',
+    remark: row.remark || '',
+    product: row.product || '',
+    touchLink: row.touchLink || '',
+    deeplinkUrl: row.deeplink || '',
+    ulink: row.ulink || '',
+  };
   lpKeyword.value = '';
   lpPage.value = 1;
   allChecked.value = false;
@@ -1122,9 +1344,14 @@ watch(
 
 /** 确定：校验 + 反馈 */
 function submitCreate() {
+  if (editing.value) {
+    ElMessage.success('保存成功');
+    createVisible.value = false;
+    return;
+  }
   createFormRef.value.validate((valid) => {
     if (!valid) return;
-    ElMessage.success('新建模板成功');
+    ElMessage.success('新建成功');
     createVisible.value = false;
   });
 }
@@ -1242,4 +1469,48 @@ function onNameInput() {
 .lp-transfer__remove:hover { color: #197afb; }
 .lp-transfer__clear { color: #197afb; cursor: pointer; font-size: 12px; }
 .lp-transfer__tip { margin-top: 10px; font-size: 12px; color: #909399; }
+
+/* ---------- 橙色提示条（线上：若落地页使用在巨量广告创编，则无需填写监测链接.） ---------- */
+.lp-tip {
+  display: flex; align-items: center; gap: 6px;
+  margin: 8px 0; padding: 8px 12px;
+  background: #fff7e6; border: 1px solid #ffd591; border-radius: 3px;
+  font-size: 12px; color: #e68a00;
+}
+.lp-tip__icon { color: #fa8c16; font-size: 14px; }
+
+/* ---------- 工具栏右侧「已选 N 条 清空」 ---------- */
+.lp-selected-info { margin-left: auto; font-size: 12px; color: #606266; }
+.lp-selected-clear { margin-left: 8px; color: #197afb; cursor: pointer; }
+.lp-selected-clear:hover { text-decoration: underline; }
+
+/* ---------- 使用状态圆点（已使用=红点，未使用=绿点） ---------- */
+.lp-status { display: inline-flex; align-items: center; gap: 6px; }
+.lp-status__dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.lp-status__dot.is-used { background: #f56c6c; }
+.lp-status__dot.is-unused { background: #67c23a; }
+
+/* ---------- 表单辅助提示 ---------- */
+.lp-field-tip { margin-top: 4px; font-size: 12px; color: #909399; }
+.lp-field-tip--warn { color: #e68a00; }
+.lp-field-tip-inline { margin-left: 8px; font-size: 12px; color: #909399; }
+
+/* ---------- 同步落地页弹窗（小牛电商） ---------- */
+.lp-sync__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.lp-sync__logo {
+  width: 32px; height: 32px; border-radius: 8px; background: #197afb; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600;
+}
+.lp-sync__name { font-size: 15px; font-weight: 500; color: #333; }
+.lp-sync__auth { margin-left: 4px; font-size: 13px; color: #197afb; cursor: pointer; }
+.lp-sync__desc { font-size: 14px; color: #303133; margin-bottom: 10px; }
+.lp-sync__note { font-size: 12px; color: #909399; line-height: 1.7; }
+.lp-sync__auto { margin-right: 16px; }
+.lp-dialog-footer-ops { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+
+/* ---------- 批量修改弹窗 ---------- */
+.lp-batch-edit__count { font-size: 13px; color: #606266; margin-bottom: 14px; }
+
+/* ---------- 分页器 ---------- */
+.lp-pager { display: flex; justify-content: flex-end; margin-top: 12px; }
 </style>

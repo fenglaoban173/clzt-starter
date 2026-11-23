@@ -497,43 +497,318 @@
       </template>
     </el-dialog>
 
-    <!-- ⑩ 同步商品 弹窗（线上 el-dialog，标题「同步商品」、宽 992px、4 字段） -->
+    <!-- ⑩ 同步商品 弹窗（线上 el-dialog「同步商品」；工作台×商品类型 四组合联动） -->
     <el-dialog
       v-model="syncDialogVisible"
       title="同步商品"
-      width="992px"
+      width="960px"
       top="8vh"
       :close-on-click-modal="false"
       append-to-body
+      class="pd-share-dialog"
     >
-      <el-form :model="syncForm" label-width="150px" label-position="right" class="pd-dialog-form">
+      <el-form :model="syncForm" label-width="130px" label-position="right" class="pd-dialog-form">
         <el-form-item label="工作台">
-          <el-radio-group v-model="syncForm.workspace" size="small">
+          <el-radio-group v-model="syncForm.workspace" size="small" @change="onSyncWorkspaceChange">
             <el-radio-button value="旧版">旧版</el-radio-button>
             <el-radio-button value="新版">新版</el-radio-button>
           </el-radio-group>
         </el-form-item>
 
         <el-form-item label="商品类型">
-          <el-radio-group v-model="syncForm.goodsType" size="small">
+          <el-radio-group v-model="syncForm.goodsType" size="small" @change="onSyncTypeChange">
             <el-radio-button v-for="t in SYNC_GOODS_TYPES" :key="t" :value="t">{{ t }}</el-radio-button>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="syncForm.goodsType !== '商品-升级版'" label="所属账户" required>
+        <!-- 新版 + 商品-通用版：同步范围卡片二选一 -->
+        <el-form-item v-if="isNewGeneral" label="同步范围">
+          <div class="pd-scope-cards">
+            <div
+              class="pd-scope-card"
+              :class="{ active: syncForm.scope === '近1000条' }"
+              @click="syncForm.scope = '近1000条'"
+            >
+              <div class="pd-scope-card__head">近1000条<span class="pd-scope-card__tag">推荐</span></div>
+              <div class="pd-scope-card__desc">速度较快，满足常规同步需求。</div>
+            </div>
+            <div
+              class="pd-scope-card"
+              :class="{ active: syncForm.scope === '全量同步' }"
+              @click="syncForm.scope = '全量同步'"
+            >
+              <div class="pd-scope-card__head">全量同步<span class="pd-scope-card__muted">较慢</span></div>
+              <div class="pd-scope-card__desc">拉取商品库全部商品，低优先级排队执行。</div>
+            </div>
+          </div>
+        </el-form-item>
+
+        <!-- 旧版 + 商品-通用版：所属账户下拉 -->
+        <el-form-item v-if="isLegacyGeneral" label="所属账户">
           <el-select v-model="syncForm.account" class="pd-dialog-select" size="small" filterable placeholder="请选择所属账户">
             <el-option v-for="a in SYNC_ACCOUNT_OPTIONS" :key="a" :label="a" :value="a" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="选择商品库" required>
-          <el-input v-model="syncForm.lib" size="small" placeholder="请选择或输入商品库名称" />
+        <!-- 新版 + 商品-通用版：组织账户下拉 -->
+        <el-form-item v-if="isNewGeneral" label="组织账户">
+          <el-select v-model="syncForm.orgAccount" class="pd-dialog-select" size="small" filterable placeholder="请选择组织账户">
+            <el-option v-for="o in ORG_ACCOUNT_OPTIONS" :key="o" :label="o" :value="o" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 选择商品库（旧版通用版 / 新版通用版） -->
+        <el-form-item v-if="showLibPicker" label="选择商品库">
+          <div class="pd-share-transfer">
+            <div class="pd-share-col pd-sync-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">商品库</span>
+                <a class="pd-share-refresh" @click="onSyncRefresh"><el-icon><Refresh /></el-icon>刷新</a>
+              </div>
+              <div class="pd-share-checkall">
+                <el-checkbox :model-value="syncAllChecked" :indeterminate="syncIndeterminate" @change="toggleSyncAll">全选</el-checkbox>
+              </div>
+              <div class="pd-share-list">
+                <el-checkbox-group v-model="syncPicked">
+                  <el-checkbox v-for="l in LIB_NAMES" :key="l" :value="l" class="pd-share-item">
+                    <span class="pd-share-item__label" :title="l">{{ l }}</span>
+                  </el-checkbox>
+                </el-checkbox-group>
+              </div>
+            </div>
+            <div class="pd-share-col pd-sync-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">已选：{{ syncSelected.length }}/200</span>
+                <a class="pd-share-clear" @click="clearSyncSelected">清空</a>
+              </div>
+              <div class="pd-share-list">
+                <div v-if="syncSelected.length" class="pd-share-selected">
+                  <div v-for="s in syncSelected" :key="s" class="pd-share-selected__item">
+                    <span>{{ s }}</span>
+                    <el-icon class="pd-share-selected__del" @click="removeSyncSelected(s)"><Close /></el-icon>
+                  </div>
+                </div>
+                <div v-else class="pd-share-empty">
+                  <svg class="pd-share-empty__icon" viewBox="0 0 64 64" fill="none" stroke="#c0c4cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="23" y="16" width="18" height="24" rx="2" />
+                    <line x1="28" y1="24" x2="36" y2="24" />
+                    <line x1="28" y1="30" x2="36" y2="30" />
+                    <path d="M16 44 L48 44 L43 55 L21 55 Z" />
+                  </svg>
+                  <span>暂无数据</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-form-item>
+
+        <!-- 旧版 + 商品-升级版：选择广告主账户 -->
+        <el-form-item v-if="isLegacyAdv" label="选择广告主账户">
+          <div class="pd-share-transfer">
+            <div class="pd-share-col pd-sync-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">广告主账户</span>
+                <a class="pd-share-refresh" @click="onSyncRefresh"><el-icon><Refresh /></el-icon>刷新</a>
+              </div>
+              <div class="pd-share-checkall">
+                <el-checkbox :model-value="syncAllChecked" :indeterminate="syncIndeterminate" @change="toggleSyncAll">全选</el-checkbox>
+              </div>
+              <div class="pd-share-list">
+                <el-checkbox-group v-model="syncPicked">
+                  <el-checkbox v-for="a in SYNC_ACCOUNT_OPTIONS" :key="a" :value="a" class="pd-share-item">
+                    <span class="pd-share-item__label" :title="a">{{ a }}</span>
+                  </el-checkbox>
+                </el-checkbox-group>
+              </div>
+            </div>
+            <div class="pd-share-col pd-sync-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">已选：{{ syncSelected.length }}/200</span>
+                <a class="pd-share-clear" @click="clearSyncSelected">清空</a>
+              </div>
+              <div class="pd-share-list">
+                <div v-if="syncSelected.length" class="pd-share-selected">
+                  <div v-for="s in syncSelected" :key="s" class="pd-share-selected__item">
+                    <span>{{ s }}</span>
+                    <el-icon class="pd-share-selected__del" @click="removeSyncSelected(s)"><Close /></el-icon>
+                  </div>
+                </div>
+                <div v-else class="pd-share-empty">
+                  <svg class="pd-share-empty__icon" viewBox="0 0 64 64" fill="none" stroke="#c0c4cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="23" y="16" width="18" height="24" rx="2" />
+                    <line x1="28" y1="24" x2="36" y2="24" />
+                    <line x1="28" y1="30" x2="36" y2="30" />
+                    <path d="M16 44 L48 44 L43 55 L21 55 Z" />
+                  </svg>
+                  <span>暂无数据</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-form-item>
+
+        <!-- 新版 + 商品-升级版：选择组织账户 -->
+        <el-form-item v-if="isNewAdv" label="选择组织账户">
+          <div class="pd-share-transfer">
+            <div class="pd-share-col pd-sync-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">组织账户</span>
+                <a class="pd-share-refresh" @click="onSyncRefresh"><el-icon><Refresh /></el-icon>刷新</a>
+              </div>
+              <div class="pd-share-checkall">
+                <el-checkbox :model-value="syncAllChecked" :indeterminate="syncIndeterminate" @change="toggleSyncAll">全选</el-checkbox>
+              </div>
+              <div class="pd-share-list">
+                <el-checkbox-group v-model="syncPicked">
+                  <el-checkbox v-for="o in ORG_ACCOUNT_OPTIONS" :key="o" :value="o" class="pd-share-item">
+                    <span class="pd-share-item__label" :title="o">{{ o }}</span>
+                  </el-checkbox>
+                </el-checkbox-group>
+              </div>
+            </div>
+            <div class="pd-share-col pd-sync-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">已选：{{ syncSelected.length }}/200</span>
+                <a class="pd-share-clear" @click="clearSyncSelected">清空</a>
+              </div>
+              <div class="pd-share-list">
+                <div v-if="syncSelected.length" class="pd-share-selected">
+                  <div v-for="s in syncSelected" :key="s" class="pd-share-selected__item">
+                    <span>{{ s }}</span>
+                    <el-icon class="pd-share-selected__del" @click="removeSyncSelected(s)"><Close /></el-icon>
+                  </div>
+                </div>
+                <div v-else class="pd-share-empty">
+                  <svg class="pd-share-empty__icon" viewBox="0 0 64 64" fill="none" stroke="#c0c4cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="23" y="16" width="18" height="24" rx="2" />
+                    <line x1="28" y1="24" x2="36" y2="24" />
+                    <line x1="28" y1="30" x2="36" y2="30" />
+                    <path d="M16 44 L48 44 L43 55 L21 55 Z" />
+                  </svg>
+                  <span>暂无数据</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <div class="operate-button">
+        <div class="operate-button pd-share-footer">
           <el-button size="small" plain @click="syncDialogVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="onSyncSubmit">确 定</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- ⑪ 共享巨量商品库 弹窗（线上 el-dialog，标题「共享巨量商品库」，宽 760px）
+         布局：工作台管理账户 / 账户主体 两个下拉 + 「添加授权账户」左右两栏联动（候选账户 ⇄ 已选，上限 200） -->
+    <el-dialog
+      v-model="shareDialogVisible"
+      title="共享巨量商品库"
+      width="960px"
+      top="8vh"
+      :close-on-click-modal="false"
+      append-to-body
+      class="pd-share-dialog"
+    >
+      <el-form label-width="130px" label-position="right" class="pd-dialog-form">
+        <el-form-item label="工作台管理员账户">
+          <el-select v-model="shareForm.workspaceAccount" class="pd-dialog-select" size="small" filterable placeholder="请选择工作台管理员账户">
+            <el-option v-for="a in SHARE_ACCOUNT_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="账户主体">
+          <el-select v-model="shareForm.entity" class="pd-dialog-select" size="small" filterable placeholder="不限">
+            <el-option label="不限" value="" />
+            <el-option v-for="e in SHARE_ENTITY_OPTIONS" :key="e" :label="e" :value="e" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="选择推送账户">
+          <div class="pd-share-transfer">
+            <!-- 左栏：媒体账户 -->
+            <div class="pd-share-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">媒体账户</span>
+                <a class="pd-share-refresh" @click="onShareRefresh">
+                  <el-icon><Refresh /></el-icon>刷新
+                </a>
+              </div>
+              <el-input v-model="shareCandidateKeyword" class="pd-share-search" size="small" placeholder="请输入关键词" clearable @clear="onShareSearch">
+                <template #append>
+                  <el-button class="pd-share-search-btn" :icon="Search" @click="onShareSearch" />
+                </template>
+              </el-input>
+              <div class="pd-share-checkall">
+                <el-checkbox
+                  :model-value="allChecked"
+                  :indeterminate="isIndeterminate"
+                  @change="toggleCheckAll"
+                >全选</el-checkbox>
+              </div>
+              <div class="pd-share-list">
+                <el-checkbox-group v-model="sharePicked">
+                  <el-checkbox
+                    v-for="c in shownShareCandidates"
+                    :key="c.id"
+                    :value="c.id"
+                    class="pd-share-item"
+                    :disabled="shareSelected.length >= 200 && !shareSelected.includes(c.id)"
+                  >
+                    <span class="pd-share-item__label" :title="c.label">{{ c.label }}</span>
+                  </el-checkbox>
+                </el-checkbox-group>
+                <div v-if="!shownShareCandidates.length" class="pd-share-empty">暂无数据</div>
+              </div>
+              <div class="pd-share-pager">
+                <el-pagination
+                  v-model:current-page="shareCandidatePage"
+                  :page-size="20"
+                  :total="shareCandidatesTotal"
+                  layout="prev, pager, next"
+                  small
+                  background
+                />
+              </div>
+            </div>
+
+            <!-- 右栏：已选 -->
+            <div class="pd-share-col">
+              <div class="pd-share-col__head">
+                <span class="pd-share-col__title">已选：{{ shareSelected.length }}/200</span>
+                <a class="pd-share-clear" @click="clearShareSelected">清空</a>
+              </div>
+              <div class="pd-share-list">
+                <div v-if="shareSelected.length" class="pd-share-selected">
+                  <div v-for="s in shareSelected" :key="s" class="pd-share-selected__item">
+                    <span>{{ shareCandidateMap[s] }}</span>
+                    <el-icon class="pd-share-selected__del" @click="removeShareSelected(s)"><Close /></el-icon>
+                  </div>
+                </div>
+                <div v-else class="pd-share-empty">
+                  <svg class="pd-share-empty__icon" viewBox="0 0 64 64" fill="none" stroke="#c0c4cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- 纸张 -->
+                    <rect x="23" y="16" width="18" height="24" rx="2" />
+                    <line x1="28" y1="24" x2="36" y2="24" />
+                    <line x1="28" y1="30" x2="36" y2="30" />
+                    <!-- 托盘 -->
+                    <path d="M16 44 L48 44 L43 55 L21 55 Z" />
+                    <!-- 星星点缀 -->
+                    <path d="M48 14 l1.2 2.4 2.6.4 -2 1.8.6 2.6 -2.4-1.4 -2.4 1.4.6-2.6 -2-1.8 2.6-.4 Z" />
+                  </svg>
+                  <span>暂无数据</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="operate-button pd-share-footer">
+          <el-button size="small" plain @click="shareDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="onShareSubmit">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -544,7 +819,7 @@
 import { computed, ref, watch } from 'vue';
 import { ASSET_LIB_TYPE_OPTIONS, ASSET_ACCOUNT_OPTIONS } from './assetOptions';
 import { ElMessage } from 'element-plus';
-import { ArrowDown, Close, InfoFilled, MoreFilled, Search } from '@element-plus/icons-vue';
+import { ArrowDown, Close, InfoFilled, MoreFilled, Refresh, Search } from '@element-plus/icons-vue';
 
 /* ------------------------------------------------------------------
  * 创量标准版「巨量广告·标准 → 资产 → 巨量商品库」
@@ -570,7 +845,6 @@ const props = defineProps({ kind: { type: String, default: '' } });
 const TABS = [
   { key: 'lib', text: '商品库-通用版' },
   { key: 'goods', text: '商品-通用版' },
-  { key: 'up', text: '商品-升级版' },
 ];
 
 /** 工作台（筛选 + 抽屉「工作台来源」） */
@@ -602,10 +876,8 @@ const CATEGORY_OPTIONS = [
   { value: '单剧目-漫剧', label: '单剧目-漫剧' },
 ];
 
-/** 批量操作下拉（线上顺序：创量创意云 / 万镜台 / 共享） */
+/** 批量操作下拉（线上顺序：创量创意云 / 万镜台 / 共享；R88 按用户要求只保留「共享」） */
 const BATCH_ITEMS = [
-  { command: '1', icon: '创', title: '创量创意云', subtitle: '内容资产创作管理平台' },
-  { command: '4', icon: '万', title: '万镜台', subtitle: 'AI爆款视频创作平台' },
   { command: 'share', icon: '共', title: '共享', subtitle: '' },
 ];
 
@@ -629,17 +901,186 @@ const IMAGE_OPTIONS = [
 /** 同步商品弹窗（线上 el-dialog「同步商品」，宽 992px，4 字段：工作台 / 商品类型 / 所属账户 / 选择商品库） */
 const SYNC_GOODS_TYPES = ['商品-通用版', '商品-升级版'];
 const SYNC_ACCOUNT_OPTIONS = ASSET_ACCOUNT_OPTIONS;
+/** 组织账户（线上「新版+升级版」穿梭框，纯名称列表） */
+const ORG_ACCOUNT_OPTIONS = [
+  '央广-红果-自负亏损测试', '央广漫剧R3', '央广时代', '代理央广时代',
+  'AI漫剧创作神器', '代理liruohan', 'chenpeihua代理', '代理liuziyuan01',
+  '漫剧-央广时代-iap', '漫剧-央广时代',
+];
 const syncDialogVisible = ref(false);
-const syncForm = ref({ workspace: '旧版', goodsType: '商品-通用版', account: '', lib: '' });
+const syncForm = ref({ workspace: '旧版', goodsType: '商品-通用版', scope: '近1000条', account: '', orgAccount: '' });
+const syncPicked = ref([]);
+const syncSelected = ref([]);
+
+/* 工作台 × 商品类型 四组合 */
+const isLegacyGeneral = computed(() => syncForm.value.workspace === '旧版' && syncForm.value.goodsType === '商品-通用版');
+const isLegacyAdv = computed(() => syncForm.value.workspace === '旧版' && syncForm.value.goodsType === '商品-升级版');
+const isNewGeneral = computed(() => syncForm.value.workspace === '新版' && syncForm.value.goodsType === '商品-通用版');
+const isNewAdv = computed(() => syncForm.value.workspace === '新版' && syncForm.value.goodsType === '商品-升级版');
+/** 旧版/新版通用版都用「选择商品库」穿梭框 */
+const showLibPicker = computed(() => isLegacyGeneral.value || isNewGeneral.value);
+
+/** 当前穿梭框候选列表（随组合切换） */
+const currentPickerList = computed(() => {
+  if (isLegacyAdv.value) return SYNC_ACCOUNT_OPTIONS;
+  if (isNewAdv.value) return ORG_ACCOUNT_OPTIONS;
+  return LIB_NAMES;
+});
+
+const syncAllChecked = computed(() => currentPickerList.value.length > 0
+  && currentPickerList.value.every((x) => syncSelected.value.includes(x)));
+const syncIndeterminate = computed(() => {
+  const sel = currentPickerList.value.filter((x) => syncSelected.value.includes(x)).length;
+  return sel > 0 && sel < currentPickerList.value.length;
+});
+
+/** 勾选变化 → 同步已选（上限 200；取消即移除） */
+watch(syncPicked, (val) => {
+  syncSelected.value = val.filter((x) => currentPickerList.value.includes(x)).slice(0, 200);
+});
+
+function toggleSyncAll(checked) {
+  let next = [...syncSelected.value];
+  if (checked) {
+    currentPickerList.value.forEach((x) => { if (!next.includes(x)) next.push(x); });
+  } else {
+    next = next.filter((x) => !currentPickerList.value.includes(x));
+  }
+  syncSelected.value = next.slice(0, 200);
+  syncPicked.value = syncSelected.value.slice();
+}
+
+function removeSyncSelected(s) {
+  syncSelected.value = syncSelected.value.filter((x) => x !== s);
+  syncPicked.value = syncSelected.value.slice();
+}
+function clearSyncSelected() {
+  syncSelected.value = [];
+  syncPicked.value = [];
+}
+
+function onSyncWorkspaceChange() { clearSyncSelected(); }
+function onSyncTypeChange() { clearSyncSelected(); }
+function onSyncRefresh() { ElMessage.success('原型：已刷新候选列表'); }
+
 function openSyncDialog() {
-  syncForm.value = { workspace: '旧版', goodsType: '商品-通用版', account: '', lib: '' };
+  syncForm.value = { workspace: '旧版', goodsType: '商品-通用版', scope: '近1000条', account: '', orgAccount: '' };
+  clearSyncSelected();
   syncDialogVisible.value = true;
 }
+
 function onSyncSubmit() {
-  if (!syncForm.value.account) { ElMessage.warning('请选择所属账户'); return; }
-  if (!syncForm.value.lib) { ElMessage.warning('请选择商品库'); return; }
+  if (isLegacyGeneral.value && !syncForm.value.account) { ElMessage.warning('请选择所属账户'); return; }
+  if (isNewGeneral.value && !syncForm.value.orgAccount) { ElMessage.warning('请选择组织账户'); return; }
+  if (!syncSelected.value.length) { ElMessage.warning('请选择至少一项'); return; }
   syncDialogVisible.value = false;
   ElMessage.success('原型：已提交同步商品');
+}
+
+/* ------------------------------ 共享巨量商品库 ------------------------------ */
+
+/** 工作台管理账户下拉（线上为账户列表，此处用本地账户选项） */
+const SHARE_ACCOUNT_OPTIONS = ASSET_ACCOUNT_OPTIONS.map((label) => {
+  const m = label.match(/\((\d+)\)/);
+  return { label, value: m ? m[1] : label };
+});
+
+/** 账户主体（线上「不限」下拉） */
+const SHARE_ENTITY_OPTIONS = [
+  '北京高途云集教育科技有限公司',
+  '北京百度网讯科技有限公司',
+  '北京智者天下科技有限公司',
+  '上海得物信息集团有限公司',
+];
+
+/** 候选媒体账户（线上：账户名(广告主ID)，与左栏「媒体账户」列表一致，直接取 ASSET_ACCOUNT_OPTIONS） */
+const SHARE_CANDIDATES = ASSET_ACCOUNT_OPTIONS.map((label) => {
+  const m = label.match(/^(.*)\((\d+)\)$/);
+  return { label, name: m ? m[1] : label, id: m ? m[2] : label };
+});
+
+const shareDialogVisible = ref(false);
+const shareForm = ref({ workspaceAccount: '', entity: '' });
+const shareCandidateKeyword = ref('');
+const shareCandidatePage = ref(1);
+const sharePicked = ref([]);
+const shareSelected = ref([]);
+
+const shareCandidateMap = SHARE_CANDIDATES.reduce((m, c) => {
+  m[c.id] = c.label;
+  return m;
+}, {});
+
+const shareCandidatesTotal = computed(() => SHARE_CANDIDATES.length);
+
+const shownShareCandidates = computed(() => {
+  const kw = shareCandidateKeyword.value.trim();
+  const list = SHARE_CANDIDATES.filter((c) => !kw || c.label.includes(kw));
+  const start = (shareCandidatePage.value - 1) * 20;
+  return list.slice(start, start + 20);
+});
+
+/** 当前页全选 / 半选状态 */
+const allChecked = computed(() => shownShareCandidates.value.length > 0
+  && shownShareCandidates.value.every((c) => shareSelected.value.includes(c.id)));
+const isIndeterminate = computed(() => {
+  const sel = shownShareCandidates.value.filter((c) => shareSelected.value.includes(c.id)).length;
+  return sel > 0 && sel < shownShareCandidates.value.length;
+});
+
+/** 打开共享弹窗（由批量操作「共享」触发） */
+function openShareDialog() {
+  shareForm.value = { workspaceAccount: '', entity: '' };
+  shareCandidateKeyword.value = '';
+  shareCandidatePage.value = 1;
+  sharePicked.value = [];
+  shareSelected.value = [];
+  shareDialogVisible.value = true;
+}
+
+/** 左侧勾选变化 → 同步到右侧已选（上限 200；取消勾选即从已选移除） */
+watch(sharePicked, (val) => {
+  const next = val.filter((id) => SHARE_CANDIDATES.some((c) => c.id === id));
+  shareSelected.value = next.slice(0, 200);
+});
+
+/** 当前页全选 / 取消全选 */
+function toggleCheckAll(checked) {
+  const pageIds = shownShareCandidates.value.map((c) => c.id);
+  let next = [...shareSelected.value];
+  if (checked) {
+    pageIds.forEach((id) => { if (!next.includes(id)) next.push(id); });
+  } else {
+    next = next.filter((id) => !pageIds.includes(id));
+  }
+  shareSelected.value = next.slice(0, 200);
+  sharePicked.value = shareSelected.value.slice();
+}
+
+function removeShareSelected(id) {
+  shareSelected.value = shareSelected.value.filter((s) => s !== id);
+  sharePicked.value = shareSelected.value.slice();
+}
+
+function clearShareSelected() {
+  shareSelected.value = [];
+  sharePicked.value = [];
+}
+
+/** 搜索候选账户（点放大镜 / 清空后回到第一页） */
+function onShareSearch() {
+  shareCandidatePage.value = 1;
+}
+
+/** 左栏「刷新」：重新拉取媒体账户 */
+function onShareRefresh() {
+  ElMessage.success('原型：已刷新媒体账户列表');
+}
+
+function onShareSubmit() {
+  if (!shareSelected.value.length) { ElMessage.warning('请选择要授权的账户'); return; }
+  shareDialogVisible.value = false;
+  ElMessage.success(`已共享至 ${shareSelected.value.length} 个账户`);
 }
 
 const LIB_NAMES = [
@@ -985,14 +1426,18 @@ async function onSync() {
   }
 }
 
-/** 批量操作：推送到创量创意云 / 万镜台 */
+/** 批量操作：推送到创量创意云 / 万镜台 / 共享 */
 function onBatchCommand(command) {
-  const target = BATCH_ITEMS.find((o) => o.command === command);
   const n = selectedRows.value.length;
   if (!n) {
     ElMessage.warning('请先选择数据');
     return;
   }
+  if (command === 'share') {
+    openShareDialog();
+    return;
+  }
+  const target = BATCH_ITEMS.find((o) => o.command === command);
   ElMessage.success(`已将 ${n} 条商品推送到${target ? target.title : '批量平台'}`);
   selectedRows.value = [];
 }
@@ -1217,6 +1662,67 @@ watch(pageSize, () => { pageNo.value = 1; });
 .pd-picker-table :deep(.el-table__cell) { font-size: 12px; color: #606266; }
 .pd-image-group { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .pd-image-item { font-size: 13px; color: #606266; height: 28px; }
+
+/* ---------- 共享巨量商品库 弹窗（线上宽弹窗：控件定宽 380px、两栏等高 360px、按钮靠右） ---------- */
+.pd-share-dialog .pd-dialog-select { width: 380px; }
+.pd-share-footer { justify-content: flex-end; }
+.pd-share-transfer { display: flex; gap: 16px; width: 100%; }
+.pd-share-col {
+  flex: 1; min-width: 0; border: 1px solid #e8eaec; border-radius: 3px;
+  display: flex; flex-direction: column; height: 360px; overflow: hidden;
+}
+.pd-share-transfer > .pd-share-col:first-child { flex: 1.15; }
+.pd-share-col__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #fafafa; border-bottom: 1px solid #e8eaec;
+}
+.pd-share-col__title { font-size: 13px; color: #333; font-weight: 500; }
+.pd-share-refresh, .pd-share-clear { font-size: 12px; color: #197afb; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.pd-share-refresh:hover, .pd-share-clear:hover { text-decoration: underline; }
+.pd-share-refresh .el-icon { font-size: 12px; }
+.pd-share-search { margin: 10px 14px 0; }
+.pd-share-search :deep(.el-input__wrapper) { border-radius: 3px; }
+.pd-share-search-btn { width: 32px; padding: 0; border-left: 0; }
+.pd-share-checkall { padding: 6px 14px 2px; }
+.pd-share-checkall :deep(.el-checkbox__label) { font-size: 12px; color: #333; }
+.pd-share-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.pd-share-item {
+  display: flex; align-items: center; width: 100%; height: 36px; padding: 0 14px;
+  box-sizing: border-box; margin: 0;
+}
+.pd-share-item__label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #333; }
+.pd-share-empty {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; font-size: 12px; color: #c0c4cc;
+}
+.pd-share-empty__icon { opacity: 0.7; width: 64px; height: 64px; }
+.pd-share-pager { padding: 8px 12px; border-top: 1px solid #e8eaec; display: flex; justify-content: flex-end; }
+.pd-share-selected { padding: 4px 12px; }
+.pd-share-selected__item {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 34px; font-size: 12px; color: #333; border-bottom: 1px solid #f0f2f5;
+}
+.pd-share-selected__del { color: #c0c4cc; cursor: pointer; }
+.pd-share-selected__del:hover { color: #f53f3f; }
+
+/* ---------- 同步商品弹窗：同步范围卡片二选一 ---------- */
+.pd-scope-cards { display: flex; gap: 12px; width: 380px; }
+.pd-scope-card {
+  flex: 1; border: 1px solid #e8eaec; border-radius: 4px; padding: 12px 14px;
+  cursor: pointer; background: #fff; transition: all .15s;
+}
+.pd-scope-card:hover { border-color: #197afb; }
+.pd-scope-card.active { border-color: #197afb; background: #ecf5ff; }
+.pd-scope-card__head { font-size: 13px; color: #333; font-weight: 500; margin-bottom: 4px; }
+.pd-scope-card__tag {
+  margin-left: 6px; font-size: 12px; color: #197afb; background: #d6eaff;
+  border-radius: 2px; padding: 0 4px; line-height: 16px;
+}
+.pd-scope-card__muted { margin-left: 6px; font-size: 12px; color: #909399; }
+.pd-scope-card__desc { font-size: 12px; color: #909399; line-height: 18px; }
+
+/* 同步弹窗穿梭框列：与共享弹窗等高 */
+.pd-sync-col { height: 320px; }
 </style>
 
 <!--
@@ -1241,4 +1747,8 @@ watch(pageSize, () => { pageNo.value = 1; });
 .pd-drawer .el-radio-button.is-active .el-radio-button__original-radio:not(:disabled) + .el-radio-button__inner {
   background: #d6eaff; border-color: #197afb; color: #197afb; box-shadow: -1px 0 0 0 #197afb;
 }
+
+/* 共享弹窗：标题下通栏分隔线（线上） */
+.pd-share-dialog .el-dialog__header { border-bottom: 1px solid #e8eaec; padding-bottom: 14px; margin-right: 0; }
+.pd-share-dialog .el-dialog__body { padding-top: 20px; }
 </style>

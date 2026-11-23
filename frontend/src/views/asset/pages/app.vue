@@ -142,6 +142,7 @@
         :label="c.label"
         :prop="c.prop"
         :min-width="c.width"
+        :fixed="c.fixed || false"
         :align="c.align"
         :header-class-name="c.action ? 'operate-column' : undefined"
         :class-name="c.action ? 'operate-column' : undefined"
@@ -289,9 +290,8 @@ const TABS = [
 
 /* ------------------------------ 公共选项 ------------------------------ */
 
-/** 媒体账户（线上采集到的 20 条，末尾还有「搜索更多(292)…」） */
-const ACCOUNT_OPTIONS = [
-  { value: '不限', label: '不限' },
+/** 媒体账户（线上 20 项，顺序照抄线上；下拉末尾还有「搜索更多(N)…」） */
+const ACCOUNT_LIST = [
   { value: '1861811345880074', label: '北京高途云集教育科技有限公司--1 (1861811345880074)' },
   { value: '1866877399870663', label: '百度文库-央广时代-拉新-搜索-01 (1866877399870663)' },
   { value: '1866877399203047', label: '百度文库-央广时代-拉新-搜索-02 (1866877399203047)' },
@@ -312,6 +312,13 @@ const ACCOUNT_OPTIONS = [
   { value: '1866489863429463', label: '任意门-央广-代运营-28-安卓-UBA (1866489863429463)' },
   { value: '1866489873385099', label: '任意门-央广-代运营-35-iOS-UBA (1866489873385099)' },
   { value: '1866877405575303', label: '央广-621059846-百度文库-1 (1866877405575303)' },
+];
+
+/* app 标签：线上 20 项（无「不限」）；应用分包 / 监测活动：线上「不限」+ 19 项（无线上「央广-621059846…」） */
+const ACCOUNT_OPTIONS = ACCOUNT_LIST;
+const ACCOUNT_OPTIONS_SUB = [
+  { value: '不限', label: '不限' },
+  ...ACCOUNT_LIST.slice(0, 19),
 ];
 
 /** 创量应用（线上仅 1 条） */
@@ -363,32 +370,32 @@ const CREATOR_OPTIONS = [
 
 /** 巨量应用（线上首屏 10 行 + 补充行，共 26 条，与线上分页「共 26 条」一致） */
 const APP_ROWS = [
-  { name: '有驾', appId: '210483', clApp: '', packageName: 'com.baidu.autocar', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/0e61798db556cddc4e292cd0ba6c9a82dc63ca15', status: '已发布', version: '2.8.1', updateTime: '2026-11-18 10:50:57', publishTime: '2022-05-26 15:31:02', account: '北京高途云集教育科技有限公司--1', platform: '旧版' },
-  { name: '百度', appId: '196201', clApp: '', packageName: 'com.baidu.searchbox', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/d98f870486aa9f82e7d7c09633cfd6c2ad13d833', status: '已发布', version: '13.72.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2024-11-06 13:16:48', account: '百度文库-央广时代-拉新-搜索-01', platform: '旧版' },
-  { name: '百度畅听版', appId: '217271', clApp: '', packageName: 'com.baidu.searchbox.tomas', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/3105ad202ccaae38f7e4658c03ba9678b56a1d13', status: '已发布', version: '2.38.0.11', updateTime: '2026-11-18 10:50:57', publishTime: '2024-11-14 13:40:18', account: '百度文库-央广时代-拉新-搜索-02', platform: '旧版' },
-  { name: '百度输入法', appId: '217718', clApp: '', packageName: 'com.baidu.input', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/aae29366d82f2b93a36d10f7780751d2089370dc', status: '已发布', version: '13.1.1.32', updateTime: '2026-11-18 10:50:57', publishTime: '2025-11-13 19:13:07', account: '百度文库-央广时代-拉新-搜索-03', platform: '旧版' },
-  { name: '度豆', appId: '674580', clApp: '', packageName: 'com.wantalk.xiaoyan', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/d5b0045797c384e8a20833be7f6e04895c569929', status: '已发布', version: '1.12.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2024-12-11 21:07:17', account: '任意门-央广-代运营-36-安卓-UBA', platform: '旧版' },
-  { name: '百度极速版', appId: '195429', clApp: '', packageName: 'com.baidu.searchbox.lite', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/415ca21ae06c68a2ef5c73a71a68612f715ff339', status: '已发布', version: '6.92.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2026-02-05 19:48:16', account: '任意门-央广-代运营-22-安卓-UBA', platform: '旧版' },
-  { name: '百度搭子', appId: '1036735', clApp: '', packageName: 'com.baidu.dumate', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/663813401b604f7767afb39d7fa157af83be1a98', status: '已发布', version: '1.22.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2026-11-11 21:22:50', account: '任意门-央广-代运营-23-安卓-UBA', platform: '旧版' },
-  { name: '知乎', appId: '193564', clApp: '', packageName: 'com.zhihu.android', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/832e6e4488582f35c59ff7c8bd52c853d92ca7f7', status: '已发布', version: '11.15.0', updateTime: '2026-11-14 10:54:27', publishTime: '2026-11-12 20:28:34', account: '任意门-央广-代运营-10-ios-UBA', platform: '旧版' },
-  { name: '95分', appId: '188248', clApp: '', packageName: 'com.jiuwu', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/21078fa22caaf92b4dfe5adbbabaf586dadc8550', status: '已发布', version: '3.31.50', updateTime: '2026-10-16 12:19:28', publishTime: '2025-09-25 18:34:33', account: '任意门-央广-代运营-25-ios-UBA', platform: '旧版' },
-  { name: '盐言故事', appId: '495578', clApp: '', packageName: 'com.zhihu.vip.android', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/50fb12d5e4e60bd778940ec3bffe2b0c35bcdc00', status: '已发布', version: '2.17.1', updateTime: '2026-10-16 12:19:28', publishTime: '2026-10-14 17:55:03', account: '任意门-央广-代运营-30-ios-UBA', platform: '旧版' },
-  { name: '抖音极速版', appId: '736521', clApp: '', packageName: 'com.ss.android.ugc.aweme.lite', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/1c9d0f6b28d4a75e39b0c5f7a91d2e6483ab77c10', status: '已发布', version: '24.9.0', updateTime: '2026-11-17 09:12:41', publishTime: '2026-08-01 10:22:15', account: '上海得物信息集团有限公司1-50', platform: '新版' },
-  { name: '剪映', appId: '622037', clApp: '测试安卓应用(android)', packageName: 'com.ss.android.ugc.aweme', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/77c1d2b8e64f0a92d5b83c1f70e246a9db53c8e21', status: '已发布', version: '8.6.0', updateTime: '2026-11-15 18:30:02', publishTime: '2025-12-11 09:41:37', account: '任意门-央广-代运营-27-安卓-UBA', platform: '新版' },
-  { name: '番茄小说', appId: '552108', clApp: '', packageName: 'com.dragon.read', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/30b7d9f4c1a85e26b7d4093f8c152e6d09ab47f3', status: '已发布', version: '6.2.1', updateTime: '2026-11-16 21:05:44', publishTime: '2025-10-08 14:12:09', account: '任意门-央广-代运营-31-安卓-UBA', platform: '新版' },
-  { name: '快手', appId: '431007', clApp: '', packageName: 'com.smile.gifmaker', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/6b41f9c2d80e37a5c1942f8db06e7c153a9f42d60', status: '已发布', version: '12.9.0', updateTime: '2026-11-12 11:47:26', publishTime: '2024-06-18 16:33:52', account: '任意门-央广-代运营-38-安卓-UBA', platform: '旧版' },
-  { name: '微信读书', appId: '408552', clApp: '', packageName: 'com.tencent.weread', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/9e2c7a54d0b836f14c95e8a3d27b604f1ce85a932', status: '已发布', version: '3.2.0', updateTime: '2026-11-10 20:15:33', publishTime: '2023-04-22 08:51:16', account: '任意门-央广-代运营-33-安卓-UBA', platform: '旧版' },
-  { name: '得物', appId: '719430', clApp: '', packageName: 'com.shizhuang.duapp', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/f4b8d10c9a72e3650bc1d84f7e2a9350d6c7b1e8', status: '已发布', version: '4.7.2', updateTime: '2026-11-09 15:26:48', publishTime: '2026-01-25 19:04:57', account: '任意门-央广-代运营-32-ios-UBA', platform: '旧版' },
-  { name: '小红书', appId: '902166', clApp: '', packageName: 'com.xingin.xhs', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/2a6e93f50c8b1d74e6f3092a5c81b04d7e3f6a952', status: '已发布', version: '8.31.0', updateTime: '2026-11-14 13:08:29', publishTime: '2025-07-19 11:22:03', account: '百度文库-央广时代-拉新-搜索-04', platform: '旧版' },
-  { name: '夸克', appId: '844017', clApp: '', packageName: 'com.quark.browser', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/8d3b57e1c904a2f6d1e7b05c9a34d78f2e61c05b3', status: '已发布', version: '6.8.5', updateTime: '2026-11-11 08:19:54', publishTime: '2026-03-02 21:17:40', account: '任意门-央广-代运营-28-安卓-UBA', platform: '新版' },
-  { name: '哔哩哔哩', appId: '337815', clApp: '', packageName: 'tv.danmaku.bili', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/c05f27a8b6d391e4f2a8c07d5b94e16f3d80a2c74', status: '已发布', version: '7.45.0', updateTime: '2026-11-13 22:41:12', publishTime: '2024-12-05 13:35:28', account: '任意门-央广-代运营-35-iOS-UBA', platform: '旧版' },
-  { name: '作业帮', appId: '506294', clApp: '测试安卓应用(android)', packageName: 'com.baidu.homework', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/3b7c1e95a2d840f6c9e35b207d16a84f0e93c5d27', status: '已发布', version: '14.2.1', updateTime: '2026-11-08 10:52:37', publishTime: '2026-05-16 09:44:19', account: '央广-621059846-百度文库-1', platform: '旧版' },
-  { name: '猿辅导', appId: '268745', clApp: '', packageName: 'com.yuanfudao.leo', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/e4a06d3f819c572b04d7e9a31c6f8250db73e9a46', status: '已发布', version: '2.19.0', updateTime: '2026-11-07 17:33:21', publishTime: '2025-05-28 15:09:47', account: '任意门-央广-代运营-25-ios-UBA', platform: '旧版' },
-  { name: '掌门教育', appId: '174963', clApp: '', packageName: 'com.zhangmen.education', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/62f81a0d5b39c74e6a02d7f1b8c459e30d7a6b2c8', status: '已发布', version: '1.8.6', updateTime: '2026-11-06 12:07:55', publishTime: '2026-02-11 18:50:32', account: '任意门-央广-代运营-30-ios-UBA', platform: '旧版' },
-  { name: '中国移动', appId: '903517', clApp: '', packageName: 'com.greenpoint.android.mc10086', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/9d52e7b1c60f38a472d9051eb3c6d082fa47e5b1', status: '已发布', version: '9.3.1', updateTime: '2026-11-04 16:22:44', publishTime: '2025-09-14 20:31:08', account: '百度文库-央广时代-拉新-搜索-01', platform: '旧版' },
-  { name: '有道词典', appId: '288164', clApp: '', packageName: 'com.netease.youdao', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/1e70a9c5b3d6482f0a75c1e93b8d26f04a7c5e93', status: '已发布', version: '5.6.2', updateTime: '2026-11-03 11:55:19', publishTime: '2026-04-08 07:26:41', account: '任意门-央广-代运营-27-安卓-UBA', platform: '旧版' },
-  { name: '起点读书', appId: '315902', clApp: '', packageName: 'com.qidian.QDReader', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/b28f4d6a90e37c15f8b02d749a6c381e05f7a9d24', status: '已发布', version: '7.1.0', updateTime: '2026-11-01 19:28:03', publishTime: '2025-11-27 13:19:56', account: '任意门-央广-代运营-31-安卓-UBA', platform: '旧版' },
-  { name: '学习强国', appId: '620487', clApp: '', packageName: 'com.smartstudy.strongcountry', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/4d8b1c27e0a593f6412b7d0c9a3e58f16b2d07c5', status: '已发布', version: '3.4.6', updateTime: '2026-10-30 14:11:35', publishTime: '2026-06-21 16:48:22', account: '上海得物信息集团有限公司1-50', platform: '旧版' },
+  { name: '高途素养', appId: '210483', clApp: '', packageName: 'com.gaotu100.ketang', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/0e61798db556cddc4e292cd0ba6c9a82dc63ca15', status: '已发布', version: '2.8.1', updateTime: '2026-11-18 10:50:57', publishTime: '2022-05-26 15:31:02', account: '北京高途云集教育科技有限公司--1', platform: '旧版' },
+  { name: '高途', appId: '196201', clApp: '', packageName: 'com.gaotu100.superclass', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/d98f870486aa9f82e7d7c09633cfd6c2ad13d833', status: '已发布', version: '13.72.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2024-11-06 13:16:48', account: '百度文库-央广时代-拉新-搜索-01', platform: '旧版' },
+  { name: '毛豆爱古诗', appId: '217271', clApp: '', packageName: 'com.baijiahulian.maodou', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/3105ad202ccaae38f7e4658c03ba9678b56a1d13', status: '已发布', version: '2.38.0.11', updateTime: '2026-11-18 10:50:57', publishTime: '2024-11-14 13:40:18', account: '百度文库-央广时代-拉新-搜索-02', platform: '旧版' },
+  { name: '毛豆爱成语', appId: '217718', clApp: '', packageName: 'com.baijia.maodouloveidiom', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/aae29366d82f2b93a36d10f7780751d2089370dc', status: '已发布', version: '13.1.1.32', updateTime: '2026-11-18 10:50:57', publishTime: '2025-11-13 19:13:07', account: '百度文库-央广时代-拉新-搜索-03', platform: '旧版' },
+  { name: '高途高中规划', appId: '674580', clApp: '', packageName: 'com.gaotu100.jingpin', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/d5b0045797c384e8a20833be7f6e04895c569929', status: '已发布', version: '1.12.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2024-12-11 21:07:17', account: '任意门-央广-代运营-36-安卓-UBA', platform: '旧版' },
+  { name: '得物', appId: '195429', clApp: '', packageName: 'com.shizhuang.duapp', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/415ca21ae06c68a2ef5c73a71a68612f715ff339', status: '已发布', version: '6.92.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2026-02-05 19:48:16', account: '任意门-央广-代运营-22-安卓-UBA', platform: '旧版' },
+  { name: 'Soul', appId: '1036735', clApp: '', packageName: 'cn.soulapp.android', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/663813401b604f7767afb39d7fa157af83be1a98', status: '已发布', version: '1.22.0.10', updateTime: '2026-11-18 10:50:57', publishTime: '2026-11-11 21:22:50', account: '任意门-央广-代运营-23-安卓-UBA', platform: '旧版' },
+  { name: '异世界回响', appId: '193564', clApp: '', packageName: 'cn.soulapp.anotherworld', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/832e6e4488582f35c59ff7c8bd52c853d92ca7f7', status: '已发布', version: '11.15.0', updateTime: '2026-11-14 10:54:27', publishTime: '2026-11-12 20:28:34', account: '任意门-央广-代运营-10-ios-UBA', platform: '旧版' },
+  { name: '梦核乐园', appId: '188248', clApp: '', packageName: 'cn.soulapp.soulgame', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/21078fa22caaf92b4dfe5adbbabaf586dadc8550', status: '已发布', version: '3.31.50', updateTime: '2026-10-16 12:19:28', publishTime: '2025-09-25 18:34:33', account: '任意门-央广-代运营-25-ios-UBA', platform: '旧版' },
+  { name: '好看视频', appId: '495578', clApp: '', packageName: 'com.baidu.haokan', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/50fb12d5e4e60bd778940ec3bffe2b0c35bcdc00', status: '已发布', version: '2.17.1', updateTime: '2026-10-16 12:19:28', publishTime: '2026-10-14 17:55:03', account: '任意门-央广-代运营-30-ios-UBA', platform: '旧版' },
+  { name: '百度地图', appId: '736521', clApp: '', packageName: 'com.baidu.BaiduMap', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/1c9d0f6b28d4a75e39b0c5f7a91d2e6483ab77c10', status: '已发布', version: '24.9.0', updateTime: '2026-11-17 09:12:41', publishTime: '2026-08-01 10:22:15', account: '上海得物信息集团有限公司1-50', platform: '新版' },
+  { name: '百度文库', appId: '622037', clApp: '测试安卓应用(android)', packageName: 'com.baidu.wenku', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/77c1d2b8e64f0a92d5b83c1f70e246a9db53c8e21', status: '已发布', version: '8.6.0', updateTime: '2026-11-15 18:30:02', publishTime: '2025-12-11 09:41:37', account: '任意门-央广-代运营-27-安卓-UBA', platform: '新版' },
+  { name: '橙篇', appId: '552108', clApp: '', packageName: 'com.baidu.chengpian', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/30b7d9f4c1a85e26b7d4093f8c152e6d09ab47f3', status: '已发布', version: '6.2.1', updateTime: '2026-11-16 21:05:44', publishTime: '2025-10-08 14:12:09', account: '任意门-央广-代运营-31-安卓-UBA', platform: '新版' },
+  { name: '柚漫剧', appId: '431007', clApp: '', packageName: 'com.baidu.newxcomic', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/6b41f9c2d80e37a5c1942f8db06e7c153a9f42d60', status: '已发布', version: '12.9.0', updateTime: '2026-11-12 11:47:26', publishTime: '2024-06-18 16:33:52', account: '任意门-央广-代运营-38-安卓-UBA', platform: '旧版' },
+  { name: '度加剪辑', appId: '408552', clApp: '', packageName: 'com.baidu.tzeditor', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/9e2c7a54d0b836f14c95e8a3d27b604f1ce85a932', status: '已发布', version: '3.2.0', updateTime: '2026-11-10 20:15:33', publishTime: '2023-04-22 08:51:16', account: '任意门-央广-代运营-33-安卓-UBA', platform: '旧版' },
+  { name: '柠檬爱美', appId: '719430', clApp: '', packageName: 'com.baidu.lemon', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/f4b8d10c9a72e3650bc1d84f7e2a9350d6c7b1e8', status: '已发布', version: '4.7.2', updateTime: '2026-11-09 15:26:48', publishTime: '2026-01-25 19:04:57', account: '任意门-央广-代运营-32-ios-UBA', platform: '旧版' },
+  { name: '盐言故事', appId: '902166', clApp: '', packageName: 'com.zhihu.vip.android', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/2a6e93f50c8b1d74e6f3092a5c81b04d7e3f6a952', status: '已发布', version: '8.31.0', updateTime: '2026-11-14 13:08:29', publishTime: '2025-07-19 11:22:03', account: '百度文库-央广时代-拉新-搜索-04', platform: '旧版' },
+  { name: '95分', appId: '844017', clApp: '', packageName: 'com.jiuwu', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/8d3b57e1c904a2f6d1e7b05c9a34d78f2e61c05b3', status: '已发布', version: '6.8.5', updateTime: '2026-11-11 08:19:54', publishTime: '2026-03-02 21:17:40', account: '任意门-央广-代运营-28-安卓-UBA', platform: '新版' },
+  { name: '知乎', appId: '337815', clApp: '', packageName: 'com.zhihu.android', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/c05f27a8b6d391e4f2a8c07d5b94e16f3d80a2c74', status: '已发布', version: '7.45.0', updateTime: '2026-11-13 22:41:12', publishTime: '2024-12-05 13:35:28', account: '任意门-央广-代运营-35-iOS-UBA', platform: '旧版' },
+  { name: '百度搭子', appId: '506294', clApp: '测试安卓应用(android)', packageName: 'com.baidu.dumate', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/3b7c1e95a2d840f6c9e35b207d16a84f0e93c5d27', status: '已发布', version: '14.2.1', updateTime: '2026-11-08 10:52:37', publishTime: '2026-05-16 09:44:19', account: '央广-621059846-百度文库-1', platform: '旧版' },
+  { name: '百度极速版', appId: '268745', clApp: '', packageName: 'com.baidu.searchbox.lite', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/e4a06d3f819c572b04d7e9a31c6f8250db73e9a46', status: '已发布', version: '2.19.0', updateTime: '2026-11-07 17:33:21', publishTime: '2025-05-28 15:09:47', account: '任意门-央广-代运营-25-ios-UBA', platform: '旧版' },
+  { name: '度豆', appId: '174963', clApp: '', packageName: 'com.wantalk.xiaoyan', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/62f81a0d5b39c74e6a02d7f1b8c459e30d7a6b2c8', status: '已发布', version: '1.8.6', updateTime: '2026-11-06 12:07:55', publishTime: '2026-02-11 18:50:32', account: '任意门-央广-代运营-30-ios-UBA', platform: '旧版' },
+  { name: '百度输入法', appId: '903517', clApp: '', packageName: 'com.baidu.input', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/9d52e7b1c60f38a472d9051eb3c6d082fa47e5b1', status: '已发布', version: '9.3.1', updateTime: '2026-11-04 16:22:44', publishTime: '2025-09-14 20:31:08', account: '百度文库-央广时代-拉新-搜索-01', platform: '旧版' },
+  { name: '百度畅听版', appId: '288164', clApp: '', packageName: 'com.baidu.searchbox.tomas', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/1e70a9c5b3d6482f0a75c1e93b8d26f04a7c5e93', status: '已发布', version: '5.6.2', updateTime: '2026-11-03 11:55:19', publishTime: '2026-04-08 07:26:41', account: '任意门-央广-代运营-27-安卓-UBA', platform: '旧版' },
+  { name: '百度', appId: '315902', clApp: '', packageName: 'com.baidu.searchbox', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/b28f4d6a90e37c15f8b02d749a6c381e05f7a9d24', status: '已发布', version: '7.1.0', updateTime: '2026-11-01 19:28:03', publishTime: '2025-11-27 13:19:56', account: '任意门-央广-代运营-31-安卓-UBA', platform: '旧版' },
+  { name: '有驾', appId: '620487', clApp: '', packageName: 'com.baidu.autocar', downloadUrl: 'https://apps.bytesfield.com/download/basic/cur/4d8b1c27e0a593f6412b7d0c9a3e58f16b2d07c5', status: '已发布', version: '3.4.6', updateTime: '2026-10-30 14:11:35', publishTime: '2026-06-21 16:48:22', account: '上海得物信息集团有限公司1-50', platform: '旧版' },
 ];
 
 /** 应用分包页签 */
@@ -428,7 +435,7 @@ const TAB_CONFIG = {
   app: {
     filters: [
       { key: 'platform', prop: 'platform', label: '工作台', placeholder: '请选择工作台', width: 180, selWidth: 124, options: PLATFORM_OPTIONS },
-      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '不限', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS, filterable: true, remote: true, more: '搜索更多(292)...' },
+      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '不限', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS, filterable: true, remote: true, more: '搜索更多(315)...' },
       { key: 'clApp', prop: 'clApp', label: '创量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: CL_APP_OPTIONS },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'appId' } },
@@ -496,9 +503,9 @@ const TAB_CONFIG = {
   subpackage: {
     filters: [
       { key: 'platform', prop: 'platform', label: '工作台', placeholder: '请选择工作台', width: 180, selWidth: 124, options: PLATFORM_OPTIONS },
-      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: `${a.name}(${a.packageName})` })) },
       { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 260, selWidth: 192, options: CREATOR_OPTIONS },
-      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '所有账户', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS },
+      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '所有账户', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS_SUB, filterable: true, remote: true, more: '搜索更多(316)...' },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'appName', ID: 'channelNo' } },
     buttons: [
@@ -541,14 +548,14 @@ const TAB_CONFIG = {
 
   harmony: {
     filters: [],
-    search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'appId' } },
+    search: { fields: ['应用名称', '应用包名'], props: { 应用名称: 'name', 应用包名: 'packageName' } },
     buttons: [
-      { key: 'syncHarmony', text: '同步应用', width: 120 },
+      { key: 'syncHarmony', text: '同步应用', width: 80 },
     ],
     selection: true,
     selectionWidth: 60,
     columns: [
-      { label: '鸿蒙应用名称', prop: 'name', width: 240 },
+      { label: '鸿蒙应用名称', prop: 'name', width: 240, fixed: 'left' },
       { label: '应用ID', prop: 'appId', width: 200 },
       { label: '应用包名', prop: 'packageName', width: 220 },
       { label: '下载链接', prop: 'downloadUrl', width: 200, link: true },
@@ -565,18 +572,22 @@ const TAB_CONFIG = {
 
   monitor: {
     filters: [
-      { key: 'appType', prop: 'appType', label: '应用类型', placeholder: '请选择应用类型', width: 260, selWidth: 192, options: [{ value: '应用分包', label: '应用分包' }, { value: '落地页', label: '落地页' }, { value: '小程序', label: '小程序' }] },
-      { key: 'source', prop: 'source', label: '应用来源', placeholder: '全选', width: 260, selWidth: 192, options: [{ value: '手动创建', label: '手动创建' }, { value: 'API接入', label: 'API接入' }, { value: '同步', label: '同步' }] },
+      { key: 'appType', prop: 'appType', label: '应用类型', placeholder: '请选择应用类型', width: 260, selWidth: 192, options: [{ value: '安卓', label: '安卓' }, { value: 'iOS', label: 'IOS' }, { value: '鸿蒙', label: '鸿蒙' }] },
+      { key: 'source', prop: 'source', label: '应用来源', placeholder: '全选', width: 260, selWidth: 192, options: [{ value: '不限', label: '不限' }, { value: '已有应用', label: '已有应用' }, { value: '内广应用', label: '内广应用' }] },
       { key: 'platform', prop: 'platform', label: '工作台', placeholder: '全选', width: 260, selWidth: 204, options: PLATFORM_OPTIONS },
-      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: `${a.name}(${a.packageName})` })) },
       { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 260, selWidth: 192, options: CREATOR_OPTIONS },
-      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '全选', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS },
-      { key: 'project', prop: 'project', label: '智投项目', placeholder: '全部', width: 260, selWidth: 192, options: [{ value: '有驾教育行业投放', label: '有驾教育行业投放' }, { value: '百度文库拉新', label: '百度文库拉新' }, { value: '知乎小说', label: '知乎小说' }, { value: '漫剧端原生', label: '漫剧端原生' }] },
+      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '全选', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS_SUB, filterable: true, remote: true, more: '搜索更多(316)...' },
+      { key: 'project', prop: 'project', label: '创量项目', placeholder: '全部', width: 260, selWidth: 192, options: PROJECT_OPTIONS },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'channelNo' } },
     buttons: [
       { key: 'importMonitor', text: '批量导入', width: 120 },
       { key: 'newMonitor', text: '新建监测活动', width: 120, type: 'default', plain: true },
+    ],
+    batch: [
+      { label: '删除', value: 'delete' },
+      { label: '修改媒体账户', value: 'editAccount' },
     ],
     columns: [
       { label: '当前页  前50页', prop: 'scope', width: 60 },
@@ -627,7 +638,7 @@ const pageSize = ref(10);
 const syncingKey = ref('');
 const remoteKeyword = reactive({});
 const extraAccounts = ref([]);
-const accountMoreText = ref('搜索更多(292)...');
+const accountMoreText = ref('搜索更多(316)...');
 
 const detailVisible = ref(false);
 const detailRow = ref({});
@@ -754,7 +765,7 @@ function loadMoreAccounts(f) {
     });
   }
   extraAccounts.value = extra;
-  accountMoreText.value = '搜索更多(300)...';
+  accountMoreText.value = '搜索更多(316)...';
   f.more = accountMoreText.value;
   ElMessage.success('已加载更多媒体账户');
 }
@@ -837,7 +848,7 @@ async function onButton(b) {
     // 线上「新建应用分包」弹窗：宽 992px，4 字段（工作台 / 巨量应用 / 创建应用的账户 / 导入渠道号）
     openForm('新建应用分包', '992px', [
       { key: 'workspace', label: '工作台', type: 'radio', default: '旧版', options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
-      { key: 'appName', label: '巨量应用', type: 'select', required: true, placeholder: '请选择巨量应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'appName', label: '巨量应用', type: 'select', required: true, placeholder: '请选择巨量应用', options: APP_ROWS.map((a) => ({ value: a.name, label: `${a.name}(${a.packageName})` })) },
       // 联动：线上「创建应用的账户」默认置灰，选「工作台 = 新版」后才可用
       { key: 'account', label: '创建应用的账户', type: 'select', required: true, placeholder: '请选择媒体账户', options: ACCOUNT_OPTIONS, enabledWhen: { field: 'workspace', value: '新版' } },
       { key: 'channelNo', label: '导入渠道号', type: 'textarea', placeholder: '请输入渠道号' },
@@ -867,7 +878,7 @@ async function onButton(b) {
       { key: 'source', label: '应用来源', type: 'radio', visibleWhen: { field: 'appType', value: '安卓' }, options: [{ value: '已有应用', label: '已有应用' }, { value: '内广应用', label: '内广应用' }] },
       { key: 'workspace', label: '工作台', type: 'radio', visibleWhen: { field: 'appType', value: '安卓' }, options: [{ value: '旧版', label: '旧版' }, { value: '新版', label: '新版' }] },
       { key: 'baseAccount', label: '基于账户获取应用', type: 'select', visibleWhen: { field: 'appType', value: '安卓' }, placeholder: '全部', options: ACCOUNT_OPTIONS },
-      { key: 'appName', label: '巨量应用', type: 'select', required: true, visibleWhen: { field: 'appType', value: '安卓' }, placeholder: '所有应用', options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'appName', label: '巨量应用', type: 'select', required: true, visibleWhen: { field: 'appType', value: '安卓' }, placeholder: '所有应用', options: APP_ROWS.map((a) => ({ value: a.name, label: `${a.name}(${a.packageName})` })) },
       { key: 'linkSource', label: '下载链接来源', type: 'radio', visibleWhen: { field: 'appType', value: '安卓' }, options: [{ value: '母包链接', label: '母包链接' }, { value: '分包', label: '分包' }, { value: '下载短链', label: '下载短链' }] },
       { key: 'template', label: '获取模板文件', type: 'input', placeholder: '请输入模板文件地址' },
       { key: 'file', label: '导入文件', type: 'input', required: true, placeholder: '请输入导入文件地址' },

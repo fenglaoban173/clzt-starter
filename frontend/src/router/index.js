@@ -34,11 +34,11 @@ const routes = [
         meta: { title: '项目', group: '推广' },
       },
       {
-        // 定向包「新建创量定向包」：线上是整页表单（audience/editor?tabType=creative）
+        // 定向包「新建智投定向包」：线上是整页表单（audience/editor?tabType=creative）
         path: 'asset/orientation/new',
         name: 'orientation-create',
         component: () => import('@/views/asset/pages/OrientationCreate.vue'),
-        meta: { title: '新建创量定向包', group: '推广' },
+        meta: { title: '新建智投定向包', group: '推广' },
       },
       {
         path: 'build/ads',

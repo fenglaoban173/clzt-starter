@@ -14,6 +14,7 @@ export const ASSET_ACCOUNT_OPTIONS = [
   '任意门-央广-代运营-10-ios-UBA(1866489860302024)',
   '任意门-央广-代运营-25-ios-UBA(1866489860976135)',
   '任意门-央广-代运营-30-ios-UBA(1866489864776836)',
+  '上海得物信息集团有限公司1-50(1834419631681163)',
   '任意门-央广-代运营-27-安卓-UBA(1866489862625304)',
   '任意门-央广-代运营-31-安卓-UBA(1866489865523527)',
   '任意门-央广-代运营-38-安卓-UBA(1866489874950667)',
@@ -27,6 +28,9 @@ export const ASSET_ACCOUNT_OPTIONS = [
 
 /** 媒体账户（带表头「不限」，线上落地页/应用/直达链接口径） */
 export const ASSET_ACCOUNT_OPTIONS_ALL = ['不限', ...ASSET_ACCOUNT_OPTIONS];
+
+/* 直达链接 / 落地页 / 定向包页的媒体账户：线上同为 20 项，且无「不限」 */
+export const ASSET_ACCOUNT_OPTIONS_LINK = ASSET_ACCOUNT_OPTIONS;
 
 /** 所属人员 / 创建人员（线上 15 人，格式「姓名 (邮箱)」） */
 export const ASSET_OWNER_OPTIONS = [

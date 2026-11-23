@@ -8,7 +8,7 @@
     <!-- ① 查询条件（线上 form.filter-search-input） -->
     <div class="filter-row">
       <div class="filter-left">
-        <!-- 智投项目 -->
+        <!-- 创量项目 -->
         <div class="filter-cell">
           <label class="filter-label">智投项目：</label>
           <el-select
@@ -151,19 +151,19 @@
 
     <!-- ② 功能按钮条（线上 .table-toolbar） -->
     <div class="table-toolbar">
-      <el-button type="primary" size="small" class="tool-btn" @click="openCreate">
+      <el-button type="primary" size="small" class="tool-btn" style="width: 120px" @click="openCreate">
         新增直达链接
       </el-button>
-      <el-button type="primary" size="small" class="tool-btn" @click="openImport">
+      <el-button type="primary" size="small" class="tool-btn" style="width: 120px" @click="openImport">
         导入直达链接
       </el-button>
-      <el-button type="primary" size="small" class="tool-btn" disabled title="请先勾选需要操作的直达链接">
+      <el-button type="primary" size="small" class="tool-btn" style="width: 120px" @click="openBatchProject">
         修改智投项目
       </el-button>
-      <el-button size="small" class="tool-btn" disabled title="请先勾选需要操作的直达链接">
+      <el-button size="small" class="tool-btn" style="width: 120px" @click="openBatchDelete">
         删除
       </el-button>
-      <el-button plain class="tool-btn dl-export-btn" disabled title="暂无可导出的数据">
+      <el-button plain class="tool-btn dl-export-btn" style="width: 120px" disabled title="暂无可导出的数据">
         导出数据
       </el-button>
     </div>
@@ -344,22 +344,52 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ⑦ 修改智投项目 弹窗 -->
+    <el-dialog
+      v-model="batchProjectVisible"
+      title="修改智投项目"
+      width="480px"
+      top="18vh"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="dl-batch__count">已选直达链接：{{ selectedRows.length }}</div>
+      <el-form label-width="90px" label-position="left">
+        <el-form-item label="智投项目">
+          <ProjectSelectField v-model="batchProject" :options="batchProjectOptions" placeholder="请选择智投项目" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button plain @click="batchProjectVisible = false">取 消</el-button>
+          <el-button type="primary" @click="submitBatchProject">确 定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { ASSET_ACCOUNT_OPTIONS_ALL } from './assetOptions';
+import { ASSET_ACCOUNT_OPTIONS_LINK } from './assetOptions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Search } from '@element-plus/icons-vue';
+import ProjectSelectField from '../components/ProjectSelectField.vue';
 
 defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------------------------------------------ *
  * 线上选项（来源：创量线上「直达链接」页 DOM 快照）
  * ------------------------------------------------------------------ */
-/** 智投项目（线上原为「创量项目」，el-select 下拉：知乎小说 / 漫剧端原生 / soul / 百度文库） */
+/** 智投项目（线上 el-select 下拉：知乎小说 / 漫剧端原生 / soul / 百度文库） */
 const PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];
+
+/** 修改智投项目弹窗候选：含「不限」（清空项目），供 ProjectSelectField 使用 */
+const batchProjectOptions = [
+  { label: '不限', value: '' },
+  ...PROJECT_OPTIONS.map((p) => ({ label: p, value: p })),
+];
 
 /** 优化师（线上 15 项） */
 const OPTIMIZER_OPTIONS = [
@@ -381,7 +411,7 @@ const OPTIMIZER_OPTIONS = [
 ];
 
 /** 媒体账户下拉：线上 20 个账户（顺序照抄线上 DOM） */
-const MOCK_ACCOUNTS = ASSET_ACCOUNT_OPTIONS_ALL.map((label) => ({
+const MOCK_ACCOUNTS = ASSET_ACCOUNT_OPTIONS_LINK.map((label) => ({
   value: (label.match(/\((\d+)\)/) || [])[1] || '',
   label,
 }));
@@ -546,6 +576,26 @@ function onSelectionChange(rows) {
   selectedRows.value = rows;
 }
 
+/* 修改智投项目 批量弹窗 */
+const batchProjectVisible = ref(false);
+const batchProject = ref('');
+
+function openBatchProject() {
+  if (!selectedRows.value.length) {
+    ElMessage.warning('请先勾选需要操作的直达链接');
+    return;
+  }
+  batchProject.value = '';
+  batchProjectVisible.value = true;
+}
+
+function submitBatchProject() {
+  selectedRows.value.forEach((r) => { r.project = batchProject.value; });
+  batchProjectVisible.value = false;
+  ElMessage.success('已修改智投项目');
+  selectedRows.value = [];
+}
+
 /* ------------------------------------------------------------------ *
  * 新增 / 编辑直达链接弹窗（线上 el-dialog「新增直达链接」）
  * ------------------------------------------------------------------ */
@@ -677,6 +727,32 @@ async function removeRow(row) {
   ElMessage.success('删除成功');
 }
 
+/* 工具栏批量删除：系统默认二次确认弹窗 */
+async function openBatchDelete() {
+  if (!selectedRows.value.length) {
+    ElMessage.warning('请先勾选需要删除的直达链接');
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${selectedRows.value.length} 条直达链接吗？删除后不可恢复。`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        customClass: 'cl-message-box--mini',
+      },
+    );
+  } catch (e) {
+    return;
+  }
+  const ids = selectedRows.value.map((r) => r.id);
+  list.value = list.value.filter((x) => !ids.includes(x.id));
+  selectedRows.value = [];
+  ElMessage.success('删除成功');
+}
+
 watch(pageSize, () => { pageNo.value = 1; });
 </script>
 
@@ -737,6 +813,7 @@ watch(pageSize, () => { pageNo.value = 1; });
 .dl-dialog :deep(.dialog-footer) { display: flex; justify-content: flex-end; gap: 12px; }
 .dl-radio-group { width: 360px; }
 .dl-radio-tip { flex: 0 0 100%; font-size: 12px; color: #909399; margin-top: 4px; }
+.dl-batch__count { font-size: 13px; color: #606266; margin-bottom: 16px; }
 .dl-import-form :deep(.el-form-item) { margin-bottom: 20px; }
 .w120 { width: 120px; }
 .btn-tip { font-size: 12px; color: #909399; margin-left: 8px; }
