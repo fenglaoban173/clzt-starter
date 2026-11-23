@@ -3269,6 +3269,19 @@ export function getBatchOpConfig(scope, op) {                          // src/ap
 - **故障复现（回退验证）**：把两处绑定临时改回 `cfg.title` 后，在开发态复现出原始报错 `TypeError: Cannot read properties of null (reading 'title') at Proxy._sfc_render (BatchOpDialog.vue)`，内容区 `tableRows: 0` 而布局存活；改回修复后报错消失。
 - **功能校验**：项目页「批量修改项目名称」弹窗、广告页「批量修改广告出价」弹窗均可正常打开（标题、表单字段、明细表、确定/取消按钮齐全）。
 
-### ⑤ 推送与部署
+### ⑤ 推送与部署（2026-11-23）
 
-- **本轮未推送**（`git push` 需用户明确指令）。线上站点 <https://fenglaoban173.github.io/clzt-starter/> 仍为修复前版本，其批量操作弹窗在生产构建下失效；待用户指令后再推送并触发 GitHub Pages 发布。
+- **推送**：`git push origin main`（`8a9912c..696178a`），仓库 <https://github.com/fenglaoban173/clzt-starter>。
+- **CI**：`Build & Deploy to GitHub Pages`（run `45092774675`）**构建 + 发布全部成功**（Build 29s / Deploy 8s）；CI 以 `VITE_BASE=/clzt-starter/` 走 `npm ci` + `npm run build`，并复制 `dist/index.html` 为 `dist/404.html` 兜底深链。
+- **线上地址**：<https://fenglaoban173.github.io/clzt-starter/>
+- **线上复验**（scrapling/Playwright 直连线上站点，登录 admin 后逐页切换）：**三页全部正常渲染，控制台 0 报错**。
+
+| 页面 | 表格行数 | 总条数 | 报错 |
+| --- | --- | --- | --- |
+| 账户 `/media/accounts` | 21 | 共 20 条 | 无 |
+| 项目 `/build/projects` | 21 | 共 84 条 | 无 |
+| 广告 `/build/ads` | 21 | 共 24 条 | 无 |
+
+- **线上功能校验**：项目页勾选 1 条 →「批量操作 → 批量修改项目名称」弹窗**正常打开**（标题「批量修改项目名称」、修改模式 / 项目命名规则 / 动态标号起始值、明细表 1 行、「取消 / 确认修改」按钮齐全）——**修复前生产构建下该弹窗因子组件挂载失败实际打不开**，此缺陷已随本次发布修复。
+- **线上截图**：批量修改项目名称弹窗（见对话记录）。
+- **备注**：本地验证 GitHub Pages 子路径构建时，Git Bash 会把 `--base=/clzt-starter/` 误转成 `/Program Files/Git/clzt-starter/`（MSYS 路径转换）；线上 CI 走环境变量 `VITE_BASE`，不受影响。本地 `dist/` 已用默认 base（`/`）重建。
