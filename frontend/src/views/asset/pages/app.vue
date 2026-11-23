@@ -97,7 +97,8 @@
       <el-button
         v-for="b in activeConfig.buttons"
         :key="b.key"
-        type="primary"
+        :type="b.type || 'primary'"
+        :plain="b.plain"
         size="small"
         class="tool-btn app-tool-btn"
         :style="{ width: b.width + 'px' }"
@@ -113,6 +114,13 @@
       border
       class="asset-table app-table"
     >
+      <el-table-column
+        v-if="activeConfig.selection"
+        type="selection"
+        :width="activeConfig.selectionWidth || 60"
+        fixed="left"
+        align="center"
+      />
       <el-table-column
         v-for="c in activeConfig.columns"
         :key="c.label"
@@ -309,14 +317,24 @@ const PLATFORM_OPTIONS = [
   { value: '新版', label: '新版' },
 ];
 
-/** 创建人员（应用分包 / 监测活动管理页签） */
+/** 创建人员（应用分包 / 监测活动管理页签）—— 线上 15 项，格式「姓名 (邮箱)」 */
 const CREATOR_OPTIONS = [
-  { value: '张伟', label: '张伟' },
-  { value: '李娜', label: '李娜' },
-  { value: '王强', label: '王强' },
-  { value: '刘洋', label: '刘洋' },
-  { value: '陈静', label: '陈静' },
-];
+  '北京央广时代文化传播有限公司 (liuziyuan01@ygsdmedia.com)',
+  '张从浩 (zhangconghao@ygsdmedia.com)',
+  '王春雷 (wangchunlei@ygsdmedia.com)',
+  '郭峻宇 (guojunyu@ygsdmedia.com)',
+  '孙诗源 (sunshiyuan@ygsdmedia.com)',
+  'gongwenqing (gongwenqing@ygsdmedia.com)',
+  'lixue (lixue@ygsdmedia.com)',
+  'jiangxin (jiangxin@ygsdmedia.com)',
+  'chenpeihua (chenpeihua@ygsdmedia.com)',
+  '1304275504 (1304275504@qq.com)',
+  '文清滨 (wenqingbin@ygsdmedia.com)',
+  '李若涵 (liruohan@ygsdmedia.com)',
+  '杨浩蒙 (yanghaomeng@ygsdmedia.com)',
+  '刘松涵 (liusonghan01@ygsdmedia.com)',
+  '申旭阳 (shenxuyang@ygsdmedia.com)',
+].map((v) => ({ value: v, label: v }));
 
 /* ------------------------------ mock 数据 ------------------------------ */
 
@@ -396,16 +414,16 @@ const TAB_CONFIG = {
       { key: 'syncGame', text: '同步巨量游戏预约', width: 128 },
     ],
     columns: [
-      { label: '巨量应用名称', prop: 'name', width: 165 },
-      { label: '应用ID', prop: 'appId', width: 160 },
-      { label: '创量应用', prop: 'clApp', width: 160 },
-      { label: '应用包名', prop: 'packageName', width: 160 },
-      { label: '下载链接', prop: 'downloadUrl', width: 335, link: true },
-      { label: '状态', prop: 'status', width: 107 },
-      { label: '版本号', prop: 'version', width: 160 },
+      { label: '巨量应用名称', prop: 'name', width: 120 },
+      { label: '应用ID', prop: 'appId', width: 120 },
+      { label: '创量应用', prop: 'clApp', width: 120 },
+      { label: '应用包名', prop: 'packageName', width: 120 },
+      { label: '下载链接', prop: 'downloadUrl', width: 250, link: true },
+      { label: '状态', prop: 'status', width: 80 },
+      { label: '版本号', prop: 'version', width: 120 },
       { label: '更新时间', prop: 'updateTime', width: 160 },
       { label: '发布时间', prop: 'publishTime', width: 160 },
-      { label: '共享账户', prop: 'account', width: 160, align: 'center', action: '查看' },
+      { label: '共享账户', prop: 'account', width: 120, align: 'center', action: '查看' },
     ],
     detail: [
       { key: 'name', label: '巨量应用名称' },
@@ -456,26 +474,28 @@ const TAB_CONFIG = {
     filters: [
       { key: 'platform', prop: 'platform', label: '工作台', placeholder: '请选择工作台', width: 180, selWidth: 124, options: PLATFORM_OPTIONS },
       { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.slice(0, 10).map((a) => ({ value: a.name, label: a.name })) },
-      { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 220, selWidth: 140, options: CREATOR_OPTIONS },
-      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '所有账户', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS, filterable: true, remote: true },
+      { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 260, selWidth: 192, options: CREATOR_OPTIONS },
+      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '所有账户', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'appName', ID: 'channelNo' } },
     buttons: [
       { key: 'fetchSp', text: '获取应用分包', width: 120 },
-      { key: 'newSp', text: '新建应用分包', width: 120 },
+      { key: 'newSp', text: '新建应用分包', width: 120, type: 'default', plain: true },
     ],
+    selection: true,
+    selectionWidth: 48,
     columns: [
-      { label: '渠道号', prop: 'channelNo', width: 160 },
-      { label: '备注', prop: 'remark', width: 160 },
+      { label: '渠道号', prop: 'channelNo', width: 120 },
+      { label: '备注', prop: 'remark', width: 120 },
       { label: '巨量应用名称', prop: 'appName', width: 160 },
-      { label: '下载链接', prop: 'downloadUrl', width: 335, link: true },
-      { label: '状态', prop: 'status', width: 107 },
-      { label: '媒体账户', prop: 'account', width: 160 },
-      { label: '版本信息', prop: 'version', width: 160 },
-      { label: '关联广告数', prop: 'adCount', width: 160 },
-      { label: '创建人员', prop: 'creator', width: 160 },
+      { label: '下载链接', prop: 'downloadUrl', width: 250, link: true },
+      { label: '状态', prop: 'status', width: 80 },
+      { label: '媒体账户', prop: 'account', width: 120 },
+      { label: '版本信息', prop: 'version', width: 80 },
+      { label: '关联广告数', prop: 'adCount', width: 100 },
+      { label: '创建人员', prop: 'creator', width: 120 },
       { label: '更新时间', prop: 'updateTime', width: 160 },
-      { label: '操作', prop: 'id', width: 160, align: 'center', action: '查看' },
+      { label: '操作', prop: 'id', width: 120, align: 'center', action: '删除' },
     ],
     detail: [
       { key: 'channelNo', label: '渠道号' },
@@ -494,13 +514,17 @@ const TAB_CONFIG = {
   harmony: {
     filters: [],
     search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'appId' } },
-    buttons: [],
+    buttons: [
+      { key: 'syncHarmony', text: '同步应用', width: 120 },
+    ],
+    selection: true,
+    selectionWidth: 60,
     columns: [
-      { label: '鸿蒙应用名称', prop: 'name', width: 165 },
-      { label: '应用ID', prop: 'appId', width: 160 },
-      { label: '应用包名', prop: 'packageName', width: 160 },
-      { label: '下载链接', prop: 'downloadUrl', width: 335, link: true },
-      { label: '版本号', prop: 'version', width: 160 },
+      { label: '鸿蒙应用名称', prop: 'name', width: 240 },
+      { label: '应用ID', prop: 'appId', width: 200 },
+      { label: '应用包名', prop: 'packageName', width: 220 },
+      { label: '下载链接', prop: 'downloadUrl', width: 200, link: true },
+      { label: '版本号', prop: 'version', width: 150 },
     ],
     detail: [
       { key: 'name', label: '鸿蒙应用名称' },
@@ -513,35 +537,35 @@ const TAB_CONFIG = {
 
   monitor: {
     filters: [
-      { key: 'appType', prop: 'appType', label: '应用类型', placeholder: '请选择应用类型', width: 220, selWidth: 150, options: [{ value: '应用分包', label: '应用分包' }, { value: '落地页', label: '落地页' }] },
-      { key: 'source', prop: 'source', label: '应用来源', placeholder: '全选', width: 200, selWidth: 130, options: [{ value: '手动创建', label: '手动创建' }, { value: 'API接入', label: 'API接入' }] },
-      { key: 'platform', prop: 'platform', label: '工作台', placeholder: '全选', width: 180, selWidth: 124, options: PLATFORM_OPTIONS },
-      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.slice(0, 10).map((a) => ({ value: a.name, label: a.name })) },
-      { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 220, selWidth: 140, options: CREATOR_OPTIONS },
-      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '全选', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS, filterable: true, remote: true },
-      { key: 'project', prop: 'project', label: '智投项目', placeholder: '全部', width: 260, selWidth: 192, options: [{ value: '有驾教育行业投放', label: '有驾教育行业投放' }, { value: '百度文库拉新', label: '百度文库拉新' }] },
+      { key: 'appType', prop: 'appType', label: '应用类型', placeholder: '请选择应用类型', width: 260, selWidth: 192, options: [{ value: '应用分包', label: '应用分包' }, { value: '落地页', label: '落地页' }, { value: '小程序', label: '小程序' }] },
+      { key: 'source', prop: 'source', label: '应用来源', placeholder: '全选', width: 260, selWidth: 192, options: [{ value: '手动创建', label: '手动创建' }, { value: 'API接入', label: 'API接入' }, { value: '同步', label: '同步' }] },
+      { key: 'platform', prop: 'platform', label: '工作台', placeholder: '全选', width: 260, selWidth: 204, options: PLATFORM_OPTIONS },
+      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 260, selWidth: 192, options: CREATOR_OPTIONS },
+      { key: 'account', prop: 'account', label: '媒体账户', placeholder: '全选', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS },
+      { key: 'project', prop: 'project', label: '智投项目', placeholder: '全部', width: 260, selWidth: 192, options: [{ value: '有驾教育行业投放', label: '有驾教育行业投放' }, { value: '百度文库拉新', label: '百度文库拉新' }, { value: '知乎小说', label: '知乎小说' }, { value: '漫剧端原生', label: '漫剧端原生' }] },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'channelNo' } },
     buttons: [
-      { key: 'importMonitor', text: '批量导入', width: 100 },
-      { key: 'newMonitor', text: '新建监测活动', width: 120 },
+      { key: 'importMonitor', text: '批量导入', width: 120 },
+      { key: 'newMonitor', text: '新建监测活动', width: 120, type: 'default', plain: true },
     ],
     columns: [
-      { label: '监测活动名', prop: 'name', width: 165 },
-      { label: '使用状态', prop: 'useStatus', width: 107 },
-      { label: '应用来源', prop: 'source', width: 160 },
-      { label: '渠道号', prop: 'channelNo', width: 160 },
-      { label: '投放项目', prop: 'project', width: 160 },
-      { label: '分包备注', prop: 'remark', width: 160 },
-      { label: '巨量应用', prop: 'appName', width: 160 },
-      { label: '下载链接', prop: 'downloadUrl', width: 335, link: true },
-      { label: '展示监测链接', prop: 'showLink', width: 160 },
-      { label: '有效触点链接', prop: 'validLink', width: 160 },
-      { label: '激活监测链接', prop: 'activeLink', width: 160 },
-      { label: '媒体账户', prop: 'account', width: 160 },
-      { label: '创建人员', prop: 'creator', width: 160 },
-      { label: '创建时间', prop: 'createTime', width: 160 },
-      { label: '操作', prop: 'id', width: 160, align: 'center', action: '查看' },
+      { label: '监测活动名', prop: 'name', width: 240 },
+      { label: '使用状态', prop: 'useStatus', width: 90 },
+      { label: '应用来源', prop: 'source', width: 100 },
+      { label: '渠道号', prop: 'channelNo', width: 120 },
+      { label: '投放项目', prop: 'project', width: 120 },
+      { label: '分包备注', prop: 'remark', width: 120 },
+      { label: '巨量应用', prop: 'appName', width: 120 },
+      { label: '下载链接', prop: 'downloadUrl', width: 250, link: true },
+      { label: '展示监测链接', prop: 'showLink', width: 250 },
+      { label: '有效触点链接', prop: 'validLink', width: 120 },
+      { label: '激活监测链接', prop: 'activeLink', width: 120 },
+      { label: '媒体账户', prop: 'account', width: 120 },
+      { label: '创建人员', prop: 'creator', width: 120 },
+      { label: '创建时间', prop: 'createTime', width: 180 },
+      { label: '操作', prop: 'id', width: 180, align: 'center', action: '查看' },
     ],
     detail: [
       { key: 'name', label: '监测活动名' },

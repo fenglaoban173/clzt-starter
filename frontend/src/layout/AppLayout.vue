@@ -57,7 +57,7 @@
 
     <el-container class="body-wrap">
       <!-- 左侧二级菜单树 -->
-      <el-aside v-if="sideMenus.length" width="188px" class="sider">
+      <el-aside v-if="sideMenus.length" width="160px" class="sider">
         <el-menu
           :default-active="sideActive"
           :default-openeds="sideOpeneds"
@@ -114,7 +114,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/store/auth';
@@ -364,6 +364,18 @@ function onSideSelect(title) {
   if (!target) { ElMessage.info('原型暂未开放该功能（待开通媒体）'); return; }
   router.push({ name: target, query });
 }
+
+// 资产模块（asset-list）整站切到创量设计令牌：
+// 主色 #197afb、圆角 3px、次按钮 #666/#d0d0d0、表头 12px/700 #333、表格边框 #ebeef5 等。
+// 用 body 上的类承载，弹窗/抽屉 teleport 到 body 也能继承到令牌。
+const ASSET_ROUTES = new Set(['asset-list']);
+function syncAssetScope(name) {
+  const on = ASSET_ROUTES.has(name);
+  if (on) document.body.classList.add('asset-scope');
+  else document.body.classList.remove('asset-scope');
+}
+onMounted(() => syncAssetScope(route.name));
+watch(() => route.name, syncAssetScope);
 
 async function onUserMenu(command) {
   if (command === 'logout') {

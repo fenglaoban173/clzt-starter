@@ -173,18 +173,18 @@
         align="center"
         :selectable="isSelectable"
       />
-      <el-table-column prop="name" label="名称" min-width="406" show-overflow-tooltip />
-      <el-table-column prop="custom_audience_id" label="ID" width="159" />
+      <el-table-column prop="name" label="名称" width="235" show-overflow-tooltip />
+      <el-table-column prop="custom_audience_id" label="ID" width="92" />
       <el-table-column label="操作" width="160" align="center">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="openPush(row)">推送</el-button>
           <el-button link type="primary" size="small" @click="removeRow(row)">删除</el-button>
         </template>
       </el-table-column>
-      <el-table-column prop="tag" label="人群分组" width="159" show-overflow-tooltip />
-      <el-table-column prop="upload_num" label="上传人数" width="159" align="right" />
-      <el-table-column prop="cover_num" label="覆盖人群" width="159" align="right" />
-      <el-table-column label="投放状态" width="159">
+      <el-table-column prop="tag" label="人群分组" width="92" show-overflow-tooltip />
+      <el-table-column prop="upload_num" label="上传人数" width="92" align="right" />
+      <el-table-column prop="cover_num" label="覆盖人群" width="92" align="right" />
+      <el-table-column label="投放状态" width="92">
         <template #default="{ row }">
           <span>{{ deliveryStatus(row).text }}</span>
           <el-popover placement="right" trigger="hover" :content="deliveryStatus(row).tip">
@@ -194,12 +194,12 @@
           </el-popover>
         </template>
       </el-table-column>
-      <el-table-column label="人群包状态" width="159">
+      <el-table-column label="人群包状态" width="92">
         <template #default="{ row }">
           <span> {{ AUDIENCE_STATUS[row.status] || '未知' }} </span>
         </template>
       </el-table-column>
-      <el-table-column label="推送状态" width="159">
+      <el-table-column label="推送状态" width="92">
         <template #default="{ row }">
           <span> {{ PUSH_STATUS[row.push_status] || '未知' }} </span>
         </template>

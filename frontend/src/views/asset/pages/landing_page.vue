@@ -156,28 +156,51 @@
     <!-- ④ 列表（线上 el-table--border，8 列、无分页） -->
     <el-table :data="displayRows" border class="asset-table" empty-text="暂无数据">
       <el-table-column
+        v-if="tabCfg.selection"
+        type="selection"
+        :width="tabCfg.selectionWidth || 60"
+        fixed="left"
+        align="center"
+      />
+      <el-table-column
         v-for="col in shownColumns"
         :key="col.prop"
         :label="col.label"
         :width="col.width"
+        :fixed="col.fixed || false"
+        :align="col.align || 'left'"
         show-overflow-tooltip
       >
         <template #default="{ row }">
-          <div v-if="col.prop === 'landing'" class="desc-cell">
+          <div v-if="col.desc" class="desc-cell">
             <div class="desc-cell__title">
-              <a class="lp-link" @click="onOpenLanding(row)">{{ row.landing }}</a>
+              <a class="lp-link" @click="onOpenLanding(row)">{{ row[col.prop] }}</a>
             </div>
             <div class="desc-cell__desc">ID：{{ row.lpId }}</div>
           </div>
 
           <div v-else-if="col.prop === 'action'" class="lp-ops">
-            <el-button link type="primary" size="small" @click="onView(row)">查看</el-button>
-            <el-button link type="primary" size="small" @click="onEdit(row)">编辑</el-button>
-            <el-button link type="primary" size="small" @click="onDelete(row)">删除</el-button>
+            <el-button
+              v-for="op in tabCfg.rowActions || []"
+              :key="op"
+              link
+              type="primary"
+              size="small"
+              @click="onRowAction(op, row)"
+            >{{ op }}</el-button>
           </div>
 
           <span v-else-if="col.prop === 'account'">{{ nickOf(row.account) }}</span>
           <span v-else-if="col.prop === 'owner'">{{ nameOf(row.owner) }}</span>
+          <span v-else-if="col.prop === 'creator'">{{ nameOf(row.creator) }}</span>
+
+          <a
+            v-else-if="col.link"
+            class="lp-link"
+            :href="row[col.prop]"
+            target="_blank"
+            rel="noopener"
+          >{{ row[col.prop] }}</a>
 
           <a
             v-else-if="col.prop === 'url'"
@@ -432,64 +455,79 @@ const TAB_CONFIG = {
   橙子落地页模板: {
     createText: '新建模板',
     columns: [
-      { prop: 'landing', label: '落地页', width: 222 },
-      { prop: 'template', label: '模板名称', width: 215 },
-      { prop: 'account', label: '媒体账户', width: 215 },
-      { prop: 'owner', label: '所属人员', width: 215 },
-      { prop: 'createdAt', label: '创建时间', width: 215 },
-      { prop: 'adCount', label: '关联广告数', width: 215 },
-      { prop: 'lpCount', label: '生成落地页数', width: 215 },
-      { prop: 'action', label: '操作', width: 215 },
+      { prop: 'landing', label: '落地页', width: 142, desc: true },
+      { prop: 'template', label: '模板名称', width: 135 },
+      { prop: 'account', label: '媒体账户', width: 135 },
+      { prop: 'owner', label: '所属人员', width: 135 },
+      { prop: 'createdAt', label: '创建时间', width: 135 },
+      { prop: 'adCount', label: '关联广告数', width: 135 },
+      { prop: 'lpCount', label: '生成落地页数', width: 135 },
+      { prop: 'action', label: '操作', width: 135, align: 'center' },
     ],
   },
   创量落地页模板: {
     createText: '新建模板',
+    selection: true,
     columns: [
-      { prop: 'template', label: '模板名称', width: 222 },
-      { prop: 'landing', label: '落地页', width: 215 },
-      { prop: 'account', label: '媒体账户', width: 215 },
-      { prop: 'owner', label: '所属人员', width: 215 },
-      { prop: 'createdAt', label: '创建时间', width: 215 },
-      { prop: 'lpCount', label: '生成落地页数', width: 215 },
-      { prop: 'adCount', label: '关联广告数', width: 215 },
-      { prop: 'action', label: '操作', width: 215 },
+      { prop: 'template', label: '模板名称', width: 194 },
+      { prop: 'templateType', label: '模板类型', width: 191 },
+      { prop: 'owner', label: '所属人员', width: 191 },
+      { prop: 'createdAt', label: '创建时间', width: 191 },
+      { prop: 'action', label: '操作', width: 260, align: 'center' },
     ],
   },
   橙子落地页: {
     createText: '新建落地页',
+    selection: true,
+    rowActions: ['预览', '转赠', '存为模板'],
     columns: [
-      { prop: 'landing', label: '落地页', width: 222 },
-      { prop: 'lpId', label: '落地页ID', width: 215 },
-      { prop: 'account', label: '媒体账户', width: 215 },
-      { prop: 'owner', label: '所属人员', width: 215 },
-      { prop: 'createdAt', label: '创建时间', width: 215 },
-      { prop: 'status', label: '落地页状态', width: 215 },
-      { prop: 'adCount', label: '关联广告数', width: 215 },
-      { prop: 'action', label: '操作', width: 215 },
+      { prop: 'landing', label: '落地页', width: 900 },
+      { prop: 'status', label: '状态', width: 100 },
+      { prop: 'source', label: '来源', width: 100 },
+      { prop: 'remark', label: '备注', width: 180 },
+      { prop: 'pathParams', label: '路径参数', width: 280 },
+      { prop: 'account', label: '媒体账户', width: 140 },
+      { prop: 'action', label: '操作', width: 200, align: 'center' },
     ],
   },
   程序化落地页组: {
     createText: '新建落地页组',
     columns: [
-      { prop: 'group', label: '落地页组名称', width: 222 },
-      { prop: 'lpCount', label: '落地页数', width: 215 },
-      { prop: 'account', label: '媒体账户', width: 215 },
-      { prop: 'owner', label: '所属人员', width: 215 },
-      { prop: 'createdAt', label: '创建时间', width: 215 },
-      { prop: 'adCount', label: '关联广告数', width: 215 },
-      { prop: 'action', label: '操作', width: 215 },
+      { prop: 'group', label: '落地页组名称', width: 300 },
+      { prop: 'groupId', label: '组ID', width: 140 },
+      { prop: 'assetId', label: '资产ID', width: 140 },
+      { prop: 'deliveryLink', label: '投放链接', width: 300, link: true },
+      { prop: 'assignType', label: '分配方式', width: 100 },
+      { prop: 'status', label: '状态', width: 100 },
+      { prop: 'lpCount', label: '落地页数', width: 100 },
+      { prop: 'adCount', label: '关联广告数', width: 100 },
+      { prop: 'action', label: '操作', width: 100, align: 'center' },
     ],
   },
   第三方落地页: {
     createText: '新建落地页',
+    selection: true,
+    selectionWidth: 56,
+    rowActions: ['预览', '编辑', '复制', '删除'],
     columns: [
-      { prop: 'landing', label: '落地页', width: 222 },
-      { prop: 'url', label: '落地页链接', width: 215 },
-      { prop: 'account', label: '媒体账户', width: 215 },
-      { prop: 'owner', label: '所属人员', width: 215 },
-      { prop: 'createdAt', label: '创建时间', width: 215 },
-      { prop: 'adCount', label: '关联广告数', width: 215 },
-      { prop: 'action', label: '操作', width: 215 },
+      { prop: 'landing', label: '落地页名称', width: 180, fixed: true },
+      { prop: 'remark', label: '落地页备注', width: 120 },
+      { prop: 'useStatus', label: '使用状态', width: 90, align: 'center' },
+      { prop: 'action', label: '操作', width: 180, align: 'center' },
+      { prop: 'id', label: 'ID', width: 120 },
+      { prop: 'product', label: '产品', width: 120 },
+      { prop: 'url', label: '落地页链接', width: 180, link: true },
+      { prop: 'touchLink', label: '有效触点链接', width: 180, link: true },
+      { prop: 'deeplink', label: 'Deeplink直达链接', width: 180 },
+      { prop: 'ulink', label: 'Ulink直达链接', width: 180 },
+      { prop: 'miniAppid', label: '字节小程序/小游戏APPID', width: 180 },
+      { prop: 'miniLink', label: '字节小程序/小游戏链接', width: 180 },
+      { prop: 'miniLaunchPage', label: '字节小程序/小游戏启动页面', width: 180 },
+      { prop: 'miniLaunchParams', label: '字节小程序/小游戏启动参数', width: 180 },
+      { prop: 'account', label: '媒体账户', width: 180 },
+      { prop: 'creator', label: '创建人员', width: 120 },
+      { prop: 'createdAt', label: '创建时间', width: 160 },
+      { prop: 'adCount', label: '关联广告数', width: 100 },
     ],
   },
 };
@@ -510,13 +548,31 @@ function buildRows(tab) {
       lpId,
       template: `${landing}-模板${String(i + 1).padStart(2, '0')}`,
       group: `${landing}-落地页组${String(i + 1).padStart(2, '0')}`,
+      groupId: 1869000000000000 + i * 137,
+      assetId: 1868000000000000 + i * 211,
       account,
       owner,
+      creator: owner,
       createdAt: `2024-0${(i % 9) + 1}-${String((i * 3) % 28 + 1).padStart(2, '0')} ${String((i * 7) % 24).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}`,
       adCount: 12 + i * 7,
       lpCount: 3 + i * 2,
       status: i % 3 === 0 ? '已上线' : '审核中',
+      useStatus: i % 2 === 0 ? '已使用' : '未使用',
+      source: i % 2 === 0 ? '橙子建站' : '创量建站',
+      remark: `落地页备注${String(i + 1).padStart(2, '0')}`,
+      pathParams: `?id=${lpId}&from=clzt`,
+      assignType: i % 2 === 0 ? '手动分配' : '自动分配',
+      templateType: ['应用下载', '微信小程序', '微信小游戏', '抖音小程序/小游戏'][i % 4],
+      product: ['测试商品', '测试安卓应用(android)'][i % 2],
       url: `https://lp.mobgi.com/${lpId}`,
+      deliveryLink: `https://lp.mobgi.com/group/${1869000000000000 + i * 137}`,
+      touchLink: `https://lp.mobgi.com/touch/${lpId}`,
+      deeplink: `clzt://lp/${lpId}`,
+      ulink: `https://u.mobgi.com/lp/${lpId}`,
+      miniAppid: `wx${1867000000000000 + i * 137}`,
+      miniLink: `https://mini.mobgi.com/app/${lpId}`,
+      miniLaunchPage: 'pages/index/index',
+      miniLaunchParams: `lpId=${lpId}`,
       tab,
     });
   }
@@ -551,6 +607,8 @@ function nameOf(full) {
 
 const currentColumns = computed(() => TAB_CONFIG[activeTab.value].columns);
 const createText = computed(() => TAB_CONFIG[activeTab.value].createText);
+/** 当前页签配置（列设置 / 复选框列 / 行内操作都按页签走） */
+const tabCfg = computed(() => TAB_CONFIG[activeTab.value]);
 
 const shownColumns = computed(() => {
   const cols = currentColumns.value;
@@ -635,6 +693,13 @@ function onOpenLanding(row) {
 
 function onView(row) {
   ElMessage.info(`查看模板：${row.template}`);
+}
+
+/** 行内操作（线上各页签不同：橙子落地页=预览/转赠/存为模板，第三方落地页=预览/编辑/复制/删除） */
+function onRowAction(op, row) {
+  const map = { 预览: onView, 编辑: onEdit, 删除: onDelete };
+  if (map[op]) { map[op](row); return; }
+  ElMessage.info(`${op}：${row.landing || row.group || row.template}`);
 }
 
 function onEdit(row) {

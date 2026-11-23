@@ -717,8 +717,8 @@ const TAB_CONFIG = {
     create: true,
     batch: true,
     columns: [
-      { label: '商品库', prop: 'name', sub: 'libId', width: 818, type: 'desc' },
-      { label: '商品库类型', prop: 'type', width: 817, type: 'text' },
+      { label: '商品库', prop: 'name', sub: 'libId', width: 498, type: 'desc' },
+      { label: '商品库类型', prop: 'type', width: 497, type: 'text' },
     ],
   },
   goods: {
@@ -727,9 +727,9 @@ const TAB_CONFIG = {
     create: true,
     batch: false,
     columns: [
-      { label: '商品', prop: 'name', sub: 'libId', width: 465, type: 'desc' },
-      { label: '商品库', prop: 'libName', sub: 'libCode', width: 465, type: 'desc' },
-      { label: '商品库类型', prop: 'type', width: 465, type: 'text' },
+      { label: '商品', prop: 'name', sub: 'libId', width: 253, type: 'desc' },
+      { label: '商品库', prop: 'libName', sub: 'libCode', width: 251, type: 'desc' },
+      { label: '商品库类型', prop: 'type', width: 251, type: 'text' },
       { label: '创建时间', prop: 'created', width: 150, type: 'text' },
       { label: '更新时间', prop: 'updated', width: 150, type: 'text' },
     ],
@@ -740,9 +740,9 @@ const TAB_CONFIG = {
     create: false,
     batch: true,
     columns: [
-      { label: '商品', prop: 'name', sub: 'libId', width: 445, type: 'desc' },
-      { label: '商品标题', prop: 'title', width: 445, type: 'text' },
-      { label: '商品类目', prop: 'category', width: 445, type: 'text' },
+      { label: '商品', prop: 'name', sub: 'libId', width: 233, type: 'desc' },
+      { label: '商品标题', prop: 'title', width: 231, type: 'text' },
+      { label: '商品类目', prop: 'category', width: 231, type: 'text' },
       { label: '创建时间', prop: 'created', width: 150, type: 'text' },
       { label: '更新时间', prop: 'updated', width: 150, type: 'text' },
     ],

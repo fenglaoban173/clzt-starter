@@ -1,21 +1,98 @@
 /* 资产页通用样式 —— 与创量标准版「巨量广告·标准 → 资产」各页一致
  * 全局引入（main.js），供 pages/<kind>.vue 各资产页直接使用，
  * 保证并行开发的各页面视觉统一。
- * 采集依据：创量线上 DOM + computed style（表头 #fafafa / 12px #909399、工具栏 50px、
+ * 采集依据：创量线上 DOM + computed style（表头 #fafafa / 14px #909399 / 700、工具栏 50px、
  * 筛选格 28px、抽屉 1016px、抽屉表单 label 144px、输入 360×32 等）。
  */
+
+/* ============================================================
+ * 资产模块 · 创量设计令牌（线上 computed style 实测值）
+ * 作用域：body.asset-scope —— 由 AppLayout 在进入 asset-list 路由时挂载，
+ * 用 body 承载是为了让 teleport 到 body 的弹窗/抽屉也能继承令牌。
+ * ============================================================ */
+body.asset-scope {
+  /* 主色：创量蓝（线上 el-button--primary 实测 #197afb） */
+  --el-color-primary: #197afb;
+  --el-color-primary-rgb: 25, 122, 251;
+  --el-color-primary-light-3: #5ea2fc;
+  --el-color-primary-light-5: #8cbdfd;
+  --el-color-primary-light-7: #bad7fe;
+  --el-color-primary-light-8: #d1e4fe;
+  --el-color-primary-light-9: #e8f1ff;
+  --el-color-primary-dark-2: #1462c9;
+
+  /* 圆角：线上按钮 3px */
+  --el-border-radius-base: 3px;
+  --el-border-radius-small: 2px;
+
+  /* 次按钮（default / plain）：线上 字色 #666、边框 #d0d0d0 */
+  --el-button-text-color: #666666;
+  --el-button-border-color: #d0d0d0;
+  --el-button-hover-text-color: #197afb;
+  --el-button-hover-border-color: #197afb;
+  --el-button-hover-bg-color: #fff;
+  /* 禁用态：线上 字色 #c0c4cc、边框 #ebeef5 */
+  --el-button-disabled-text-color: #c0c4cc;
+  --el-button-disabled-border-color: #ebeef5;
+  --el-disabled-text-color: #c0c4cc;
+  --el-disabled-border-color: #ebeef5;
+
+  /* 表格：线上 单元格分隔线 #e8eaec */
+  --el-table-border-color: #e8eaec;
+  --el-table-header-text-color: #909399;
+  --el-table-text-color: #333333;
+  /* 禁用边框：线上 #ebeef5（EP 2.14 的 --el-border-color-light 是 #e4e7ed） */
+  --el-border-color-light: #ebeef5;
+}
+/* 按钮圆角：线上实测 3px（EP 2.14 默认 6px；各页 scoped 规则也各自写死，统一压平） */
+body.asset-scope .el-button { border-radius: 3px !important; }
+/* 单元格文字色：线上 #333（EP 默认继承 td 的 #606266） */
+body.asset-scope .asset-table .el-table__cell { color: #333 !important; }
+/* 二级页签字号：线上 16px（各页 scoped 规则有的写死 14px） */
+body.asset-scope .asset-sub-tab { font-size: 16px !important; }
+/* primary 按钮不吃上面的次按钮配色，单独还原 */
+body.asset-scope .el-button--primary {
+  --el-button-text-color: #fff;
+  --el-button-bg-color: #197afb;
+  --el-button-border-color: #197afb;
+  --el-button-hover-text-color: #fff;
+  --el-button-hover-bg-color: #1462c9;
+  --el-button-hover-border-color: #1462c9;
+  --el-button-active-bg-color: #1462c9;
+  --el-button-active-border-color: #1462c9;
+  --el-button-disabled-text-color: #fff;
+  --el-button-disabled-bg-color: #8cbdfd;
+  --el-button-disabled-border-color: #8cbdfd;
+}
+/* plain 的默认态按钮（白底灰字） */
+body.asset-scope .el-button.is-plain:not(.el-button--primary) {
+  --el-button-text-color: #666666;
+  --el-button-bg-color: #fff;
+  --el-button-border-color: #d0d0d0;
+  --el-button-hover-text-color: #197afb;
+  --el-button-hover-bg-color: #fff;
+  --el-button-hover-border-color: #197afb;
+}
+/* 禁用态按钮 */
+body.asset-scope .el-button.is-disabled,
+body.asset-scope .el-button:disabled {
+  --el-button-text-color: #c0c4cc;
+  --el-button-bg-color: #fff;
+  --el-button-border-color: #ebeef5;
+}
 
 /* ---------- 页面骨架 ---------- */
 .asset-page { padding: 16px; min-height: 100%; box-sizing: border-box; background: #fff; }
 .asset-title-bar { padding: 0 0 12px; }
 .asset-title { font-size: 16px; font-weight: 600; color: #1d2129; }
 
-/* 二级页签（商品库-通用版 / 商品-通用版 / 商品-升级版 等） */
+/* 二级页签（商品库-通用版 / 商品-通用版 / 商品-升级版 等）
+   线上实测：16px / 700，选中 #197afb、未选 #666，页签高 48px，选中下划线 3px */
 .asset-sub-tabs { display: flex; align-items: center; gap: 24px; margin-bottom: 12px; border-bottom: 1px solid #e8eaec; }
-.asset-sub-tab { position: relative; height: 36px; line-height: 36px; font-size: 14px; color: #666; cursor: pointer; }
+.asset-sub-tab { position: relative; height: 48px; line-height: 48px; font-size: 16px; font-weight: 700; color: #666; cursor: pointer; }
 .asset-sub-tab.active { color: #197afb; }
 .asset-sub-tab.active::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: #197afb;
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: #197afb;
 }
 
 /* ---------- 查询条件（线上 form.filter-search-input） ---------- */
@@ -50,10 +127,13 @@
 .batch-select { width: 120px; margin-left: 4px; }
 .batch-select .el-input__inner { height: 32px; font-size: 12px; }
 
-/* ---------- 列表（线上 el-table--border） ---------- */
-.asset-table { font-size: 12px; width: 100%; }
-.asset-table .el-table__header th { background: #fafafa; color: #909399; font-size: 12px; height: 56px; padding: 0; }
-.asset-table .el-table__cell { font-size: 12px; color: #606266; padding: 8px 0; }
+/* ---------- 列表（线上 el-table--border） ----------
+   线上实测：表头 14px/700 #909399 底色 #fafafa；表头单元格 12px #333；
+   数据单元格 12px/400 #333；单元格分隔线 #e8eaec；行高由 --row-pad 控制（各页不同） */
+.asset-table { font-size: 12px; width: 100%; --row-pad: 8px; }
+.asset-table .el-table__header th { background: #fafafa; color: #909399; font-size: 14px; font-weight: 700; padding: 0; }
+.asset-table .el-table__header th .cell { font-size: 12px; font-weight: 700; color: #333; }
+.asset-table .el-table__cell { font-size: 12px; color: #333; padding: var(--row-pad) 0; }
 .asset-table .el-button { font-size: 12px; }
 .asset-table .el-button.is-link { margin-left: 10px; padding: 0; }
 .asset-table .el-button.is-link:first-child { margin-left: 0; }
@@ -65,11 +145,12 @@
 .desc-cell__desc { color: #909399; font-size: 12px; }
 
 /* ---------- 分页 ---------- */
+/* 线上实测：分页字号 16px，容器高 64px */
 .pager-card {
   display: flex; align-items: center; height: 64px; margin-top: 16px; padding: 2px 5px 2px 24px;
   background: #fff; border: 1px solid #e8eaec; border-radius: 3px;
 }
-.pager-card .el-pagination { font-size: 12px; }
+.pager-card .el-pagination { font-size: 16px; }
 
 /* ---------- 抽屉（线上 div.cl-drawer，宽度 1016px） ---------- */
 .cl-drawer { display: flex; flex-direction: column; height: 100%; background: #f0f2f5; }

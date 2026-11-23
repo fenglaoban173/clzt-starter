@@ -326,19 +326,19 @@
         @selection-change="(rows) => (jySelectedRows = rows)"
       >
         <el-table-column type="selection" width="48" fixed="left" align="center" />
-        <el-table-column prop="name" label="定向包名称" width="300" show-overflow-tooltip />
-        <el-table-column label="操作" width="230">
+        <el-table-column prop="name" label="定向包名称" width="200" show-overflow-tooltip />
+        <el-table-column label="操作" width="100">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openEdit(row, true)">编辑</el-button>
             <el-button link type="primary" size="small" @click="copyRow(row, true)">复制</el-button>
             <el-button link type="primary" size="small" @click="removeRow(row, true)">删除</el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="package_id" label="定向包ID" width="110" />
-        <el-table-column prop="description" label="定向描述" width="260" show-overflow-tooltip />
-        <el-table-column prop="package_type" label="定向包类型" width="150" show-overflow-tooltip />
-        <el-table-column prop="delivery_range" label="投放范围" width="120" />
-        <el-table-column prop="account" label="媒体账户" width="280" show-overflow-tooltip />
+        <el-table-column prop="package_id" label="定向包ID" width="80" />
+        <el-table-column prop="description" label="定向描述" width="200" show-overflow-tooltip />
+        <el-table-column prop="package_type" label="定向包类型" width="120" show-overflow-tooltip />
+        <el-table-column prop="delivery_range" label="投放范围" width="100" />
+        <el-table-column prop="account" label="媒体账户" width="100" show-overflow-tooltip />
         <el-table-column prop="create_time" label="创建时间" width="150" />
 
         <template #empty>
