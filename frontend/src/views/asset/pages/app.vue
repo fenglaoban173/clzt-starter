@@ -826,6 +826,13 @@ async function onButton(b) {
     ElMessage.success('同步成功');
     return;
   }
+  if (b.key === 'syncHarmony') {
+    // 线上「同步鸿蒙应用」弹窗：宽 670px，一个「媒体账户」下拉
+    openForm('同步鸿蒙应用', '670px', [
+      { key: 'account', label: '媒体账户', type: 'select', options: ACCOUNT_OPTIONS },
+    ]);
+    return;
+  }
   if (b.key === 'newSp') {
     // 线上「新建应用分包」弹窗：宽 992px，4 字段（工作台 / 巨量应用 / 创建应用的账户 / 导入渠道号）
     openForm('新建应用分包', '992px', [

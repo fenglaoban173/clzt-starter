@@ -327,6 +327,35 @@
             <el-form-item v-if="createForm.deeplinkWay !== '自动生成'" label="Deeplink直达链接" prop="deeplinkUrl">
               <el-input v-model="createForm.deeplinkUrl" size="small" placeholder="请输入Deeplink直达链接" />
             </el-form-item>
+
+            <!-- 线上「新建落地页」其余字段（探测所得，共 20 项） -->
+            <el-form-item label="Ulink" prop="ulink">
+              <el-input v-model="createForm.ulink" size="small" placeholder="请输入Ulink" />
+            </el-form-item>
+
+            <el-form-item label="落地页参数" prop="lpParams">
+              <el-input v-model="createForm.lpParams" size="small" placeholder="请输入落地页参数" />
+            </el-form-item>
+
+            <el-form-item label="直达链接参数" prop="linkParams">
+              <el-input v-model="createForm.linkParams" size="small" placeholder="请输入直达链接参数" />
+            </el-form-item>
+
+            <el-form-item label="字节小程序/小游戏APPID" prop="miniAppId">
+              <el-input v-model="createForm.miniAppId" size="small" placeholder="请输入字节小程序/小游戏APPID" />
+            </el-form-item>
+
+            <el-form-item label="字节小程序/小游戏链接" prop="miniLink">
+              <el-input v-model="createForm.miniLink" size="small" placeholder="请输入字节小程序/小游戏链接" />
+            </el-form-item>
+
+            <el-form-item label="字节小程序/小游戏启动页面" prop="miniLaunchPage">
+              <el-input v-model="createForm.miniLaunchPage" size="small" placeholder="请输入字节小程序/小游戏启动页面" />
+            </el-form-item>
+
+            <el-form-item label="字节小程序/小游戏启动参数" prop="miniLaunchParams">
+              <el-input v-model="createForm.miniLaunchParams" size="small" placeholder="请输入字节小程序/小游戏启动参数" />
+            </el-form-item>
           </template>
 
           <el-form-item v-if="activeTab !== '第三方落地页'" label="媒体账户" prop="account" required>
@@ -1006,6 +1035,8 @@ const createForm = ref({
   relAccount: '', project: '', link: '', remark: '', product: '',
   touchLink: '', showLink: '', validPlayLink: '', playLink: '', playEndLink: '',
   deeplinkWay: '手动填写', multiLink: '不启用', deeplinkUrl: '',
+  ulink: '', lpParams: '', linkParams: '', miniAppId: '', miniLink: '',
+  miniLaunchPage: '', miniLaunchParams: '',
 });
 const lpKeyword = ref('');
 const lpPage = ref(1);
