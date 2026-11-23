@@ -494,7 +494,7 @@ const TAB_CONFIG = {
   subpackage: {
     filters: [
       { key: 'platform', prop: 'platform', label: '工作台', placeholder: '请选择工作台', width: 180, selWidth: 124, options: PLATFORM_OPTIONS },
-      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.slice(0, 10).map((a) => ({ value: a.name, label: a.name })) },
+      { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: a.name })) },
       { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 260, selWidth: 192, options: CREATOR_OPTIONS },
       { key: 'account', prop: 'account', label: '媒体账户', placeholder: '所有账户', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS },
     ],

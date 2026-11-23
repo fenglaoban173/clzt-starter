@@ -64,7 +64,9 @@ body.asset-scope .el-button--primary {
   --el-button-disabled-bg-color: #8cbdfd;
   --el-button-disabled-border-color: #8cbdfd;
 }
-/* plain 的默认态按钮（白底灰字） */
+/* plain 的默认态按钮（白底灰字）——线上旧版 EP 就是这个配色。
+   注意：EP 2.14 把 --el-button-*-color 声明在按钮元素自身的 .el-button.is-plain 规则里，
+   body 级变量覆盖不到，必须直接写死 color / background-color / border-color。 */
 body.asset-scope .el-button.is-plain:not(.el-button--primary) {
   --el-button-text-color: #666666;
   --el-button-bg-color: #fff;
@@ -72,6 +74,14 @@ body.asset-scope .el-button.is-plain:not(.el-button--primary) {
   --el-button-hover-text-color: #197afb;
   --el-button-hover-bg-color: #fff;
   --el-button-hover-border-color: #197afb;
+  color: #666666;
+  background-color: #ffffff;
+  border-color: #d0d0d0;
+}
+body.asset-scope .el-button.is-plain:not(.el-button--primary):hover {
+  color: #197afb;
+  background-color: #ffffff;
+  border-color: #197afb;
 }
 /* 禁用态按钮 */
 body.asset-scope .el-button.is-disabled,
