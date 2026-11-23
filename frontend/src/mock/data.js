@@ -1133,13 +1133,13 @@ export const AWEME_SETTING_TYPES = [
 
 // 推广目的 objective（value 对齐官方 landing_type 枚举）
 export const OBJECTIVES = [
-  { value: 'APP', label: '应用推广', desc: '推广您的线上APP' },
-  { value: 'MICRO_GAME', label: '小程序', desc: '吸引更多用户进入小程序' },
-  { value: 'SHOP', label: '电商', desc: '提升线上商品或店铺的推广效果' },
-  { value: 'LINK', label: '销售线索', desc: '为您的生意销售收集用户线索' },
-  { value: 'QUICK_APP', label: '快应用', desc: '吸引更多用户进入快应用' },
-  { value: 'DPA', label: '商品', desc: '基于用户偏好给用户动态展示商品' },
-  { value: 'NATIVE_ACTION', label: '内容营销', desc: '提升投放视频或直播的互动、涨粉、种草效果' },
+  { value: 'APP', label: '应用推广', img: '/assets/obj_1..png', desc: '推广您的线上APP' },
+  { value: 'MICRO_GAME', label: '小程序', img: '/assets/obj_2..png', desc: '吸引更多用户进入小程序' },
+  { value: 'SHOP', label: '电商', img: '/assets/obj_3..png', desc: '提升线上商品或店铺的推广效果' },
+  { value: 'LINK', label: '销售线索', img: '/assets/obj_4..png', desc: '为您的生意销售收集用户线索' },
+  { value: 'QUICK_APP', label: '快应用', img: '/assets/obj_5.png', desc: '吸引更多用户进入快应用' },
+  { value: 'DPA', label: '商品', img: '/assets/obj_6.png', desc: '基于用户偏好给用户动态展示商品' },
+  { value: 'NATIVE_ACTION', label: '内容营销', img: '/assets/obj_7.svg', desc: '提升投放视频或直播的互动、涨粉、种草效果' },
 ];
 
 // 投放类型 delivery_type（创量口径）

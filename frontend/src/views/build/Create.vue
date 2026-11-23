@@ -844,6 +844,7 @@
           <div class="form-section__title">推广目的</div>
         <el-radio-group v-model="form.project.objective" @change="onObjectiveChange" class="obj-grid">
           <el-radio v-for="o in OBJECTIVES" :key="o.value" :value="o.value" class="obj-card">
+            <img v-if="o.img" class="obj-img" :src="o.img" :alt="o.label" />
             <span class="obj-label">{{ o.label }}</span>
             <span class="obj-desc">{{ o.desc }}</span>
           </el-radio>
@@ -4016,6 +4017,20 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+/* 线上抽屉：浅灰蓝底 + 每个板块白色圆角矩形（实测底色 #f0f2f5） */
+:deep(.el-drawer__body) { background: #f0f2f5; }
+.form-section { background: #ffffff; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
+.form-section__title { color: #1d2129; }
+/* 推广目的卡片（线上：4 列白底卡片 + 右上角 48px 示例图，无单选圈） */
+.obj-grid.el-radio-group { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 4px; flex-direction: initial; }
+.obj-card { position: relative; display: block; width: 100%; min-height: 84px; margin: 0 !important; padding: 12px 14px; background: #fff; border: 1px solid #e5e6eb; border-radius: 4px; cursor: pointer; transition: border-color .2s; }
+.obj-card:hover { border-color: #197afb; }
+.obj-card :deep(.el-radio__input) { display: none; }
+.obj-card :deep(.el-radio__label) { display: block; width: 100%; padding-left: 0; }
+.obj-card.is-checked { border-color: #197afb; }
+.obj-label { display: block; font-size: 14px; color: #1d2129; padding-right: 56px; }
+.obj-desc { display: block; margin-top: 8px; font-size: 12px; color: #86909c; line-height: 1.6; }
+.obj-img { position: absolute; top: 14px; right: 14px; width: 48px; height: 48px; object-fit: contain; }
 .sec-collapse { float: right; font-size: 12px; font-weight: 400; }
 .ad-summary { display: flex; gap: 28px; padding: 10px 12px; margin-bottom: 12px; background: #f5f6f7; border-radius: 4px; font-size: 12px; color: #86909c; }
 .ad-summary b { color: #1d2129; font-weight: 600; }
