@@ -228,7 +228,7 @@
           <el-button @click="targetingVisible = true">定向包</el-button>
           <el-button @click="projVisible = true">项目预算与出价</el-button>
           <el-button @click="deeplinkVisible = true">直达链接</el-button>
-          <el-button @click="productVisible = true">产品信息</el-button>
+          <el-button @click="openAdPanel('ad-products')">产品信息</el-button>
           <el-button @click="openAdPanel('ad-settings')">广告设置</el-button>
           <el-button @click="openAdPanel('ad-budget')">广告预算与出价</el-button>
         </template>
@@ -1274,7 +1274,41 @@
         <!-- 项目排期与预算 -->
         </div>
         <div class="form-section">
-          <div class="form-section__title">项目排期与预算</div>
+                  <!-- 搜索快投（线上：出价系数 / 定向拓展 / 搜索快投服务） -->
+        <div class="form-section">
+          <div class="form-section__title">搜索快投</div>
+          <el-form-item label="关键词">
+            <div class="sell-ops">
+              <el-input v-model="searchForm.keyword" class="sell-input" placeholder="未添加关键词" readonly />
+              <el-button link type="primary">编辑</el-button>
+              <el-button link type="primary" @click="searchForm.keyword = ''">清空</el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="出价系数">
+            <el-radio-group v-model="searchForm.bid_coef">
+              <el-radio value="OFF">不启用</el-radio>
+              <el-radio value="ON">启用</el-radio>
+            </el-radio-group>
+            <div class="ad-hint">不再用出价系数时默认出价系数为1（仅针对可设置出价系数的账户生效）</div>
+          </el-form-item>
+          <el-form-item label="定向拓展">
+            <template #label>
+              <span class="q-label">定向拓展</span>
+              <el-tooltip content="定向拓展仅对搜索广告生效，开启后可拓展更多相关人群。" placement="top">
+                <el-icon class="q-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </template>
+            <el-radio-group v-model="searchForm.extend">
+              <el-radio value="OFF">不启用</el-radio>
+              <el-radio value="ON">启用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label=" ">
+            <el-checkbox v-model="searchForm.service">搜索快投服务（仅支持媒体平台申请了搜索快投豁免账户，否则"出价系数"和"定向拓展"媒体API策略默认开启）</el-checkbox>
+          </el-form-item>
+        </div>
+
+<div class="form-section__title">项目排期与预算</div>
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="配置模式">
@@ -1667,18 +1701,10 @@
               </div>
             </el-form-item>
           </div>
-      </el-form>
-      <template #footer>
-        <el-button @click="adVisible = false">取消</el-button>
-        <el-button type="primary" @click="adVisible = false">确定</el-button>
-      </template>
-    </el-drawer>
-
-    <!-- 产品信息抽屉 -->
-    <el-drawer v-model="productVisible" title="产品信息" size="1016px" direction="rtl">
-      <el-form :model="form.ad" class="drawer-form" label-position="top">
+      
+      
         <div class="form-section">
-          <div class="form-section__title">产品信息</div>
+          <div class="form-section__title" id="ad-products">产品信息</div>
         <el-row :gutter="12">
           <el-col :span="12">
             <el-form-item label="配置模式">
@@ -1745,18 +1771,11 @@
         </el-row>
 
         </div>
-        <template #footer>
-          <el-button @click="productVisible = false">取消</el-button>
-          <el-button type="primary" @click="productVisible = false">确定</el-button>
-        </template>
-      </el-form>
-    </el-drawer>
 
-    <!-- 广告设置抽屉 -->
-    <el-drawer v-model="adSettingVisible" title="广告设置" size="1016px" direction="rtl">
-      <el-form :model="form.ad" class="drawer-form" label-position="top">
+
+      
         <div class="form-section">
-          <div class="form-section__title">广告设置</div>
+          <div class="form-section__title" id="ad-settings">广告设置</div>
         <el-row :gutter="12">
           <el-col :span="12">
             <el-form-item label="配置模式">
@@ -1803,9 +1822,13 @@
             <el-col :span="8"><el-form-item label="二级品牌名称"><el-input v-model="form.ad.second_brand_name" placeholder="-" /></el-form-item></el-col>
           </el-row>
         </template>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section__title" id="ad-name">广告名称</div>
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-form-item label="广告默认状态">
+<el-form-item label="广告默认状态">
               <el-radio-group v-model="form.ad.operation">
                 <el-radio value="DISABLE">暂停</el-radio>
                 <el-radio value="ENABLE">开启</el-radio>
@@ -1829,16 +1852,45 @@
           </el-col>
         </el-row>
         <el-row :gutter="12">
-          <el-col :span="8"><el-form-item label="自动截断"><el-switch v-model="form.ad.ad_auto_truncate" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="随机数后缀"><el-switch v-model="form.ad.ad_random_suffix" /></el-form-item></el-col>
+          <el-col :span="8">
+            <el-form-item label="自动截断">
+              <template #label>
+                <span class="q-label">自动截断</span>
+                <el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip>
+              </template>
+              <el-switch v-model="form.ad.ad_auto_truncate" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="随机数后缀">
+              <template #label>
+                <span class="q-label">随机数后缀</span>
+                <el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip>
+              </template>
+              <el-switch v-model="form.ad.ad_random_suffix" />
+            </el-form-item>
+          </el-col>
         </el-row>
+          <div class="name-wildcards">
+            <span class="name-wildcards__label">通配符:</span>
+            <el-button link type="primary">+下载链接标识</el-button>
+            <el-button link type="primary">+渠道包名</el-button>
+            <el-button link type="primary">+监测活动名</el-button>
+            <el-button link type="primary">插入更多</el-button>
+          </div>
+          <div class="name-warn-hint">名称长度最多100字符（1汉字=2字符），使用通配符时，请注意控制自定义内容长度</div>
         </div>
-        <template #footer>
-          <el-button @click="adSettingVisible = false">取消</el-button>
-          <el-button type="primary" @click="adSettingVisible = false">确定</el-button>
-        </template>
-      </el-form>
+
+        </el-form>
+      <template #footer>
+        <el-button @click="adVisible = false">取消</el-button>
+        <el-button type="primary" @click="adVisible = false">确定</el-button>
+      </template>
     </el-drawer>
+
+    <!-- 产品信息抽屉 -->
+
+    <!-- 广告设置抽屉 -->
 
     <!-- 创意素材弹窗 -->
     <el-drawer v-model="matVisible" title="手动选取素材" size="1016px" direction="rtl">
@@ -2612,6 +2664,8 @@ const projInfoFolded = ref(false);
 const relatedVisible = ref(false);
 /* ---- 广告基本信息面板：广告预算与出价 / 定位到指定段 ---- */
 const adBudgetVisible = ref(false);
+/* ---- 搜索快投（新建项目） ---- */
+const searchForm = reactive({ keyword: '', bid_coef: 'OFF', extend: 'OFF', service: false });
 /* ---- 广告基本信息：直达链接行 / 行动号召输入 ---- */
 const adLinkRows = ref([
   { account: '央广-雷盟-知乎-APP内付费-124-792335571-在投', accountId: '1873758649506203', url: 'zhhuz://market/paid_column/...' },
@@ -3937,6 +3991,10 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.name-wildcards { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 13px; color: #4e5969; }
+.name-wildcards__label { color: #86909c; }
+.name-warn-hint { font-size: 12px; color: #e6a23c; margin-top: 8px; }
+.ad-hint { width: 100%; font-size: 12px; color: #86909c; margin-top: 4px; }
 .q-label { margin-right: 4px; }
 .q-icon { color: #86909c; cursor: help; vertical-align: -2px; }
 .ad-est { position: absolute; right: 24px; top: 18px; z-index: 5; width: 200px; padding: 12px 14px; background: #fff; border: 1px solid #e5e6eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.08); font-size: 12px; color: #4e5969; }
