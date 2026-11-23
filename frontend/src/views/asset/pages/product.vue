@@ -253,7 +253,8 @@
                 </el-radio-group>
               </el-form-item>
 
-              <el-form-item label="商品库类型" required>
+              <!-- 联动（线上实测）：工作台来源=新版工作台 时隐藏「商品库类型」「链接来源」「变现内容」三组 -->
+              <el-form-item v-if="form.workbench !== '新版工作台'" label="商品库类型" required>
                 <el-radio-group v-model="form.libType" class="ag-radio">
                   <el-radio-button v-for="o in DRAWER_LIB_TYPES" :key="o" :value="o">{{ o }}</el-radio-button>
                 </el-radio-group>
@@ -305,7 +306,7 @@
                 />
               </el-form-item>
 
-              <el-form-item label="变现内容" required>
+              <el-form-item v-if="form.workbench !== '新版工作台'" label="变现内容" required>
                 <el-radio-group v-model="form.monetize" class="ag-radio">
                   <el-radio-button v-for="o in MONETIZE_TYPES" :key="o" :value="o">{{ o }}</el-radio-button>
                 </el-radio-group>
