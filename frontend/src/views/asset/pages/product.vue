@@ -512,7 +512,7 @@
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item label="所属账户" required>
+        <el-form-item v-if="syncForm.goodsType !== '商品-升级版'" label="所属账户" required>
           <el-select v-model="syncForm.account" class="pd-dialog-select" size="small" filterable placeholder="请选择所属账户">
             <el-option v-for="a in SYNC_ACCOUNT_OPTIONS" :key="a" :label="a" :value="a" />
           </el-select>
@@ -594,11 +594,11 @@ const CATEGORY_OPTIONS = [
   { value: '单剧目-漫剧', label: '单剧目-漫剧' },
 ];
 
-/** 批量操作下拉（线上：共享 / 创量创意云 / 万镜台） */
+/** 批量操作下拉（线上顺序：创量创意云 / 万镜台 / 共享） */
 const BATCH_ITEMS = [
-  { command: 'share', icon: '共', title: '共享', subtitle: '批量共享商品库至其他媒体账户' },
   { command: '1', icon: '创', title: '创量创意云', subtitle: '内容资产创作管理平台' },
   { command: '4', icon: '万', title: '万镜台', subtitle: 'AI爆款视频创作平台' },
+  { command: 'share', icon: '共', title: '共享', subtitle: '' },
 ];
 
 /** 抽屉「引用历史任务」（线上远程搜索，此处用 mock） */

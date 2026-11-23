@@ -212,7 +212,7 @@ function hintOf(f) {
   if (f.key === 'customAudience' && form.customAudience === '同时定向排除') {
     return form.company ? '' : '同时定向排除请先选择企业名称';
   }
-  if (f.key === 'mediaOrient' && form.mediaOrient === '自定义') return '媒体定向自定义不支持ohayoo精品游戏';
+  if (f.key === 'mediaOrient' && form.mediaOrient === '自定义') return '请先选择企业名称';
   if (f.key === 'carrier' && form.carrier !== '不限') return '运营商定向仅对通信行业有效。';
   if (f.key === 'device' && form.device === '平板') return '使用该功能需要申请白名单';
   return '';
