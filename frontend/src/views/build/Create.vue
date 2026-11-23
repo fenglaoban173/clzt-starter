@@ -224,9 +224,9 @@
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
           <el-button @click="relatedVisible = true">关联产品</el-button>
-          <el-button @click="openSection('monitor')">分包与监测活动</el-button>
-          <el-button @click="openSection('targeting')">定向包</el-button>
-          <el-button @click="openSection('budget')">项目预算与出价</el-button>
+          <el-button @click="monitorLinkVisible = true">分包与监测活动</el-button>
+          <el-button @click="targetingVisible = true">定向包</el-button>
+          <el-button @click="projVisible = true">项目预算与出价</el-button>
           <el-button @click="deeplinkVisible = true">直达链接</el-button>
           <el-button @click="productVisible = true">产品信息</el-button>
           <el-button @click="adSettingVisible = true">广告设置</el-button>
@@ -392,8 +392,124 @@
       <el-empty v-else description="请先完成相应模块配置后，再预览内容" />
     </el-card>
 
+    <!-- 分包与监测活动（线上：手动输入监测链接 1016px） -->
+    <el-drawer v-model="monitorLinkVisible" title="手动输入监测链接" size="1016px" direction="rtl">
+      <el-form label-position="top" class="monitor-link-form">
+        <el-form-item label="应用分包">
+          <div class="ml-row">
+            <span class="ml-row__label">展示链接</span>
+            <el-radio-group v-model="monitorLink.show">
+              <el-radio value="ON">开启</el-radio>
+              <el-radio value="OFF">不开启</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="ml-row">
+            <span class="ml-row__label">有效触点链接</span>
+            <el-radio-group v-model="monitorLink.touch">
+              <el-radio value="ON">开启</el-radio>
+              <el-radio value="OFF">不开启</el-radio>
+            </el-radio-group>
+            <el-input
+              v-if="monitorLink.touch === 'ON'"
+              v-model="monitorLink.touchUrl"
+              class="ml-row__input"
+              type="textarea"
+              :rows="4"
+              maxlength="2000"
+              show-word-limit
+              placeholder="请输入有效触点链接"
+            />
+          </div>
+          <div class="ml-row">
+            <span class="ml-row__label">视频播放链接</span>
+            <el-radio-group v-model="monitorLink.play">
+              <el-radio value="ON">开启</el-radio>
+              <el-radio value="OFF">不开启</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="ml-row">
+            <span class="ml-row__label">视频播完链接</span>
+            <el-radio-group v-model="monitorLink.playDone">
+              <el-radio value="ON">开启</el-radio>
+              <el-radio value="OFF">不开启</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="ml-row">
+            <span class="ml-row__label">视频有效播放链接</span>
+            <el-radio-group v-model="monitorLink.effectivePlay">
+              <el-radio value="ON">开启</el-radio>
+              <el-radio value="OFF">不开启</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="ml-row">
+            <span class="ml-row__label">激活监测链接</span>
+            <el-radio-group v-model="monitorLink.activate">
+              <el-radio value="ON">开启</el-radio>
+              <el-radio value="OFF">不开启</el-radio>
+            </el-radio-group>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="monitorLinkVisible = false">取 消</el-button>
+        <el-button type="primary" @click="confirmMonitorLink">确 定</el-button>
+      </template>
+    </el-drawer>
+
+    <!-- 定向包（线上：创量定向包 1016px） -->
+    <el-drawer v-model="targetingVisible" title="创量定向包" size="1016px" direction="rtl">
+      <el-form label-position="left" label-width="90px" class="targeting-form">
+        <el-form-item label="创量项目">
+          <el-select v-model="targetingFilter.project" clearable placeholder="全部" style="width: 100%">
+            <el-option v-for="p in PROJECT_RULES" :key="p.value" :label="p.label" :value="p.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="产品">
+          <el-select v-model="targetingFilter.product" clearable placeholder="全部" style="width: 100%">
+            <el-option v-for="p in PRODUCTS" :key="p" :label="p" :value="p" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="定向包类型">
+          <el-select v-model="targetingFilter.type" clearable placeholder="全部" style="width: 100%">
+            <el-option v-for="t in PACKAGE_TYPES" :key="t" :label="t" :value="t" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="仅查看可用的定向包">
+          <el-checkbox v-model="targetingFilter.onlyAvailable">仅查看可用的定向包</el-checkbox>
+        </el-form-item>
+      </el-form>
+      <div class="targeting-tips">
+        创量定向包基于主体、投放范围、定向包类型进行筛选后展示; 未选满时系统将自动根据匹配方式循环使用定向包，请预览后核实每个项目分配的定向包<br />
+        跨主体搭建且定向分配使用全部相同时仅支持开启【跨主体使用】的定向包
+      </div>
+      <div class="targeting-ops">
+        <el-button size="small" @click="clearTargetingPicked">清空</el-button>
+        <el-button size="small" @click="projVisible = true">新建创量定向包</el-button>
+        <el-button size="small" @click="ElMessage.success('已获取头条定向（原型模拟）')">获取头条定向</el-button>
+        <el-button size="small" @click="clearTargetingPicked">清空所有资产</el-button>
+        <el-button size="small" @click="ElMessage.success('多账户快速选择（原型模拟）')">多账户快速选择</el-button>
+      </div>
+      <el-table :data="targetingRows" size="small" border style="margin-top: 10px">
+        <el-table-column type="selection" width="48" />
+        <el-table-column label="定向包名称" prop="name" min-width="180" />
+        <el-table-column label="主体" prop="subject" min-width="140" />
+        <el-table-column label="创量项目" prop="project" min-width="120" />
+        <el-table-column label="投放范围" prop="range" min-width="120" />
+        <el-table-column label="定向包ID" prop="id" min-width="120" />
+        <el-table-column label="平台" prop="platform" min-width="90" />
+        <el-table-column label="定向包类型" prop="type" min-width="130" />
+        <el-table-column label="操作" prop="id" width="90" align="center">
+          <template #default="{ row }"><el-button link type="primary">选择</el-button></template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="targetingVisible = false">取 消</el-button>
+        <el-button type="primary" @click="confirmTargeting">确 定</el-button>
+      </template>
+    </el-drawer>
+
     <!-- 关联产品（线上：选择头条产品 弹窗 + 填写直达链接 抽屉） -->
-    <el-dialog v-model="relatedVisible" title="选择头条产品" width="900px" class="related-dialog" :close-on-click-modal="false">
+    <el-dialog v-model="relatedVisible" title="选择头条产品" width="800px" class="related-dialog" :close-on-click-modal="false">
       <div class="related-tips">
         <p>1、关联产品需依附在已批量 广告 进行配置，配置后通过刷新获取。</p>
         <p>2、广告主账户余额不足时自动添加至媒体资产，可为缺少目标商品补充选择内容。</p>
@@ -443,7 +559,7 @@
     </el-dialog>
 
     <!-- 填写直达链接（线上抽屉） -->
-    <el-drawer v-model="deeplinkVisible" title="填写直达链接" size="520px" direction="rtl">
+    <el-drawer v-model="deeplinkVisible" title="填写直达链接" size="1016px" direction="rtl">
       <div class="dl-form">
         <div class="dl-form__row">
           <span class="dl-form__label">输入Deeplink</span>
@@ -2329,6 +2445,27 @@ const previewing = ref(false);
 const projInfoFolded = ref(false);
 /* ---- 关联产品（线上「选择头条产品」）+ 直达链接 ---- */
 const relatedVisible = ref(false);
+/* ---- 线上：手动输入监测链接 / 创量定向包 ---- */
+const monitorLinkVisible = ref(false);
+const targetingVisible = ref(false);
+const monitorLink = reactive({
+  show: 'OFF', touch: 'OFF', touchUrl: '', play: 'OFF',
+  playDone: 'OFF', effectivePlay: 'OFF', activate: 'OFF',
+});
+const targetingFilter = reactive({ project: '', product: '', type: '', onlyAvailable: true });
+const targetingRows = ref([
+  { id: 1873758649506, name: '央广-雷盟-知乎-APP内付费-124-792335571-在投', subject: '央广-雷盟-知乎-APP内付费-124-792335571-在投', project: '知乎小说', range: '通投智选', platform: '巨量广告', type: '应用推广-Android' },
+  { id: 1873758649507, name: '红果-央广-46', subject: '红果-央广-46', project: '漫剧端原生', range: '通投智选', platform: '巨量广告', type: '应用推广-Android' },
+]);
+function clearTargetingPicked() { targetingRows.value = []; }
+function confirmMonitorLink() {
+  ElMessage.success('监测链接配置已保存（原型模拟）');
+  monitorLinkVisible = false;
+}
+function confirmTargeting() {
+  ElMessage.success(`已选择 ${targetingRows.value.length} 个定向包（原型模拟）`);
+  targetingVisible = false;
+}
 const deeplinkVisible = ref(false);
 const relatedForm = reactive({ version: 'UPGRADE', product: '', category: '', keyword: '', picked: [] });
 const deeplinkForm = reactive({ url: '' });
@@ -3590,6 +3727,11 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.ml-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
+.ml-row__label { width: 110px; text-align: right; font-size: 13px; color: #4e5969; flex: none; line-height: 32px; }
+.ml-row__input { flex: 1; }
+.targeting-tips { font-size: 12px; color: #86909c; line-height: 1.7; margin: 6px 0 10px; }
+.targeting-ops { display: flex; gap: 10px; flex-wrap: wrap; }
 .related-tips { font-size: 12px; color: #e6a23c; line-height: 1.7; margin-bottom: 10px; }
 .related-tips p { margin: 0; }
 .related-ver { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; color: #4e5969; }
