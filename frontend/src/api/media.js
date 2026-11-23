@@ -105,7 +105,49 @@ export const buildApi = {
     const combinations = Array.from({ length: Math.min(total, 20) }, (_, i) => ({
       name: `${plan.ad?.name_template || '{date}_{title}'}`.replace('{date}', '1112').replace('{time}', '1200').replace('{index}', `${i + 1}`),
     }));
-    return mockOk({ total, truncated: total > 5000, warnings: [], precheck, combinations });
+    /* 线上预览区结构：账户 → 项目 → 广告（每个账户 1 个项目 / 5 个创意组 / 5 条广告） */
+    const ADS_PER_ACCOUNT = 5;
+    const projectInfo = {
+      name: plan.project?.name || '新建项目',
+      budget: plan.project?.budget ?? 999999,
+      bid: plan.project?.bid ?? 39.5,
+      deep_bid: '无',
+      goal: '应用推广',
+      conversion: '回传方式: 应用AP回传 / 优化目标: 激活-无 / 品牌词排除: YGEX-短剧-单选-态-变-33P',
+      ad_position: '通用智选',
+      targeting: plan.targeting_name || '定向包名称: 红果短剧-定向',
+      assets: '落地页1: https://ug5.cn/app/armor/dynamic/s/ch/CC3I6KpRUMP.xgap 落地页/抖音号: 0 抖音号 原生端: 无 创意端: 无 产品名: 红果急漫跑剧 试玩端预览: 无',
+    };
+    const accountList = (accounts.length ? accounts : ['']).map((id, ai) => ({
+      id,
+      projects: 1,
+      groups: ADS_PER_ACCOUNT,
+      ads: ADS_PER_ACCOUNT,
+      project: projectInfo,
+      ads_detail: Array.from({ length: ADS_PER_ACCOUNT }, (_, i) => ({
+        name: `YGEX-and-短剧剧-天下第一剑侠-16-7575114${75053986107 + ai * 10 + i}-先广-1123-${24040 + i}`,
+        materials: '已选: 20 个素材',
+        title_pack: '标题包: 红果',
+        assets: projectInfo.assets,
+        status: '待提交',
+      })),
+    }));
+    const adCount = accountList.length * ADS_PER_ACCOUNT;
+    return mockOk({
+      total: adCount,
+      truncated: adCount > 5000,
+      warnings: [],
+      precheck,
+      combinations,
+      accounts: accountList,
+      stats: {
+        project_count: accountList.length,
+        ad_count: adCount,
+        selected_project: `${accountList.length}/200`,
+        new_ad_count: `${adCount}/500`,
+        ad_quota: `${adCount}/40`,
+      },
+    });
   },
   async submit(payload) {
     const total = payload?.plan ? (payload.plan.account_ids?.length || 1) * 12 : 12;

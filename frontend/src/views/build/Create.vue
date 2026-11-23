@@ -196,23 +196,102 @@
       </el-tooltip>
     </div>
 
-    <!-- 预览区 -->
+    <!-- 预览区（对齐线上：账户页签 + 统计条 + 批量操作 + 项目/广告 两级表头） -->
     <el-card class="preview-card">
-      <div class="preview-title">预览区</div>
-      <template v-if="preview">
-        <div class="stat-block">
-          <div class="stat-title">预估生成{{ isOc ? '项目' : '广告' }}数</div>
-          <div class="stat-value">{{ preview.total }}</div>
+      <div class="preview-head">
+        <div class="preview-title">预览区</div>
+        <div v-if="previewAccounts.length" class="preview-tabs">
+          <div
+            v-for="(a, i) in previewAccounts"
+            :key="a.id"
+            class="preview-tab"
+            :class="{ active: i === previewAccountIdx }"
+            @click="previewAccountIdx = i"
+          >{{ a.name }}({{ a.id }})</div>
         </div>
-        <el-alert v-if="preview.truncated" type="warning" :closable="false" title="组合数已达系统上限，超出部分已截断" style="margin: 12px 0" />
-        <div class="precheck-list">
-          <div v-for="(w, i) in preview.precheck || []" :key="i" class="precheck-item">
-            <el-tag :type="w.level === 'error' ? 'danger' : w.level === 'ok' ? 'success' : 'warning'">{{ w.level }}</el-tag>
-            <span class="precheck-item__msg">{{ w.message }}</span>
+        <div class="preview-head__right">
+          <div class="est" @click="estOpen = !estOpen">
+            预估生成 <b>{{ est.total }}</b> 条{{ isOc ? '项目' : '广告' }}
+            <el-icon class="est__caret"><ArrowUp v-if="estOpen" /><ArrowDown v-else /></el-icon>
           </div>
+          <el-button v-if="isUni" type="primary" @click="onSubmit">全部提交审核</el-button>
         </div>
-        <el-table v-if="preview.combinations?.length" :data="preview.combinations" size="small" border style="margin-top: 12px">
-          <el-table-column label="计划名" prop="name" />
+      </div>
+      <template v-if="preview">
+        <div class="stat-row">
+          <span class="stat-row__item">项目数量: <b>{{ previewStats.project_count }}</b></span>
+          <span class="stat-row__item">广告数量: <b>{{ previewStats.ad_count }}</b></span>
+          <span class="stat-row__item">已选项目: <b>{{ previewStats.selected_project }}</b></span>
+          <span class="stat-row__item">当前新增广告数: <b>{{ previewStats.new_ad_count }}</b></span>
+          <span class="stat-row__item">所有广告配额: <b>{{ previewStats.ad_quota }}</b></span>
+          <el-dropdown class="preview-batch" @command="onPreviewBatch">
+            <el-button size="small">
+              批量操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="delAd">删除广告</el-dropdown-item>
+                <el-dropdown-item command="renameAd">修改广告名称</el-dropdown-item>
+                <el-dropdown-item command="renameProject">修改项目名称</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+        <el-alert
+          v-if="preview.truncated"
+          type="warning"
+          :closable="false"
+          title="组合数已达系统上限，超出部分已截断"
+          style="margin: 12px 0"
+        />
+        <el-table
+          class="preview-table"
+          :data="previewRows"
+          size="small"
+          border
+          :span-method="previewSpanMethod"
+        >
+          <el-table-column label="项目">
+            <el-table-column label="项目信息" min-width="240">
+              <template #default="{ row }">
+                <div class="pv-cell">
+                  <span>项目名称: {{ row.g.project.name }}</span>
+                  <span>预算: {{ row.g.project.budget }}元</span>
+                  <span>出价: {{ row.g.project.bid }}</span>
+                  <span>深度出价: {{ row.g.project.deep_bid }}</span>
+                  <span>推广目的: {{ row.g.project.goal }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="转化目标" min-width="220">
+              <template #default="{ row }"><div class="pv-cell"><span>{{ row.g.project.conversion }}</span></div></template>
+            </el-table-column>
+            <el-table-column label="广告位置" min-width="100">
+              <template #default="{ row }"><span>{{ row.g.project.ad_position }}</span></template>
+            </el-table-column>
+            <el-table-column label="定向包" min-width="150">
+              <template #default="{ row }"><span>{{ row.g.project.targeting }}</span></template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="广告">
+            <el-table-column label="广告名称" min-width="230">
+              <template #default="{ row }">
+                <el-link type="primary" class="pv-link">{{ row.ad.name }}</el-link>
+              </template>
+            </el-table-column>
+            <el-table-column label="创意素材" min-width="120">
+              <template #default="{ row }"><el-link type="primary" class="pv-link">{{ row.ad.materials }}</el-link></template>
+            </el-table-column>
+            <el-table-column label="标题包" min-width="110">
+              <template #default="{ row }"><span>{{ row.ad.title_pack }}</span></template>
+            </el-table-column>
+            <el-table-column label="广告资产" min-width="280">
+              <template #default="{ row }"><div class="pv-cell"><span>{{ row.ad.assets }}</span></div></template>
+            </el-table-column>
+            <el-table-column label="提交状态" min-width="90">
+              <template #default="{ row }"><span>{{ row.ad.status }}</span></template>
+            </el-table-column>
+          </el-table-column>
         </el-table>
       </template>
       <el-empty v-else description="请先完成相应模块配置，再预览内容" />
@@ -2016,6 +2095,58 @@ const projColTitle = computed(() => (
 ));
 
 const previewing = ref(false);
+/* ---- 预览区（线上：账户页签 + 项目/广告 两级表头 + 统计条） ---- */
+const previewAccountIdx = ref(0);
+const previewAccounts = computed(() => {
+  const list = preview.value?.accounts || [];
+  return list.map((a) => {
+    const hit = selectedAccounts.value.find((s) => String(s.id) === String(a.id));
+    return { ...a, name: hit ? hit.name : (a.name || a.id) };
+  });
+});
+const previewStats = computed(() => {
+  const rows = est.value.rows || [];
+  const projectCount = rows.length;
+  const adCount = est.value.total || 0;
+  return {
+    project_count: projectCount,
+    ad_count: adCount,
+    selected_project: `${projectCount}/200`,
+    new_ad_count: `${adCount}/500`,
+    ad_quota: `${adCount}/40`,
+  };
+});
+const previewRows = computed(() => {
+  const idx = previewAccountIdx.value;
+  const acc = previewAccounts.value[idx];
+  if (!acc) return [];
+  /* 广告条数与右上角「预估生成」口径一致 */
+  const n = Math.max(1, (est.value.rows[idx] || {}).ads || (acc.ads_detail || []).length || 1);
+  const src = acc.ads_detail || [];
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    const base = src[i] || src[src.length - 1] || {};
+    const ad = {
+      name: base.name || `广告-${i + 1}`,
+      materials: base.materials || '已选: 20 个素材',
+      title_pack: base.title_pack || '标题包: 红果',
+      assets: base.assets || acc.project?.assets || '',
+      status: base.status || '待提交',
+    };
+    out.push({ g: { project: acc.project }, ad, span: n });
+  }
+  return out;
+});
+/* 项目四列在首行做跨行合并（span-method 返回 [rowspan, colspan]） */
+function previewSpanMethod({ row, columnIndex }) {
+  if (columnIndex < 4) return [row.span, 1];
+  return [1, 1];
+}
+function onPreviewBatch(cmd) {
+  if (cmd === 'delAd') ElMessage.success('已删除选中广告（原型模拟）');
+  else if (cmd === 'renameAd') ElMessage.success('修改广告名称（原型模拟）');
+  else if (cmd === 'renameProject') ElMessage.success('修改项目名称（原型模拟）');
+}
 const submitting = ref(false);
 const preview = ref(null);
 const estOpen = ref(false);
@@ -2474,7 +2605,32 @@ function resetTaskFilter() {
 function selectTask(row) { taskSelectedId.value = row.id; }
 function confirmTask() {
   if (!taskSelected.value) { ElMessage.warning('请选择一个任务'); return; }
-  ElMessage.success(`已选择任务「${taskSelected.value.name}」`);
+  /* 线上：勾选任务并确定后，直接回显该任务的策略
+   * （媒体账户 / 新建项目 / 创意素材 / 标题包 / 落地页），与「使用已有策略」回显同形态 */
+  const t = taskSelected.value;
+  const accs = (mockDb.accounts || []).slice(0, 2);
+  const vids = (mockDb.videos || []).slice(0, 5);
+  const tps = (mockDb.titlePacks || []).slice(0, 2);
+  const lps = (mockDb.landingPages || []).slice(0, 2);
+  form.account_ids = accs.map((a) => a.id);
+  form.ad_rule = 'BY_CREATIVE';   // 线上回显口径：广告规则 = 按创意组数
+  form.project.name = `${t.name}-新建项目`;
+  form.project.budget = 999999;
+  form.project.bid = 39.5;
+  /* 线上回显：已选创意组 5（4 个视频组 + 1 个图片组） */
+  const imgs = (mockDb.images || []).slice(0, 1);
+  form.materials.creative_groups = [
+    ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [] })),
+    ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id] })),
+  ];
+  form.ad.video_ids = vids.map((v) => v.id);
+  form.ad.image_ids = [];
+  form.ad.title_packs = tps.map((p) => p.id);
+  form.ad.landing_page_id = lps[0] ? lps[0].id : '';
+  form.landing.landing_page_name = lps[0] ? lps[0].title : '';
+  form.landing.landing_pages = lps.map((l) => l.id);
+  if (typeof syncMaterials === 'function') syncMaterials();
+  ElMessage.success(`已选择任务「${t.name}」`);
   taskVisible.value = false;
 }
 
@@ -3112,7 +3268,18 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .col-foot { padding: 10px 16px; border-top: 1px solid #f2f3f5; text-align: center; }
 .action-bar { display: flex; justify-content: center; gap: 12px; background: #fff; border-radius: 6px; padding: 16px; }
 .preview-card { min-height: 280px; }
-.preview-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.preview-title { font-size: 15px; font-weight: 600; }
+.preview-head { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.preview-tabs { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow: hidden; }
+.preview-tab { font-size: 13px; color: #4e5969; padding: 4px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.preview-tab.active { color: #197afb; background: #e8f1ff; }
+.preview-head__right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.stat-row { display: flex; align-items: center; gap: 24px; padding: 10px 0; font-size: 13px; color: #4e5969; }
+.stat-row__item b { color: #1d2129; font-weight: 600; }
+.preview-batch { margin-left: auto; }
+.preview-table { margin-top: 4px; }
+.pv-cell { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #4e5969; line-height: 1.5; }
+.pv-link { font-size: 12px; }
 .stat-block { padding: 4px 0; }
 .stat-title { color: #86909c; font-size: 13px; }
 .stat-value { margin-top: 8px; font-size: 28px; font-weight: 600; color: #1d2129; }
