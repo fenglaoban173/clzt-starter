@@ -228,9 +228,9 @@
           <el-button @click="targetingVisible = true">定向包</el-button>
           <el-button @click="projVisible = true">项目预算与出价</el-button>
           <el-button @click="deeplinkVisible = true">直达链接</el-button>
-          <el-button @click="productVisible = true">产品信息</el-button>
-          <el-button @click="adSettingVisible = true">广告设置</el-button>
-          <el-button @click="openSection('adBudget')">广告预算与出价</el-button>
+          <el-button @click="openAdPanel()">产品信息</el-button>
+          <el-button @click="openAdPanel('ad-settings')">广告设置</el-button>
+          <el-button @click="openAdPanel('ad-budget')">广告预算与出价</el-button>
         </template>
         <template v-else>
           <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -1464,7 +1464,7 @@
     </el-drawer>
 
     <!-- 广告信息弹窗 -->
-    <el-drawer v-model="adVisible" :title="cardTitle.ad" size="1016px" direction="rtl">
+    <el-drawer v-model="adVisible" title="广告基本信息" size="1016px" direction="rtl">
       <!-- 线上「广告基本信息」面板（实测 1016px）：直达链接类型 / 来源 / 匹配方式 -->
       <el-form label-position="left" label-width="120px" class="ad-basic-form">
         <el-form-item label="推广身份">
@@ -1536,6 +1536,64 @@
         </el-row>
 
         </div>
+          <!-- 广告预算与出价（线上：与广告设置同面板，滚动到本段） -->
+          <div class="form-section" id="ad-budget">
+            <div class="form-section__title">广告预算与出价</div>
+            <el-form-item label="预算出价配置模式">
+              <el-radio-group v-model="adBudget.config_mode" size="small">
+                <el-radio-button value="UNIFIED">统一配置</el-radio-button>
+                <el-radio-button value="ACCOUNT">分账户配置</el-radio-button>
+                <el-radio-button value="SUBJECT">分主体配置</el-radio-button>
+                <el-radio-button value="PROJECT">分项目配置</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="竞价策略">
+              <el-select v-model="adBudget.bid_strategy" style="width: 100%">
+                <el-option label="稳定成本（常规版）" value="STABLE" />
+                <el-option label="成本上限（常规版）" value="COST_CAP" />
+                <el-option label="最大转化" value="MAX_CONV" />
+                <el-option label="控成本投放" value="CONTROL_COST" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="优化目标">
+              <el-select v-model="adBudget.optimize_goal" style="width: 100%">
+                <el-option label="app内付费/无" value="APP_PAY" />
+                <el-option label="激活/无" value="ACTIVATE" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="深度优化方式">
+              <el-select v-model="adBudget.deep_bid_mode" style="width: 100%">
+                <el-option label="无" value="NONE" />
+                <el-option label="双出价" value="DOUBLE" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="付费方式">
+              <el-select v-model="adBudget.pay_mode" style="width: 100%">
+                <el-option label="目标转化出价-按展示付费" value="OCPM" />
+                <el-option label="目标转化出价-按点击付费" value="CPC" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="预算出价规则1">
+              <template #label>
+                <span class="ad-rule-label">预算出价规则1</span>
+                <el-button link type="primary" class="ad-rule-fold" @click="adBudget.folded = !adBudget.folded">
+                  {{ adBudget.folded ? '展开' : '收起' }}
+                </el-button>
+              </template>
+              <div v-show="!adBudget.folded" class="ad-rule-box">
+                <el-form-item label="预算">
+                  <el-input v-model="adBudget.budget" class="ad-rule-input">
+                    <template #append>元</template>
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="出价">
+                  <el-input v-model="adBudget.bid" class="ad-rule-input">
+                    <template #append>元</template>
+                  </el-input>
+                </el-form-item>
+              </div>
+            </el-form-item>
+          </div>
       </el-form>
       <template #footer>
         <el-button @click="adVisible = false">取消</el-button>
@@ -1544,7 +1602,7 @@
     </el-drawer>
 
     <!-- 产品信息抽屉 -->
-    <el-drawer v-model="productVisible" title="产品信息" size="780px" direction="rtl">
+    <el-drawer v-model="productVisible" title="产品信息" size="1016px" direction="rtl">
       <el-form :model="form.ad" class="drawer-form" label-position="top">
         <div class="form-section">
           <div class="form-section__title">产品信息</div>
@@ -1600,7 +1658,7 @@
     </el-drawer>
 
     <!-- 广告设置抽屉 -->
-    <el-drawer v-model="adSettingVisible" title="广告设置" size="780px" direction="rtl">
+    <el-drawer v-model="adSettingVisible" title="广告设置" size="1016px" direction="rtl">
       <el-form :model="form.ad" class="drawer-form" label-position="top">
         <div class="form-section">
           <div class="form-section__title">广告设置</div>
@@ -1623,6 +1681,18 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12">
+            <el-form-item label="客户端下载">
+              <el-radio-group v-model="form.ad.client_download">
+                <el-radio value="OFF">不启用</el-radio>
+                <el-radio value="ON">启用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-alert
+              type="info"
+              :closable="true"
+              title="以内容非必要场景，可根据实际投放需求设置。"
+              class="ad-tip"
+            />
             <el-form-item label="类别/品牌名称">
               <el-radio-group v-model="form.ad.brand_switch">
                 <el-radio value="OFF">不启用</el-radio>
@@ -2445,6 +2515,19 @@ const previewing = ref(false);
 const projInfoFolded = ref(false);
 /* ---- 关联产品（线上「选择头条产品」）+ 直达链接 ---- */
 const relatedVisible = ref(false);
+/* ---- 广告基本信息面板：广告预算与出价 / 定位到指定段 ---- */
+const adBudgetVisible = ref(false);
+const adBudget = reactive({
+  config_mode: 'UNIFIED', bid_strategy: 'STABLE', optimize_goal: 'APP_PAY',
+  deep_bid_mode: 'NONE', pay_mode: 'OCPM', folded: true, budget: '888888', bid: '39.5',
+});
+function openAdPanel(sectionId) {
+  adVisible.value = true;
+  nextTick(() => {
+    const el = sectionId ? document.getElementById(sectionId) : null;
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
 /* ---- 线上：手动输入监测链接 / 创量定向包 ---- */
 const monitorLinkVisible = ref(false);
 const targetingVisible = ref(false);
@@ -3727,6 +3810,11 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.ad-tip { margin: 4px 0 12px; }
+.ad-rule-label { margin-right: 12px; }
+.ad-rule-fold { font-size: 12px; }
+.ad-rule-box { display: flex; gap: 16px; }
+.ad-rule-input { width: 220px; }
 .ml-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
 .ml-row__label { width: 110px; text-align: right; font-size: 13px; color: #4e5969; flex: none; line-height: 32px; }
 .ml-row__input { flex: 1; }
