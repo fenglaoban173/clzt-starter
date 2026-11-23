@@ -4,11 +4,7 @@
     <component :is="customPage" v-if="customPage" :kind="kind" />
 
     <template v-else>
-    <!-- 页面标题 -->
-    <div class="asset-title-bar">
-      <span class="asset-title">{{ page.title }}</span>
-    </div>
-
+    <!-- 线上资产页无页面大标题（只有二级页签 + 筛选 + 表格），此处保持一致 -->
     <!-- 二级页签（部分资产页有，如「商品库-通用版 / 商品-通用版 / 商品-升级版」） -->
     <div v-if="page.subTabs && page.subTabs.length" class="asset-sub-tabs">
       <div

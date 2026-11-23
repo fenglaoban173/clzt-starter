@@ -146,10 +146,17 @@
       </div>
     </div>
 
-    <!-- ③ 功能按钮条（线上 .table-toolbar，只有「新建模板」） -->
+    <!-- ③ 功能按钮条（线上 .table-toolbar，按页签切换） -->
     <div class="table-toolbar">
-      <el-button type="primary" size="small" class="tool-btn lp-create-btn" @click="openCreate">
-        <el-icon class="lp-create-btn__icon"><Plus /></el-icon>{{ createText }}
+      <el-button
+        v-for="b in tabButtons"
+        :key="b.key"
+        type="primary"
+        size="small"
+        class="tool-btn lp-create-btn"
+        @click="onToolbarButton(b)"
+      >
+        <el-icon class="lp-create-btn__icon"><Plus /></el-icon>{{ b.text }}
       </el-button>
     </div>
 
@@ -215,11 +222,11 @@
       </el-table-column>
     </el-table>
 
-    <!-- ⑤ 新建模板 弹窗（线上 el-dialog，宽 800px） -->
+    <!-- ⑤ 新建落地页模板 弹窗（线上 el-dialog，标题「新建落地页模板」、宽 526px） -->
     <el-dialog
       v-model="createVisible"
-      title="新建模板"
-      width="800px"
+      title="新建落地页模板"
+      width="526px"
       top="15vh"
       :close-on-click-modal="false"
       header-class="lp-dialog-header"
@@ -236,6 +243,12 @@
           label-position="left"
           class="lp-dialog-form"
         >
+          <el-form-item label="模板类型" prop="templateType" required>
+            <el-radio-group v-model="createForm.templateType" size="small">
+              <el-radio-button v-for="t in TEMPLATE_TYPES" :key="t" :value="t">{{ t }}</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+
           <el-form-item label="媒体账户" prop="account" required>
             <el-select
               v-model="createForm.account"
@@ -354,6 +367,9 @@ defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------ 线上常量 ------------------------------ */
 
+/** 模板类型（线上「新建落地页模板」弹窗 4 项） */
+const TEMPLATE_TYPES = ['应用下载', '微信小程序', '微信小游戏', '抖音小程序/小游戏'];
+
 /** 媒体账户下拉（线上 20 个账户） */
 const ACCOUNT_OPTIONS = [
   '北京高途云集教育科技有限公司--1(1861811345880074)',
@@ -449,6 +465,23 @@ const TABS = [
   '程序化落地页组',
   '第三方落地页',
 ];
+
+/** 各页签的工具栏按钮（线上实测）：随页签切换 */
+const TAB_BUTTONS = {
+  橙子落地页模板: [{ key: 'create', text: '新建模板' }],
+  创量落地页模板: [{ key: 'create', text: '新建模板' }],
+  橙子落地页: [
+    { key: 'syncAsset', text: '同步落地页资产' },
+    { key: 'create', text: '新建落地页' },
+    { key: 'useTemplate', text: '使用模板新建' },
+  ],
+  程序化落地页组: [{ key: 'syncGroup', text: '同步落地页组' }],
+  第三方落地页: [
+    { key: 'create', text: '新建落地页' },
+    { key: 'import', text: '批量导入落地页' },
+    { key: 'sync', text: '同步落地页' },
+  ],
+};
 
 /** 各页签的列定义与新建按钮文案（切页签后列/数据会变化） */
 const TAB_CONFIG = {
@@ -609,6 +642,13 @@ const currentColumns = computed(() => TAB_CONFIG[activeTab.value].columns);
 const createText = computed(() => TAB_CONFIG[activeTab.value].createText);
 /** 当前页签配置（列设置 / 复选框列 / 行内操作都按页签走） */
 const tabCfg = computed(() => TAB_CONFIG[activeTab.value]);
+/** 当前页签的工具栏按钮 */
+const tabButtons = computed(() => TAB_BUTTONS[activeTab.value] || []);
+/** 工具栏按钮点击（新建类打开弹窗，其余原型提示） */
+function onToolbarButton(b) {
+  if (b.key === 'create') { openCreate(); return; }
+  ElMessage.info(`原型：${b.text}`);
+}
 
 const shownColumns = computed(() => {
   const cols = currentColumns.value;
@@ -729,7 +769,7 @@ const LP_PAGE_SIZE = 10;
 
 const createVisible = ref(false);
 const createFormRef = ref();
-const createForm = ref({ account: '', pages: [], name: '' });
+const createForm = ref({ templateType: '应用下载', account: '', pages: [], name: '' });
 const lpKeyword = ref('');
 const lpPage = ref(1);
 const allChecked = ref(false);

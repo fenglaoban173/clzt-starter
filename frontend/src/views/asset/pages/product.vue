@@ -118,13 +118,9 @@
         <a class="filter-clear" @click="clearFilters">清空</a>
       </div>
 
-      <!-- 筛选区右侧「同步资产」 -->
-      <div class="filter-right">
-        <el-button type="primary" size="small" class="tool-btn" :loading="syncing" @click="onSync">同步资产</el-button>
-      </div>
     </div>
 
-    <!-- ④ 工具栏：批量操作（下拉按钮式，未勾选行时置灰）+ 创建商品 -->
+    <!-- ④ 工具栏：批量操作（下拉按钮式，未勾选行时置灰）+ 同步资产 + 创建商品（线上同排） -->
     <div class="table-toolbar">
       <el-dropdown v-if="cfg.batch" @command="onBatchCommand">
         <el-button
@@ -150,6 +146,8 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+
+      <el-button type="primary" size="small" class="tool-btn" :loading="syncing" @click="onSync">同步资产</el-button>
 
       <el-button v-if="cfg.create" type="primary" size="small" class="tool-btn" @click="openDrawer">创建商品</el-button>
     </div>
