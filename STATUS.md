@@ -3214,3 +3214,61 @@
 - **线上地址**：<https://fenglaoban173.github.io/clzt-starter/>
 - **线上复验**（`C:/tmp/verify_r84_live.py`，Playwright 直连线上站点）：**17 项全部通过，失败项：无**，`PAGEERRORS: []` —— 部门树形 5 项（编导/剪辑/默认部门/优化/技术）且可搜索；账户主体/智投项目/优化师多选回显 `+ 1`；优化目标与深度优化目标各 163 项；深度优化方式 10 项；投放模式含「全部」；广告类型 3 项、平台 4 项；项目状态级联一级 6 项 + 二级 4 项、广告状态级联一级 7 项 + 二级 16 项；关联商品与策略组 `is-filterable` 且可多选；广告页标签「创建时间」；学习期状态 3 项多选；默认文案「所有广告类型」「全部」。
 - **线上截图**：`C:/tmp/r84_live_ads.png`。
+
+## 九十九、修复「推广 → 项目 / 广告」列表页内容区空白：批量操作弹窗未选操作时读取空配置导致渲染崩溃（2026-11-23，需求 R85）
+
+### ① 问题现象
+
+本地开发态（`http://127.0.0.1:5173`）进入「推广 → 广告管理 → 巨量广告·标准 → 项目 / 广告」：**顶部导航、左侧菜单、账户/项目/广告页签行都正常，但内容区整片空白**——筛选区与表格都不出现。控制台报错：
+
+```
+Uncaught (in promise) TypeError: Cannot read properties of null (reading 'title')
+    at Proxy._sfc_render (src/views/build/components/BatchOpDialog.vue:4:1)
+Unhandled error during execution of component update > Proxy(Object) at <RouterView>
+Unhandled error during execution of mounted hook > Proxy(Object) at <ElTableHeader>
+Unhandled error during execution of mounted hook > Proxy(Object) at <ElTable>
+```
+
+应用进入该错误态后不再自行渲染（刷新才恢复），因此切回「账户」页签同样是空白。
+
+### ② 根因
+
+`frontend/src/views/build/components/BatchOpDialog.vue` 在 `el-dialog` 上直接绑定 `:title="cfg.title"` / `:width="cfg.width || '880px'"`，而
+
+```js
+const cfg = computed(() => getBatchOpConfig(props.scope, props.op));   // 组件内
+export function getBatchOpConfig(scope, op) {                          // src/api/oceanengine.js
+  const map = scope === 'project' ? PROJECT_BATCH_OPS : PROMOTION_BATCH_OPS;
+  return map[op] || null;                                              // 未选操作时返回 null
+}
+```
+
+**尚未选择批量操作时 `props.op === ''` → `cfg === null`**。而 `BatchOpDialog` 在 `Projects.vue` / `Ads.vue` 中是**常驻挂载**的（`v-model` 只控制显隐，不是 `v-if`），所以页面一挂载就渲染该组件 → `cfg.title` 抛 `TypeError` → `mountComponent` 阶段失败 → `<RouterView>` 子树被卸载 → **内容区空白**（外层 `AppLayout` 存活，故导航与页签仍在）。
+
+组件内部对 `cfg` 的其余引用（`v-if="!cfg"` 兜底文案、`visibleFields`、`descText`、`payload`）都已做空值保护，**唯独 `el-dialog` 的两处绑定漏了**。
+
+> 生产构建同样命中：修复前 `dist/` 产物为 `title:w.value.title`（无保护）。线上站点由 Vue 容错后页面幸存，但**批量操作弹窗实际已失效**（子组件挂载失败）——同一处缺陷，只是后果不同。
+
+### ③ 改动明细
+
+| 文件 | 改动 |
+| --- | --- |
+| `frontend/src/views/build/components/BatchOpDialog.vue` | `:title="cfg.title"` → `:title="cfg?.title \|\| ''"`；`:width="cfg.width \|\| '880px'"` → `:width="cfg?.width \|\| '880px'"`。**仅此两行**，未改动其它任何文件。 |
+
+### ④ 验证
+
+- **构建**：`npx vite build` 通过，`dist/` 已重建。
+- **开发态回归**（scrapling/Playwright 直连 `http://127.0.0.1:5173`）：三页均正常渲染，控制台 **0 报错**。
+
+| 页面 | 表格行数 | 总条数 | 报错 |
+| --- | --- | --- | --- |
+| 账户 `/media/accounts` | 21 | 共 20 条 | 无 |
+| 项目 `/build/projects` | 21 | 共 84 条 | 无 |
+| 广告 `/build/ads` | 21 | 共 24 条 | 无 |
+
+- **故障复现（回退验证）**：把两处绑定临时改回 `cfg.title` 后，在开发态复现出原始报错 `TypeError: Cannot read properties of null (reading 'title') at Proxy._sfc_render (BatchOpDialog.vue)`，内容区 `tableRows: 0` 而布局存活；改回修复后报错消失。
+- **功能校验**：项目页「批量修改项目名称」弹窗、广告页「批量修改广告出价」弹窗均可正常打开（标题、表单字段、明细表、确定/取消按钮齐全）。
+
+### ⑤ 推送与部署
+
+- **本轮未推送**（`git push` 需用户明确指令）。线上站点 <https://fenglaoban173.github.io/clzt-starter/> 仍为修复前版本，其批量操作弹窗在生产构建下失效；待用户指令后再推送并触发 GitHub Pages 发布。

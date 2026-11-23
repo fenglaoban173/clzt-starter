@@ -1,8 +1,8 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    :title="cfg.title"
-    :width="cfg.width || '880px'"
+    :title="cfg?.title || ''"
+    :width="cfg?.width || '880px'"
     top="8vh"
     class="bo-dialog"
     :close-on-click-modal="false"
