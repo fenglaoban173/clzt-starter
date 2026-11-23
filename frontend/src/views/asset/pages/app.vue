@@ -290,6 +290,7 @@ const TABS = [
 
 /** 媒体账户（线上采集到的 20 条，末尾还有「搜索更多(292)…」） */
 const ACCOUNT_OPTIONS = [
+  { value: '不限', label: '不限' },
   { value: '1861811345880074', label: '北京高途云集教育科技有限公司--1 (1861811345880074)' },
   { value: '1866877399870663', label: '百度文库-央广时代-拉新-搜索-01 (1866877399870663)' },
   { value: '1866877399203047', label: '百度文库-央广时代-拉新-搜索-02 (1866877399203047)' },
@@ -577,6 +578,7 @@ const TAB_CONFIG = {
       { key: 'newMonitor', text: '新建监测活动', width: 120, type: 'default', plain: true },
     ],
     columns: [
+      { label: '当前页  前50页', prop: 'scope', width: 60 },
       { label: '监测活动名', prop: 'name', width: 240 },
       { label: '使用状态', prop: 'useStatus', width: 90 },
       { label: '应用来源', prop: 'source', width: 100 },
@@ -591,7 +593,7 @@ const TAB_CONFIG = {
       { label: '媒体账户', prop: 'account', width: 120 },
       { label: '创建人员', prop: 'creator', width: 120 },
       { label: '创建时间', prop: 'createTime', width: 180 },
-      { label: '操作', prop: 'id', width: 180, align: 'center', action: '查看' },
+      { label: '操作', prop: 'id', width: 180, align: 'center' },
     ],
     detail: [
       { key: 'name', label: '监测活动名' },

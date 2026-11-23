@@ -25,6 +25,9 @@ export const ASSET_ACCOUNT_OPTIONS = [
   '央广-621059846-百度文库-1(1866877405575303)',
 ];
 
+/** 媒体账户（带表头「不限」，线上落地页/应用/直达链接口径） */
+export const ASSET_ACCOUNT_OPTIONS_ALL = ['不限', ...ASSET_ACCOUNT_OPTIONS];
+
 /** 所属人员 / 创建人员（线上 15 人，格式「姓名 (邮箱)」） */
 export const ASSET_OWNER_OPTIONS = [
   '北京央广时代文化传播有限公司 (liuziyuan01@ygsdmedia.com)',

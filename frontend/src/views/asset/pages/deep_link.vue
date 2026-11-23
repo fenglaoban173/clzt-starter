@@ -349,7 +349,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { ASSET_ACCOUNT_OPTIONS } from './assetOptions';
+import { ASSET_ACCOUNT_OPTIONS_ALL } from './assetOptions';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Search } from '@element-plus/icons-vue';
 
@@ -381,7 +381,7 @@ const OPTIMIZER_OPTIONS = [
 ];
 
 /** 媒体账户下拉：线上 20 个账户（顺序照抄线上 DOM） */
-const MOCK_ACCOUNTS = ASSET_ACCOUNT_OPTIONS.map((label) => ({
+const MOCK_ACCOUNTS = ASSET_ACCOUNT_OPTIONS_ALL.map((label) => ({
   value: (label.match(/\((\d+)\)/) || [])[1] || '',
   label,
 }));

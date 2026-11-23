@@ -83,6 +83,13 @@ body.asset-scope .el-button.is-plain:not(.el-button--primary):hover {
   background-color: #ffffff;
   border-color: #197afb;
 }
+/* 禁用态按钮：线上 字 #c0c4cc / 边 #ebeef5（EP2.14 同样把变量声明在元素自身，需直接写死） */
+body.asset-scope .el-button.is-disabled:not(.el-button--primary),
+body.asset-scope .el-button:disabled:not(.el-button--primary) {
+  color: #c0c4cc;
+  background-color: #ffffff;
+  border-color: #ebeef5;
+}
 /* 禁用态按钮 */
 body.asset-scope .el-button.is-disabled,
 body.asset-scope .el-button:disabled {
