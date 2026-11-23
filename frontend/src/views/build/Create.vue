@@ -826,7 +826,7 @@
     </el-dialog>
 
     <!-- 项目配置弹窗 -->
-    <el-drawer v-model="projVisible" :title="cardTitle.proj" size="780px" direction="rtl">
+    <el-drawer v-model="projVisible" :title="cardTitle.proj" size="1016px" direction="rtl">
       <el-form :model="form.project" class="drawer-form" label-position="top">
         <!-- 推广目的 -->
         <div class="form-section">
@@ -1676,7 +1676,7 @@
     </el-drawer>
 
     <!-- 创意素材弹窗 -->
-    <el-drawer v-model="matVisible" title="创意素材" size="1024px" direction="rtl">
+    <el-drawer v-model="matVisible" title="手动选取素材" size="1016px" direction="rtl">
       <el-tabs v-model="matTab" class="mat-tabs">
         <!-- 手动选取素材 -->
         <el-tab-pane label="手动选取素材" name="manual">
@@ -1789,17 +1789,17 @@
                   <el-button v-if="form.materials.creative_groups.length > 1" link type="danger" @click="removeGroup(gi)">删除创意组</el-button>
                 </div>
                 <el-tabs v-model="g.tab" class="group-tabs">
-                  <el-tab-pane :label="`视频(${g.videos.length}/1)`" name="video">
+                  <el-tab-pane :label="`视频(${(g.videos || []).length}/1)`" name="video">
                     <el-select v-model="g.videos" multiple filterable placeholder="选择视频" style="width: 100%">
                       <el-option v-for="v in videos" :key="v.id" :value="v.id" :label="v.title">{{ v.title }}</el-option>
                     </el-select>
                   </el-tab-pane>
-                  <el-tab-pane :label="`图片(${g.images.length}/1)`" name="image">
+                  <el-tab-pane :label="`图片(${(g.images || []).length}/1)`" name="image">
                     <el-select v-model="g.images" multiple filterable placeholder="选择图片" style="width: 100%">
                       <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
                     </el-select>
                   </el-tab-pane>
-                  <el-tab-pane :label="`图文(${g.text_images.length}/1)`" name="text">
+                  <el-tab-pane :label="`图文(${(g.text_images || []).length}/1)`" name="text">
                     <el-select v-model="g.text_images" multiple filterable placeholder="选择图文" style="width: 100%">
                       <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
                     </el-select>
@@ -1915,7 +1915,7 @@
     </el-drawer>
 
     <!-- 标题包抽屉 -->
-    <el-drawer v-model="titleVisible" :title="cardTitle.title" size="1024px" direction="rtl">
+    <el-drawer v-model="titleVisible" title="手动选取标题" size="1016px" direction="rtl">
       <el-form :model="form.titles" class="drawer-form" label-position="top">
         <div class="form-section">
           <div class="form-section__title">标题设置</div>
@@ -1977,7 +1977,7 @@
     </el-drawer>
 
     <!-- 落地页抽屉 -->
-    <el-drawer v-model="lpVisible" title="落地页" size="720px" direction="rtl">
+    <el-drawer v-model="lpVisible" title="选择落地页" size="1016px" direction="rtl">
       <el-form :model="form.landing" class="drawer-form" label-position="top">
         <div class="form-section">
           <div class="form-section__title">落地页设置</div>
@@ -3066,8 +3066,8 @@ function confirmTask() {
   /* 线上回显：已选创意组 5（4 个视频组 + 1 个图片组） */
   const imgs = (mockDb.images || []).slice(0, 1);
   form.materials.creative_groups = [
-    ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [] })),
-    ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id] })),
+    ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [], text_images: [] })),
+    ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id], text_images: [] })),
   ];
   form.ad.video_ids = vids.map((v) => v.id);
   form.ad.image_ids = [];
