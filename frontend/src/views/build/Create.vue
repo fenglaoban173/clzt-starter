@@ -2393,15 +2393,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="form.landing.landing_page_type !== 'MANUAL'">
-            <el-form-item label="落地页选择方式">
-              <el-select v-model="form.landing.landing_page_way" style="width: 100%">
-                <el-option label="从已登记落地页选择" value="REGISTERED" />
-                <el-option label="动态链接生成" value="DYNAMIC" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12" v-else>
+          <el-col :span="12">
             <el-form-item label="输入落地页">
               <el-input v-model="form.landing.landing_page_url" placeholder="请输入落地页链接" />
             </el-form-item>
