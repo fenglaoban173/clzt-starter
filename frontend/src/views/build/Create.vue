@@ -484,10 +484,10 @@
       </div>
       <div class="targeting-ops">
         <el-button size="small" @click="clearTargetingPicked">清空</el-button>
-        <el-button size="small" @click="projVisible = true">新建创量定向包</el-button>
+        <el-button size="small" @click="goCreateTargeting">新建创量定向包</el-button>
         <el-button size="small" @click="ElMessage.success('已获取头条定向（原型模拟）')">获取头条定向</el-button>
         <el-button size="small" @click="clearTargetingPicked">清空所有资产</el-button>
-        <el-button size="small" @click="ElMessage.success('多账户快速选择（原型模拟）')">多账户快速选择</el-button>
+        <el-button size="small" @click="acctVisible = true">多账户快速选择</el-button>
       </div>
       <el-table :data="targetingRows" size="small" border style="margin-top: 10px">
         <el-table-column type="selection" width="48" />
@@ -1087,6 +1087,7 @@
               <el-radio-group v-model="form.project.event_callback_type">
                 <el-radio v-for="o in EVENT_CALLBACK_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
               </el-radio-group>
+              <div class="ad-warn-hint">系统根据您所选回传方式新建事件，若事件已存在，事件的回传方式需与搭建时所选保持一致</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -1758,10 +1759,21 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-form-item label="产品主图（图片 0/10）">
-              <el-select v-model="form.ad.product_main_images" multiple filterable allow-create default-first-option placeholder="选择产品主图" style="width: 100%">
-                <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
-              </el-select>
+            <el-form-item label="产品主图">
+              <div class="pimg-row">
+                <div class="pimg-logo">{{ (form.ad.product_name || form.project.app_name || '产品').slice(0, 2) }}</div>
+                <div class="pimg-add" @click="onPickMainImage">
+                  <span class="pimg-add__plus">+</span>
+                  <span class="pimg-add__text">图片({{ form.ad.product_main_images.length }}/10)</span>
+                </div>
+                <el-tag
+                  v-for="(im, i) in form.ad.product_main_images"
+                  :key="im"
+                  closable
+                  class="pimg-tag"
+                  @close="form.ad.product_main_images.splice(i, 1)"
+                >{{ (images.find(x => x.id === im) || {}).title || im }}</el-tag>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -2710,6 +2722,15 @@ function removeAdLink(row) {
 }
 const ctaInput = ref('');
 const ctaTemplate = ref('');
+function onPickMainImage() {
+  const rest = images.filter((im) => !form.ad.product_main_images.includes(im.id));
+  if (!rest.length) { ElMessage.warning('产品主图最多 10 张'); return; }
+  form.ad.product_main_images = [...form.ad.product_main_images, rest[0].id].slice(0, 10);
+}
+function goCreateTargeting() {
+  ElMessage.success('已跳转至创量定向包新建（原型模拟）');
+  router.push({ name: 'asset-list', query: { kind: 'orientation' } });
+}
 function addCtaTags() {
   const tags = String(ctaInput.value || '').split(/[\s,，]+/).map((t) => t.trim()).filter(Boolean);
   if (!tags.length) { ElMessage.warning('请输入行动号召文案'); return; }
@@ -4025,6 +4046,13 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.pimg-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pimg-logo { width: 56px; height: 56px; border-radius: 8px; background: #4d5cf0; color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.pimg-add { width: 84px; height: 84px; border: 1px dashed #c9cdd4; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; color: #86909c; }
+.pimg-add:hover { border-color: #197afb; color: #197afb; }
+.pimg-add__plus { font-size: 18px; line-height: 1; }
+.pimg-add__text { font-size: 12px; }
+.pimg-tag { margin: 0; }
 .sel-picked { margin-left: 10px; font-size: 12px; color: #86909c; }
 /* 线上抽屉：浅灰蓝底 + 每个板块白色圆角矩形（实测底色 #f0f2f5） */
 :deep(.el-drawer__body) { background: #f0f2f5; }
