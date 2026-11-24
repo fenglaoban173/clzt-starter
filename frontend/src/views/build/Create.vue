@@ -583,6 +583,45 @@
     <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
     <AdRenameDialog v-model="renameVisible" :rows="renameRows" :title="renameTitle" @confirm="onRenameConfirm" />
 
+    <!-- 随机选择（线上：更多菜单 → 随机选择） -->
+    <el-drawer v-model="randomPickVisible" title="随机选择" size="1016px" direction="rtl">
+      <el-form label-position="left" label-width="110px" class="rp-form">
+        <el-form-item label="素材上传时间">
+          <el-date-picker v-model="randomPickForm.uploadTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="创量项目">
+          <el-select v-model="randomPickForm.project" multiple clearable placeholder="请选择创量项目" style="width: 100%">
+            <el-option v-for="p in PROJECT_RULES" :key="p.value" :label="p.label" :value="p.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="素材目录">
+          <el-select v-model="randomPickForm.catalog" multiple clearable placeholder="请选择素材目录" style="width: 100%">
+            <el-option v-for="c in INVENTORY_CATALOGS" :key="c" :label="c" :value="c" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="素材类型">
+          <el-select v-model="randomPickForm.materialType" multiple clearable placeholder="请选择素材类型" style="width: 100%">
+            <el-option v-for="t in MATERIAL_TYPES" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="视频版式">
+          <el-select v-model="randomPickForm.videoLayout" multiple clearable placeholder="请选择视频版式" style="width: 100%">
+            <el-option v-for="v in VIDEO_MODES" :key="v.value" :label="v.label" :value="v.value" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <el-table :data="randomPickRows" size="small" border style="margin-top: 12px">
+        <el-table-column label="素材名称" prop="name" min-width="220" />
+        <el-table-column label="素材类型" prop="type" width="110" />
+        <el-table-column label="创量项目" prop="project" min-width="140" />
+        <el-table-column label="上传时间" prop="uploadTime" width="160" />
+      </el-table>
+      <template #footer>
+        <el-button @click="randomPickVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmRandomPick">确定</el-button>
+      </template>
+    </el-drawer>
+
     <!-- 选择巨量后台监测链接组（线上：分包与监测活动 打开的就是它） -->
     <el-drawer v-model="monitorGroupVisible" title="选择巨量后台监测链接组" size="1000px" direction="rtl">
       <div class="mg-body">
@@ -4272,8 +4311,19 @@ function copyFirstGroup() {
     tab: 'video',
   });
 }
+/* 随机选择（线上：更多菜单 → 随机选择 → 抽屉 1016px） */
+const randomPickVisible = ref(false);
+const randomPickForm = reactive({ uploadTime: [], project: [], catalog: [], materialType: [], videoLayout: [] });
+const randomPickRows = ref([
+  { name: '扮傻藏锋+我婆婆是豪门傻白甜！+261123+K0M+解压06', type: '视频', project: '知乎小说', uploadTime: '2026-11-23 10:20' },
+  { name: '智冠上兵-谁在深坑里-27-11-20-知乎-半涨价-06', type: '视频', project: '知乎小说', uploadTime: '2026-11-22 18:02' },
+]);
 function randomPick() {
-  ElMessage.info('原型：已随机为每个创意组分配素材（本地模拟）');
+  randomPickVisible.value = true;
+}
+function confirmRandomPick() {
+  ElMessage.success(`已按条件随机选择 ${randomPickRows.value.length} 个素材（原型模拟）`);
+  randomPickVisible.value = false;
 }
 function smartPick() {
   ElMessage.info('原型：已智能优选素材（本地模拟）');
