@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="策略组"
-    width="1000px"
+    width="990px"
     class="sg-dialog"
     :close-on-click-modal="false"
     destroy-on-close
