@@ -2170,14 +2170,12 @@
                   <el-button>更多菜单<el-icon><ArrowDown /></el-icon></el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item @click="addGroup">添加创意组</el-dropdown-item>
-                      <el-dropdown-item @click="copyFirstGroup">复制创意组</el-dropdown-item>
+                      <el-dropdown-item @click="randomPick">随机选择</el-dropdown-item>
+                      <el-dropdown-item @click="smartPick">智能优选</el-dropdown-item>
+                      <el-dropdown-item @click="refreshGroups">一键测新</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
-                <el-button @click="randomPick">随机选择</el-button>
-                <el-button @click="smartPick">智能优选</el-button>
-                <el-button @click="refreshGroups">一键刷新</el-button>
                 <el-button type="primary">批量添加素材<el-icon><ArrowDown /></el-icon></el-button>
               </div>
               <div v-for="(g, gi) in form.materials.creative_groups" :key="gi" class="creative-group">
@@ -3104,7 +3102,7 @@ const previewAccounts = computed(() => {
 const previewStats = computed(() => {
   const rows = est.value.rows || [];
   const projectCount = rows.length;
-  const adCount = est.value.total || 0;
+  const adCount = Math.max(0, (est.value.total || 0) - deletedAdKeys.value.length);
   return {
     project_count: projectCount,
     ad_count: adCount,
@@ -3113,6 +3111,8 @@ const previewStats = computed(() => {
     ad_quota: `${adCount}/40`,
   };
 });
+/* 预览区已删除的广告行（删除广告后不再展示，统计同步变化） */
+const deletedAdKeys = ref([]);
 const previewRows = computed(() => {
   const idx = previewAccountIdx.value;
   const acc = previewAccounts.value[idx];
@@ -3122,6 +3122,8 @@ const previewRows = computed(() => {
   const src = acc.ads_detail || [];
   const out = [];
   for (let i = 0; i < n; i += 1) {
+    const key = `${previewAccountIdx.value}-${i}`;
+    if (deletedAdKeys.value.indexOf(key) >= 0) continue;
     const base = src[i] || src[src.length - 1] || {};
     const ad = {
       name: base.name || `广告-${i + 1}`,
@@ -3130,7 +3132,7 @@ const previewRows = computed(() => {
       assets: base.assets || acc.project?.assets || '',
       status: base.status || '待提交',
     };
-    out.push({ g: { project: acc.project }, ad, span: n, first: i === 0, key: `${previewAccountIdx.value}-${i}` });
+    out.push({ g: { project: acc.project }, ad, span: n, first: out.length === 0, key });
   }
   return out;
 });
@@ -3166,8 +3168,9 @@ function onPreviewBatch(cmd) {
   const picked = previewRows.value.filter((r) => previewChecked.has(r.key));
   if (!picked.length) { ElMessage.warning('请先勾选需要操作的广告'); return; }
   if (cmd === 'delAd') {
-    ElMessage.success(`已删除 ${picked.length} 条广告（原型模拟）`);
+    deletedAdKeys.value = [...deletedAdKeys.value, ...picked.map((r) => r.key)];
     previewChecked.clear();
+    ElMessage.success(`已删除 ${picked.length} 条广告`);
     return;
   }
   renameTitle.value = cmd === 'renameProject' ? '批量修改项目名称' : '批量修改广告名称';
