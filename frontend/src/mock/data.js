@@ -1299,10 +1299,13 @@ export const TITLE_SOURCES = [
 
 // 落地页类型（落地页抽屉）
 export const LANDING_PAGE_TYPES = [
-  { value: 'ORANGE', label: '橙子建站' },
-  { value: 'THIRDPARTY', label: '第三方链接' },
-  { value: 'MICRO_APP', label: '小程序' },
-  { value: 'DEEPLINK', label: '直达链接' },
+  { value: 'ORANGE', label: '橙子落地页' },
+  { value: 'ORANGE_SITE', label: '橙子建站模板' },
+  { value: 'CL_TEMPLATE', label: '创量落地页模板' },
+  { value: 'THIRDPARTY', label: '第三方落地页' },
+  { value: 'DYNAMIC', label: '动态链接生成' },
+  { value: 'MANUAL', label: '手动填写' },
+  { value: 'COMMODITY', label: '商品库链接' },
 ];
 
 // ================= 全链路对齐占位集合（结构对齐巨量开放平台返回，数据为本地 mock） =================
