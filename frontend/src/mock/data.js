@@ -959,6 +959,18 @@ export const EXTERNAL_ACTIONS = {
     { value: 'AD_CONVERT_TYPE_ACTIVE', label: '激活' },
     { value: 'AD_CONVERT_TYPE_PAY', label: '付费' },
   ],
+  QUICK_APP: [
+    { value: 'AD_CONVERT_TYPE_ACTIVE', label: '激活' },
+    { value: 'AD_CONVERT_TYPE_PAY', label: '付费' },
+  ],
+  DPA: [
+    { value: 'AD_CONVERT_TYPE_APP_ORDER', label: 'APP 内下单' },
+    { value: 'AD_CONVERT_TYPE_STAY_TIME', label: '店铺停留时长' },
+  ],
+  NATIVE_ACTION: [
+    { value: 'AD_CONVERT_TYPE_FOLLOW', label: '粉丝增长' },
+    { value: 'AD_CONVERT_TYPE_PLAY', label: '视频播放' },
+  ],
 };
 
 // 深度转化目标 deep_external_action
