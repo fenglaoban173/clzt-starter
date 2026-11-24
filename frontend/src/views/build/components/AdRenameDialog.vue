@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="批量修改广告名称"
+    :title="dialogTitle"
     width="900px"
     top="8vh"
     class="prn-dialog"
@@ -155,7 +155,9 @@ import { downloadWorkbook } from '@/utils/xlsx';
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   rows: { type: Array, default: () => [] },
+  title: { type: String, default: '' },
 });
+const dialogTitle = computed(() => props.title || '批量修改广告名称');
 const emit = defineEmits(['update:modelValue', 'confirm']);
 
 const OP = '批量修改广告名称';

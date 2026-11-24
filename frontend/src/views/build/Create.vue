@@ -572,6 +572,9 @@
       </template>
     </el-drawer>
 
+    <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
+    <AdRenameDialog v-model="renameVisible" :rows="renameRows" :title="renameTitle" @confirm="onRenameConfirm" />
+
     <!-- 通用配置抽屉：分包与监测活动 / 定向包 / 项目预算与出价 / 广告预算与出价 -->
     <el-drawer v-model="sectionVisible" :title="sectionTitle" size="780px" direction="rtl">
       <div v-if="sectionKey === 'related'" class="sec-list">
@@ -2834,6 +2837,7 @@ import {
 import { findStrategyGroup } from '@/mock/strategyGroups';
 import { existingProjects } from '@/mock/buildProjects';
 import StrategyGroupDialog from '@/views/media/components/StrategyGroupDialog.vue';
+import AdRenameDialog from './components/AdRenameDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -3148,17 +3152,32 @@ function toggleAllAd(val) {
     if (val) previewChecked.add(r.key); else previewChecked.delete(r.key);
   });
 }
+/* 批量改名：预览区勾选后经「批量操作 → 修改广告名称 / 修改项目名称」打开 */
+const renameVisible = ref(false);
+const renameRows = ref([]);
+const renameTitle = ref('');
 function onPreviewBatch(cmd) {
-  const picked = previewRows.value.filter((r) => previewChecked.has(r.key)).length;
-  if (!picked) { ElMessage.warning('请先勾选需要操作的广告'); return; }
+  const picked = previewRows.value.filter((r) => previewChecked.has(r.key));
+  if (!picked.length) { ElMessage.warning('请先勾选需要操作的广告'); return; }
   if (cmd === 'delAd') {
-    ElMessage.success(`已删除 ${picked} 条广告（原型模拟）`);
+    ElMessage.success(`已删除 ${picked.length} 条广告（原型模拟）`);
     previewChecked.clear();
-  } else if (cmd === 'renameAd') {
-    ElMessage.success(`修改 ${picked} 条广告名称（原型模拟）`);
-  } else if (cmd === 'renameProject') {
-    ElMessage.success(`修改 ${picked} 条广告所属项目名称（原型模拟）`);
+    return;
   }
+  renameTitle.value = cmd === 'renameProject' ? '批量修改项目名称' : '批量修改广告名称';
+  renameRows.value = picked.map((r) => ({
+    __summary: true,
+    accountName: r.account || r.g?.project?.name || '',
+    name: (r.ad && r.ad.name) || '',
+    newName: '',
+    projectName: (r.g && r.g.project && r.g.project.name) || '',
+  }));
+  renameVisible.value = true;
+}
+function onRenameConfirm(payload) {
+  const n = (payload && payload.rows && payload.rows.length) || 0;
+  ElMessage.success(`已提交 ${n} 条改名（原型模拟）`);
+  renameVisible.value = false;
 }
 const submitting = ref(false);
 const preview = ref(null);
