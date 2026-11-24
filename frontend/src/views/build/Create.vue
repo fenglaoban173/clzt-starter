@@ -1034,6 +1034,21 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="头条应用">
+              <div class="sel-row">
+                <el-select v-model="form.project.head_app" class="sel-row__ctrl" clearable placeholder="请选择头条应用">
+                  <el-option v-for="a in awemeList" :key="a.aweme_id" :label="a.nickname" :value="a.aweme_id" />
+                </el-select>
+                <el-button size="small" @click="ElMessage.success('已刷新头条应用（原型模拟）')">刷新</el-button>
+              </div>
+            </el-form-item>
+            <el-form-item label="应用来源">
+              <el-radio-group v-model="form.project.app_source">
+                <el-radio value="SINGLE">已单应用</el-radio>
+                <el-radio value="INTERNAL">内广应用</el-radio>
+              </el-radio-group>
+              <el-button link type="primary" class="sel-row__link" @click="ElMessage.info('原型：内广应用搭建指引')">内广应用搭建指引</el-button>
+            </el-form-item>
             <el-form-item label="应用名称">
               <el-input v-model="form.project.app_name" placeholder="请输入应用名称" />
             </el-form-item>
@@ -1041,6 +1056,12 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="24">
+            <el-form-item label="数据跟踪方式">
+              <el-radio-group v-model="form.project.track_way">
+                <el-radio value="SUB_AND_MONITOR">应用分包+监测活动</el-radio>
+                <el-radio value="SUB_ONLY">仅应用分包</el-radio>
+              </el-radio-group>
+            </el-form-item>
             <el-form-item label="监测链接来源">
               <el-radio-group v-model="form.project.track_link_source">
                 <el-radio v-for="o in TRACK_LINK_SOURCES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
@@ -1083,6 +1104,25 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12">
+            <el-form-item label="调起方式">
+              <el-radio-group v-model="form.project.launch_type">
+                <el-radio value="DIRECT">直接调起</el-radio>
+                <el-radio value="LANDING">落地页调起</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="优先应用商店下载">
+              <template #label>
+                <span class="q-label">优先应用商店下载</span>
+                <el-tooltip :content="TIPS.app_store" placement="top">
+                  <el-icon class="q-icon"><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </template>
+              <el-radio-group v-model="form.project.app_store_first">
+                <el-radio value="OFF">不启用</el-radio>
+                <el-radio value="ON">启用</el-radio>
+              </el-radio-group>
+              <div class="ad-warn-hint">巨量广告媒体加白功能，确认账户拥有权限再启用</div>
+            </el-form-item>
             <el-form-item label="事件回传方式">
               <el-radio-group v-model="form.project.event_callback_type">
                 <el-radio v-for="o in EVENT_CALLBACK_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
@@ -1392,6 +1432,12 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="8">
+            <el-form-item label="项目预算">
+              <el-radio-group v-model="form.project.budget_mode">
+                <el-radio value="OFF">不限</el-radio>
+                <el-radio value="DAY">日预算</el-radio>
+              </el-radio-group>
+            </el-form-item>
             <el-form-item label="竞价策略">
               <template #label><span class="q-label">竞价策略</span><el-tooltip :content="TIPS.bid_strategy" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template>
               <el-select v-model="form.project.bid_strategy" style="width: 100%">
@@ -3111,6 +3157,12 @@ const form = reactive({
   uni_rule_mode: 'max_count',
   project: {
     asset_group: 'OFF',
+    head_app: '',
+    app_source: 'SINGLE',
+    track_way: 'SUB_AND_MONITOR',
+    launch_type: 'DIRECT',
+    app_store_first: 'OFF',
+    budget_mode: 'DAY',
     operation: 'ENABLE',
     objective: 'APP',
     landing_type: 'APP',
@@ -4046,6 +4098,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.sel-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.sel-row__ctrl { flex: 1; }
+.sel-row__link { font-size: 12px; margin-left: 8px; }
 .pimg-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pimg-logo { width: 56px; height: 56px; border-radius: 8px; background: #4d5cf0; color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .pimg-add { width: 84px; height: 84px; border: 1px dashed #c9cdd4; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; color: #86909c; }
