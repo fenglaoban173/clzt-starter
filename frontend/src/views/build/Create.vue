@@ -1105,10 +1105,12 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="needEventAsset">
+          <el-col :span="12">
             <el-form-item label="选择分包和链接组">
               <el-button type="primary" size="small" @click="monitorLinkVisible = true">选择分包和链接组</el-button>
             </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="needEventAsset">
             <el-form-item label="事件管理资产">
               <el-select v-model="form.project.asset_ids" multiple filterable placeholder="选择事件资产（可设备用兜底）">
                 <el-option v-for="e in eventAssets" :key="e.id" :value="e.id" :label="e.name">{{ e.name }}</el-option>

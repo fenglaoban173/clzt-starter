@@ -1196,7 +1196,7 @@ export const EVENT_CALLBACK_TYPES = [
 // 定向包来源
 export const TARGET_PACKAGE_SOURCES = [
   { value: 'ACCOUNT', label: '账户已有定向包' },
-  { value: 'CL', label: '智投定向包' },
+  { value: 'CL', label: '创量定向包' },
 ];
 
 // 竞价策略
