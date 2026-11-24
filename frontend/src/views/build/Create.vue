@@ -1775,7 +1775,7 @@
         <div class="form-section">
 <div class="form-section__title">
             项目排期与预算
-            <el-button link type="primary" class="sec-collapse" @click="projectRuleFolded = !projectRuleFolded">{{ projectRuleFolded ? '全部收起' : '展开' }}</el-button>
+            <el-button link type="primary" class="sec-collapse" @click="projectRuleFolded = !projectRuleFolded">{{ projectRuleFolded ? '展开' : '全部收起' }}</el-button>
           </div>
         <el-row :gutter="12">
           <el-col :span="8">
@@ -1894,26 +1894,44 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="日预算（元）" required v-if="form.project.budget_mode === 'DAY'">
-              <el-input-number v-model="form.project.budget" :min="budgetMin" :step="50" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="出价方式">
-              <template #label><span class="q-label">出价方式</span><el-tooltip :content="TIPS.bid_strategy" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template>
-              <el-radio-group v-model="form.project.bid_method" size="small">
-                <el-radio-button v-for="o in BID_METHODS" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="出价（元）">
-              <el-input-number v-model="form.project.bid" :min="bidMin" :step="0.1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <!-- 线上：预算出价规则1（收起/展开），内含 日预算(快捷值) / 出价方式 / 出价 -->
+        <div class="ad-summary">
+          <span>竞价策略：<b>{{ projectBidSummary.bid_strategy }}</b></span>
+          <span>优化目标：<b>{{ projectBidSummary.optimize_goal }}</b></span>
+          <span>付费方式：<b>{{ projectBidSummary.pay_mode }}</b></span>
+        </div>
+        <el-form-item label="预算出价规则1">
+          <span class="ad-rule-label">预算出价规则1</span>
+          <el-button link type="primary" class="ad-rule-fold" @click="projectRuleFolded = !projectRuleFolded">
+            {{ projectRuleFolded ? '展开' : '收起' }}
+          </el-button>
+        </el-form-item>
+        <div v-show="!projectRuleFolded" class="ad-rule-box">
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item label="日预算" required v-if="form.project.budget_mode === 'DAY'">
+                <div class="ad-rule-budget">
+                  <el-input-number v-model="form.project.budget" :min="budgetMin" :step="50" controls-position="right" />
+                  <span class="ad-rule-quick">
+                    <a v-for="q in [300, 500, 1000, 2000]" :key="q" @click="form.project.budget = q">{{ q }}</a>
+                  </span>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="出价方式">
+                <el-radio-group v-model="form.project.bid_method" size="small">
+                  <el-radio-button v-for="o in BID_METHODS" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="出价">
+                <el-input-number v-model="form.project.bid" :min="bidMin" :step="0.1" controls-position="right" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
         </div>
 
 
@@ -2030,9 +2048,9 @@
         </el-row>
           <div class="name-wildcards">
             <span class="name-wildcards__label">通配符:</span>
-            <el-button link type="primary" @click="appendWildcard('下载链接标识')">+下载链接标识</el-button>
-            <el-button link type="primary" @click="appendWildcard('渠道包名')">+渠道包名</el-button>
-            <el-button link type="primary" @click="appendWildcard('监测活动名')">+监测活动名</el-button>
+            <el-button link type="primary" @click="appendWildcard('下载链接标识')">下载链接标识</el-button>
+            <el-button link type="primary" @click="appendWildcard('渠道包名')">渠道包名</el-button>
+            <el-button link type="primary" @click="appendWildcard('监测活动名')">监测活动名</el-button>
             <el-button link type="primary" @click="wildcardMoreVisible = true">插入更多</el-button>
           </div>
           <div class="name-warn-hint">名称长度最多100字符（1汉字=2字符），使用通配符时，请注意控制自定义内容长度</div>
@@ -2507,10 +2525,10 @@
         </el-row>
           <div class="name-wildcards">
             <span class="name-wildcards__label">通配符:</span>
-            <el-button link type="primary">+下载链接标识</el-button>
-            <el-button link type="primary">+渠道包名</el-button>
-            <el-button link type="primary">+监测活动名</el-button>
-            <el-button link type="primary">插入更多</el-button>
+            <el-button link type="primary" @click="appendAdWildcard('下载链接标识')">下载链接标识</el-button>
+            <el-button link type="primary" @click="appendAdWildcard('渠道包名')">渠道包名</el-button>
+            <el-button link type="primary" @click="appendAdWildcard('监测活动名')">监测活动名</el-button>
+            <el-button link type="primary" @click="wildcardMoreVisible = true">插入更多</el-button>
           </div>
           <div class="name-warn-hint">名称长度最多100字符（1汉字=2字符），使用通配符时，请注意控制自定义内容长度</div>
         </div>
@@ -4861,6 +4879,16 @@ const PICKER_COLUMNS = {
   image: [{ prop: 'name', label: '图片名称' }, { prop: 'type', label: '类型' }, { prop: 'creator', label: '创建者' }],
 };
 
+/* 项目抽屉预算摘要（线上：竞价策略：/优化目标：/付费方式：） */
+const projectBidSummary = computed(() => {
+  const bs = (bidStrategyOptions.value || []).find((b) => b.value === form.project.bid_strategy);
+  const ea = (externalActionOptions.value || []).find((e) => e.value === form.project.external_action);
+  return {
+    bid_strategy: bs ? bs.label : (form.project.bid_strategy || '稳定成本（常规版）'),
+    optimize_goal: ea ? `${ea.label}/无` : '激活/无',
+    pay_mode: '目标转化出价-按展示付费',
+  };
+});
 /* ================= 各「选择…」按钮的真实交互 ================= */
 function pickEventAsset() {
   openPicker({
@@ -5074,6 +5102,11 @@ const MORE_WILDCARDS = ['落地页名称', '定向包名称', '账户名称', '�
 function appendWildcard(token) {
   const mark = `+${token}`;
   form.project.name = form.project.name ? `${form.project.name}${mark}` : mark;
+  ElMessage.success(`已插入通配符 ${mark}`);
+}
+function appendAdWildcard(token) {
+  const mark = `+${token}`;
+  form.ad.name_template = form.ad.name_template ? `${form.ad.name_template}${mark}` : mark;
   ElMessage.success(`已插入通配符 ${mark}`);
 }
 function insertMoreWildcard(w) {
