@@ -1021,11 +1021,13 @@
         </el-radio-group>
         <el-row v-if="form.project.objective === 'APP'" :gutter="12" style="margin-top: 12px">
           <el-col :span="12">
-            <el-form-item label="应用子目标" required>
-              <el-radio-group v-model="form.project.app_promotion_type" @change="onAppPromoChange">
-                <el-radio v-for="o in APP_PROMOTION_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
+            <!-- 线上：应用推广 卡片下方是一排「应用下载 / 应用调起 / 预约下载」按钮 + 说明 -->
+            <div class="sub-obj">
+              <el-radio-group v-model="form.project.app_promotion_type" @change="onAppPromoChange" size="small">
+                <el-radio-button v-for="o in APP_PROMOTION_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
               </el-radio-group>
-            </el-form-item>
+              <div class="sub-obj__hint">吸引用户去应用内采取行动</div>
+            </div>
           </el-col>
         </el-row>
 
@@ -4572,6 +4574,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .proj-line__sub { color: #c9cdd4; margin-left: 6px; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.sub-obj { margin: 10px 0 4px; }
+.sub-obj__hint { font-size: 12px; color: #86909c; margin-top: 6px; }
 .cta-rec__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 12px; }
 .cta-rec__list { display: flex; flex-direction: column; gap: 10px; }
 .cta-rec__item { font-size: 13px; color: #1d2129; }
