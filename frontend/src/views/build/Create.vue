@@ -2387,6 +2387,20 @@
           <div class="form-section__title">落地页设置</div>
         <el-row :gutter="12">
           <el-col :span="12">
+            <el-form-item label="每个广告配置">
+              <el-input-number v-model="form.landing.per_ad_count" :min="1" :max="10" style="width: 100%" />
+              <div class="ad-hint">每个广告配置 N 个落地页链接</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="落地页分配方式">
+              <el-radio-group v-model="form.landing.landing_page_rule">
+                <el-radio value="ALL">全部相同</el-radio>
+                <el-radio value="PER_ACCOUNT">按账户分配</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="落地页类型">
               <el-select v-model="form.landing.landing_page_type" style="width: 100%">
                 <el-option v-for="o in LANDING_PAGE_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
@@ -3541,6 +3555,8 @@ const form = reactive({
     landing_page_type: 'ORANGE',
     landing_page_way: 'REGISTERED',
     landing_page_url: '',
+    per_ad_count: 1,
+    landing_page_rule: 'ALL',
     landing_page_id: null,
     landing_page_name: '',
     track_url: '',
