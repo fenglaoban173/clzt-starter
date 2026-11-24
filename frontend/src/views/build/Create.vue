@@ -82,8 +82,8 @@
           <div class="col-body col-body--center">
             <!-- 未选媒体账户时，线上仅展示居中的「请选择媒体账户」入口 -->
             <el-link v-if="!form.account_ids.length" type="primary" class="col-pick" @click="acctVisible = true">请选择媒体账户</el-link>
-            <div v-else class="proj-col">
-            <div class="mode-split" :class="{ 'mode-split--links': isUpgrade }">
+            <div class="proj-col">
+            <div v-if="form.account_ids.length" class="mode-split" :class="{ 'mode-split--links': isUpgrade }">
               <template v-if="isUpgrade">
                 <span class="mode-split__text">{{ form.create_mode === 'EXIST' ? '已有项目' : '新建项目' }}</span>
                 <el-button link type="primary" class="mode-split__link" @click="openExisting">从已有项目创建</el-button>
@@ -99,7 +99,7 @@
               </template>
             </div>
             <!-- 线上：基本信息（可展开）+ 定向包 -->
-            <div v-if="isUpgrade && form.account_ids.length" class="proj-blocks">
+            <div class="proj-blocks">
               <div class="proj-block">
                 <div class="proj-block__head">
                   <span class="proj-block__title">基本信息</span>
@@ -122,7 +122,15 @@
                   <el-button link type="primary" class="proj-block__act" @click="openSection('targeting')">获取定向详情</el-button>
                 </div>
                 <div class="proj-block__body">
-                  <div v-for="t in selectedTargetings" :key="t.id" class="proj-line">{{ t.name }}</div>
+                  <template v-if="selectedAccounts.length > 1">
+                    <div v-for="a in selectedAccounts" :key="a.id" class="proj-line">
+                      {{ (selectedTargetings[0] || {}).name || '定向包' }}
+                      <span class="proj-line__sub">{{ a.name }}</span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div v-for="t in selectedTargetings" :key="t.id" class="proj-line">{{ t.name }}</div>
+                  </template>
                   <div class="proj-line">打通数据-策略</div>
                 </div>
               </div>
@@ -4322,7 +4330,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .col-head .col-head__act { margin-left: auto; padding: 0; font-size: 12px; }
 .col-head .col-head__act + .col-head__act { margin-left: 0; }
 .col-body { flex: 1; padding: 12px 16px; overflow-y: auto; }
-.col-body--center { display: flex; align-items: center; justify-content: center; }
+.col-body--center { display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
+.col-body--center .col-pick { align-self: center; }
 .proj-col { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: flex-start; }
 .col-pick { font-size: 13px; }
 .col-line { font-size: 13px; color: #4e5969; margin-bottom: 8px; }
@@ -4342,6 +4351,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__title { white-space: nowrap; }
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
+.proj-line__sub { color: #c9cdd4; margin-left: 6px; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
 .proj-inline-table { margin-top: 10px; }
 .sel-row { display: flex; align-items: center; gap: 10px; width: 100%; }
