@@ -1167,6 +1167,13 @@ export const DELIVERY_MODE_EXTRA = [
   { value: 'UBMAX', label: '自动投放(UBMax)' },
 ];
 
+// 标题分配方式（线上文案用「标题」）
+export const TITLE_ASSIGN_RULES = [
+  { value: 'REUSE', label: '全账户复用', desc: '所有账户都使用一样的标题' },
+  { value: 'AVERAGE', label: '平均分配', desc: '标题平均分到每个账户中' },
+  { value: 'PER_ACCOUNT', label: '分账户选择', desc: '每个账户单独选择标题' },
+];
+
 // 产品版本
 export const PRODUCT_VERSIONS = [
   { value: 'UPGRADE', label: '升级版' },

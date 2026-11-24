@@ -2676,15 +2676,23 @@
       </template>
     </el-drawer>
 
-    <!-- 标题包抽屉 -->
-    <el-drawer v-model="titleVisible" title="手动选取标题" size="1016px" direction="rtl">
-      <el-form :model="form.titles" class="drawer-form" label-position="top">
+    <!-- 标题包抽屉（线上：手动选取标题 / 动态选取标题 两个 tab） -->
+    <el-drawer v-model="titleVisible" title="标题包" size="1016px" direction="rtl">
+      <el-tabs v-model="titleTab" class="drawer-tabs">
+        <el-tab-pane label="手动选取标题" name="manual">
+      <el-form :model="form.titles" class="drawer-form" label-position="left" label-width="144px">
         <div class="form-section">
           <div class="form-section__title">标题设置</div>
-          <el-form-item label="多账户分配规则">
+          <el-form-item label="标题来源">
+            <el-radio-group v-model="form.titles.title_source" size="small">
+              <el-radio-button value="TITLE_PACK">标题包</el-radio-button>
+              <el-radio-button value="TITLE_LIB">标题库</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="标题分配方式">
             <div class="card-choices">
               <div
-                v-for="o in ASSIGN_RULES" :key="o.value"
+                v-for="o in TITLE_ASSIGN_RULES" :key="o.value"
                 class="choice-card" :class="{ active: form.titles.assign_rule === o.value }"
                 @click="form.titles.assign_rule = o.value"
               >
@@ -2693,52 +2701,94 @@
               </div>
             </div>
           </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="选取方式">
-              <el-radio-group v-model="form.titles.pick_mode">
-                <el-radio value="MANUAL">手动选取标题</el-radio>
-                <el-radio value="DYNAMIC">动态选取标题</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="标题来源">
-              <el-select v-model="form.titles.title_source" style="width: 100%">
-                <el-option v-for="o in TITLE_SOURCES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12" v-if="form.titles.title_source === 'TITLE_LIB'">
-            <el-form-item label="每个标题包">
-              <el-select v-model="form.titles.title_pack_ids" multiple filterable placeholder="请选择标题包" style="width: 100%">
-                <el-option v-for="t in titlePackOptions" :key="t.id" :label="t.name" :value="t.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="标题分配方式">
-              <el-select v-model="form.titles.assign_rule" style="width: 100%">
-                <el-option v-for="o in ASSIGN_RULES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item v-if="form.titles.title_source === 'TITLE_PACK'" label="标题包（0/200）">
-          <el-select v-model="form.ad.title_packs" multiple filterable placeholder="选择标题包" style="width: 100%">
-            <el-option v-for="p in titlePacks" :key="p.id" :value="p.id" :label="p.title">{{ p.title }}</el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item v-else-if="form.titles.title_source === 'TITLE_LIB'" label="标题库">
-          <el-input v-model="form.titles.title_source" disabled placeholder="原型：从标题库动态选取标题" />
-        </el-form-item>
-        <el-form-item v-else label="素材名称作为标题">
-          <div class="dlg-tip">将使用所选素材名称作为广告标题，无需单独选择标题包。</div>
-        </el-form-item>
+          <!-- 账户表（线上：账户 / 优化师 / 拒审次数 / 建议次数） -->
+          <el-table :data="titleAccountRows" size="small" border class="proj-inline-table">
+            <el-table-column label="账户" min-width="240">
+              <template #default="{ row }">
+                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
+              </template>
+            </el-table-column>
+            <el-table-column label="优化师" width="160" prop="optimizer" />
+            <el-table-column label="拒审次数" width="120" prop="reject" />
+            <el-table-column label="建议次数" width="120" prop="suggest" />
+          </el-table>
+          <div class="creative-toolbar">
+            <el-button link @click="clearTitlePicked">清空</el-button>
+            <el-button type="primary" size="small" @click="ElMessage.info('原型：新建标题包')">新建标题包</el-button>
+            <el-button type="primary" plain size="small" @click="titleRandomPick('随机选择')">随机选择</el-button>
+            <el-button type="primary" plain size="small" @click="titleRandomPick('智能优选')">智能优选</el-button>
+            <el-button type="primary" plain size="small" @click="titleRandomPick('一键测新')">一键测新</el-button>
+          </div>
+          <div class="mg-right__head">
+            <span>已选：{{ (form.ad.title_packs || []).length }}/195</span>
+            <div class="tp-filters">
+              <span>拒审次数</span>
+              <el-input-number v-model="form.titles.reject_count" :min="0" :max="99" controls-position="right" size="small" />
+              <span>建议次数</span>
+              <el-input-number v-model="form.titles.suggest_count" :min="0" :max="99" controls-position="right" size="small" />
+            </div>
+          </div>
+          <!-- 标题包表（线上 11 列） -->
+          <el-table :data="titlePackRows" size="small" border class="proj-inline-table">
+            <el-table-column label="标题包名称" min-width="180" prop="name" />
+            <el-table-column label="拒审次数" width="110" prop="reject" />
+            <el-table-column label="建议次数" width="110" prop="suggest" />
+            <el-table-column label="创建者" min-width="180" prop="creator" />
+            <el-table-column label="近3日点击率" width="120" prop="ctr3" />
+            <el-table-column label="近3日消耗" width="120" prop="cost3" />
+            <el-table-column label="近90天点击率" width="130" prop="ctr90" />
+            <el-table-column label="近90天消耗" width="130" prop="cost90" />
+            <el-table-column label="标题数" width="90" prop="count" />
+            <el-table-column label="创建时间" width="170" prop="created" />
+            <el-table-column label="操作" width="90" align="center">
+              <template #default><el-button link type="primary">编辑</el-button></template>
+            </el-table-column>
+          </el-table>
+          <div class="mg-right__head"><span>共 {{ titlePackRows.length }} 条</span></div>
         </div>
       </el-form>
+        </el-tab-pane>
+        <el-tab-pane label="动态选取标题" name="dynamic">
+      <el-form :model="form.titles" class="drawer-form" label-position="left" label-width="144px">
+        <div class="form-section">
+          <div class="form-section__title">动态选取标题</div>
+          <el-form-item label="每个广告标题数量">
+            <el-radio-group v-model="form.titles.dyn_count_mode" size="small">
+              <el-radio-button value="UNIFIED">统一设置</el-radio-button>
+              <el-radio-button value="RULE">分规则设置</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="每个广告标题数量">
+            <el-input-number v-model="form.titles.dyn_count" :min="1" :max="50" controls-position="right" size="small" />
+          </el-form-item>
+          <el-form-item label="规则分配方式">
+            <el-radio-group v-model="form.titles.dyn_rule_match" size="small">
+              <el-radio-button value="ALL">全账户复用</el-radio-button>
+              <el-radio-button value="PER_ACCOUNT">分账户选择</el-radio-button>
+            </el-radio-group>
+            <div class="ad-warn-hint">所有账户都使用一样的规则</div>
+          </el-form-item>
+          <el-form-item label="选取标题不足时">
+            <el-radio-group v-model="form.titles.dyn_shortage" size="small">
+              <el-radio-button value="SKIP">余量广告不搭建</el-radio-button>
+              <el-radio-button value="CYCLE">循环使用标题</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <div class="form-section__title">动态选取规则</div>
+          <el-button type="primary" @click="addTitleDynRule">添加动态选取规则</el-button>
+          <el-empty v-if="!form.titles.dyn_rules.length" description="暂无动态选取规则，点击添加" :image-size="80" />
+          <div v-for="(r, ri) in form.titles.dyn_rules" :key="ri" class="dyn-rule">
+            <el-select v-model="r.title_source" placeholder="标题来源" style="width: 180px">
+              <el-option v-for="o in TITLE_SOURCES" :key="o.value" :value="o.value" :label="o.label" />
+            </el-select>
+            <span class="dyn-rule__label">每个广告使用</span>
+            <el-input-number v-model="r.count" :min="0" :max="50" controls-position="right" size="small" />
+            <el-button link type="danger" @click="form.titles.dyn_rules.splice(ri, 1)">删除</el-button>
+          </div>
+        </div>
+      </el-form>
+        </el-tab-pane>
+      </el-tabs>
       <template #footer>
         <el-button @click="titleVisible = false">取消</el-button>
         <el-button type="primary" @click="titleVisible = false">确定</el-button>
@@ -3203,7 +3253,7 @@ import {
   EVENT_CALLBACK_TYPES, TARGET_PACKAGE_SOURCES, BID_STRATEGIES, BID_METHODS,
   CONFIG_MODES, SCHEDULE_TIMES, SCHEDULE_PERIODS, WEEK_DAYS, SCHEDULE_HOURS, ASSIGN_RULES, AWEME_SOURCES,
   ANCHOR_TYPES, MATERIAL_TYPES, UPLOAD_SCOPES, HOME_VISIBILITIES, TITLE_SOURCES,
-  LANDING_PAGE_TYPES, mockDb,
+  LANDING_PAGE_TYPES, TITLE_ASSIGN_RULES, mockDb,
 } from '@/mock/data';
 import { findStrategyGroup } from '@/mock/strategyGroups';
 import { existingProjects } from '@/mock/buildProjects';
@@ -3667,6 +3717,24 @@ const productVisible = ref(false);
 const adSettingVisible = ref(false);
 const matVisible = ref(false);
 const titleVisible = ref(false);
+const titleTab = ref('manual');
+const titlePackRows = ref([
+  { name: 'soul', reject: '--', suggest: '--', creator: '北京央广时代文化传播有限公司', ctr3: '14.66%', cost3: '9149.68', ctr90: '--', cost90: '--', count: 5, created: '2026-06-16 14:43:08' },
+]);
+const titleAccountRows = computed(() => selectedAccounts.value.map((a) => ({
+  account: a.name,
+  accountId: a.id,
+  optimizer: '北京央广时代文化传播有限公司',
+  reject: 0,
+  suggest: 0,
+})));
+function clearTitlePicked() { form.ad.title_packs = []; }
+function titleRandomPick(title) {
+  ElMessage.info(`原型：${title}（标题）`);
+}
+function addTitleDynRule() {
+  form.titles.dyn_rules.push({ title_source: 'TITLE_PACK', count: 1 });
+}
 const lpVisible = ref(false);
 /* 落地页类型决定后续字段（线上：选择已有落地页的几种类型才需要挑页面；动态生成/手动填写才要填名称与监测链接） */
 const needsLandingPicker = computed(() => ['ORANGE', 'ORANGE_SITE', 'CL_TEMPLATE', 'THIRDPARTY', 'COMMODITY'].includes(form.landing.landing_page_type));
@@ -4033,6 +4101,13 @@ const form = reactive({
     title_source: 'TITLE_PACK',
     title_pack_ids: [],
     assign_rule: 'REUSE',
+    reject_count: 0,
+    suggest_count: 0,
+    dyn_count_mode: 'UNIFIED',
+    dyn_count: 1,
+    dyn_rule_match: 'ALL',
+    dyn_shortage: 'SKIP',
+    dyn_rules: [],
   },
   landing: {
     landing_page_type: 'ORANGE',
@@ -5257,6 +5332,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .rp-filter-cnt { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: #4e5969; }
 .rp-unit { margin-left: 6px; color: #86909c; }
 .group-head__name { font-size: 13px; font-weight: 600; color: #1d2129; }
+.tp-filters { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4e5969; }
 .creative-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .creative-group { border: 1px solid #e5e6eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
 .group-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
