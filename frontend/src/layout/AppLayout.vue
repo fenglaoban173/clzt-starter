@@ -131,6 +131,10 @@ const moduleOf = {
   'auto-plans': 'promo', 'play-assistant': 'promo', 'build-create': 'promo',
   reports: 'report', assets: 'material', 'asset-list': 'asset',
   tasks: 'task', 'accounts-manage': 'admin', users: 'admin',
+  // R89：报表 9 个页面（效果分析 6 + 经营分析 3）
+  'report-account': 'report', 'report-project': 'report', 'report-ad': 'report',
+  'report-component': 'report', 'report-material': 'report', 'report-subscribe': 'report',
+  'report-people': 'report', 'report-finance': 'report', 'report-funds': 'report',
 };
 const module = computed(() => moduleOf[route.name] || 'home');
 
@@ -163,21 +167,22 @@ const sideMenuConfig = {
   ],
   report: [
     {
+      // R89：对齐创量线上「报表 → 效果分析」6 项
       title: '效果分析', children: [
-        { title: '账户报表', name: 'reports', query: { tab: 'account' } },
-        { title: '项目报表', name: 'reports', query: { tab: 'project' } },
-        { title: '广告报表', name: 'reports', query: { tab: 'ad' } },
-        { title: '组件报表', name: 'reports', query: { tab: 'component' } },
-        { title: '素材报表', name: 'reports', query: { tab: 'material' } },
-        { title: '报表订阅', placeholder: true },
+        { title: '账户报表', name: 'report-account' },
+        { title: '项目报表', name: 'report-project' },
+        { title: '广告报表', name: 'report-ad' },
+        { title: '组件报表', name: 'report-component' },
+        { title: '素材报表', name: 'report-material' },
+        { title: '报表订阅', name: 'report-subscribe' },
       ],
     },
     {
+      // R89：对齐创量线上「报表 → 经营分析」3 项
       title: '经营分析', children: [
-        { title: '经营分析', placeholder: true },
-        { title: '人效管理', placeholder: true },
-        { title: '财务管理', placeholder: true },
-        { title: '资金使用率', placeholder: true },
+        { title: '人效管理', name: 'report-people' },
+        { title: '财务管理', name: 'report-finance' },
+        { title: '资金使用率', name: 'report-funds' },
       ],
     },
   ],
@@ -306,6 +311,10 @@ const sideActive = computed(() => {
     const map = { account: '账户报表', project: '项目报表', ad: '广告报表', component: '组件报表', material: '素材报表' };
     return map[route.query.tab] || '账户报表';
   }
+  // R89：报表各页按 route.name 回标（report-* → 账户报表/…/资金使用率）
+  if (typeof route.name === 'string' && route.name.startsWith('report-')) {
+    return flat[route.name] || '';
+  }
   if (route.name === 'asset-list') {
     const map = {
       asset_group: '资产组', product: '巨量商品库', app: '巨量应用', mini_game: '小程序/小游戏',
@@ -369,10 +378,18 @@ function onSideSelect(title) {
 // 主色 #197afb、圆角 3px、次按钮 #666/#d0d0d0、表头 12px/700 #333、表格边框 #ebeef5 等。
 // 用 body 上的类承载，弹窗/抽屉 teleport 到 body 也能继承到令牌。
 const ASSET_ROUTES = new Set(['asset-list']);
+// R89：报表模块各页同样挂 report-scope（创量报表设计令牌）
+const REPORT_ROUTES = new Set([
+  'report-account', 'report-project', 'report-ad', 'report-component',
+  'report-material', 'report-subscribe', 'report-people', 'report-finance', 'report-funds',
+]);
 function syncAssetScope(name) {
   const on = ASSET_ROUTES.has(name);
   if (on) document.body.classList.add('asset-scope');
   else document.body.classList.remove('asset-scope');
+  const ron = REPORT_ROUTES.has(name);
+  if (ron) document.body.classList.add('report-scope');
+  else document.body.classList.remove('report-scope');
 }
 onMounted(() => syncAssetScope(route.name));
 watch(() => route.name, syncAssetScope);
@@ -388,7 +405,8 @@ async function onUserMenu(command) {
 <style scoped>
 .app-layout { height: 100%; }
 .app-header {
-  height: 56px;
+  /* 线上创量标准版顶栏实测高 64px */
+  height: 64px;
   display: flex;
   align-items: center;
   gap: 24px;
@@ -403,7 +421,7 @@ async function onUserMenu(command) {
 .nav-item { position: relative; height: 56px; line-height: 56px; padding: 0 18px; font-size: 17px; color: #4e5969; cursor: pointer; }
 .nav-item.active { color: #2563eb; font-weight: 600; }
 .nav-panel {
-  position: absolute; top: 56px; left: 0; background: #fff; border: 1px solid #e5e6eb;
+  position: absolute; top: 64px; left: 0; background: #fff; border: 1px solid #e5e6eb;
   border-radius: 6px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12); padding: 12px; z-index: 2000; min-width: 180px;
   line-height: 1.5; /* 面板在导航项内，需重置导航的 56px 行高 */
 }
@@ -415,7 +433,7 @@ async function onUserMenu(command) {
 /* 资产 mega 下拉：定宽悬浮面板（左缘与内容区对齐），列标题带图标 */
 .nav-panel.panel-mega {
   position: fixed;
-  top: 56px;
+  top: 64px;
   left: 188px;
   width: 904px;
   max-width: calc(100vw - 188px - 24px);
@@ -428,7 +446,7 @@ async function onUserMenu(command) {
   border-bottom: 1px solid #e5e6eb;
   border-radius: 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  max-height: calc(100vh - 56px);
+  max-height: calc(100vh - 64px);
   overflow: auto;
   min-width: 0;
 }
@@ -451,7 +469,7 @@ async function onUserMenu(command) {
 .org-name { font-size: 14px; color: #1d2129; white-space: nowrap; }
 .user-avatar { background: #2563eb; }
 
-.body-wrap { height: calc(100% - 56px); }
+.body-wrap { height: calc(100% - 64px); }
 .sider { background: #fff; border-right: 1px solid #e5e6eb; overflow-y: auto; }
 /* 左侧菜单字号放大（Element Plus 菜单字号跟随 --el-menu-item-font-size） */
 .side-menu { border-right: none; --el-menu-item-font-size: 15px; }

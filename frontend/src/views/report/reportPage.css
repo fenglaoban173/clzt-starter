@@ -1,0 +1,502 @@
+/* 报表页通用样式 —— 与创量标准版「报表」模块各页 1:1 对齐
+ * 采集依据：创量线上 cl.mobgi.com/report/* 的 DOM + computed style
+ *   - 主色 #197afb（el-button--primary 实测）
+ *   - 筛选标签 .dim-label 字色 #333 / 13px，行高 30px
+ *   - 表格头 #fafafa / 字色 #909399 / 12px，分隔线 #e8eaec
+ *   - 页面底色 #f5f6f8，卡片白底圆角 4px
+ * 作用域：body.report-scope —— 由 AppLayout 在进入 report-* 路由时挂载，
+ * 用 body 承载是为了让 teleport 到 body 的下拉/弹窗也能继承令牌。
+ */
+
+/* ============================================================
+ * 报表模块 · 创量设计令牌
+ * ============================================================ */
+body.report-scope {
+  --el-color-primary: #197afb;
+  --el-color-primary-rgb: 25, 122, 251;
+  --el-color-primary-light-3: #5ea2fc;
+  --el-color-primary-light-5: #8cbdfd;
+  --el-color-primary-light-7: #bad7fe;
+  --el-color-primary-light-8: #d1e4fe;
+  --el-color-primary-light-9: #e8f1ff;
+  --el-color-primary-dark-2: #1462c9;
+
+  --el-border-radius-base: 3px;
+  --el-border-radius-small: 2px;
+
+  --el-button-text-color: #666666;
+  --el-button-border-color: #d0d0d0;
+  --el-button-hover-text-color: #197afb;
+  --el-button-hover-border-color: #197afb;
+  --el-button-hover-bg-color: #fff;
+  --el-button-disabled-text-color: #c0c4cc;
+  --el-button-disabled-border-color: #ebeef5;
+  --el-disabled-text-color: #c0c4cc;
+  --el-disabled-bg-color: #fff;
+  --el-disabled-border-color: #ebeef5;
+
+  --el-table-border-color: #e8eaec;
+  --el-table-header-text-color: #909399;
+  --el-table-text-color: #333333;
+  --el-table-header-bg-color: #fafafa;
+  --el-border-color-light: #ebeef5;
+  --el-text-color-regular: #333333;
+  --el-text-color-secondary: #909399;
+  --el-font-size-base: 14px;
+}
+
+/* ============================================================
+ * 页面骨架
+ * ============================================================ */
+/* 全局 .app-content > div:not(.sub-tabs):not(.batch-page) 会加 16px 20px 内边距。
+ * 这里必须带 div 类型选择器才能压过它（否则特异性打平、由后加载的全局规则胜出）。
+ * 报表页左右留白统一由 .report-head / .report-filter / .report-body 的 16px 内边距提供（= 线上 16px）。 */
+body.report-scope .app-content > div.report-page { padding: 0; }
+
+body.report-scope .report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: #f5f6f8;
+  min-height: 100%;
+}
+
+/* 页头：左标题 + 右（粒度切换 / 日期区间） */
+body.report-scope .report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  /* 线上页头实测高 48px（上下 8px 留白），左右 16px */
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e8eaec;
+}
+body.report-scope .report-head-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+body.report-scope .report-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #197afb;
+  white-space: nowrap;
+}
+/* 顶部分页签（今日数据/历史数据、我的报表/分组配置…） */
+body.report-scope .report-subtabs {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+body.report-scope .report-subtab {
+  font-size: 16px;
+  color: #333333;
+  cursor: pointer;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+body.report-scope .report-subtab:hover { color: #197afb; }
+body.report-scope .report-subtab.active {
+  color: #197afb;
+  border-bottom-color: #197afb;
+}
+body.report-scope .report-head-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+body.report-scope .report-date {
+  width: 260px !important;
+  /* EP 2.14 的 .el-input__wrapper 自带 flex-grow:1，只给 width 会被拉宽 */
+  flex: 0 0 260px !important;
+  /* EP 2.14 的 .el-input__wrapper 是 content-box + 左右 padding，需 border-box 才是 260 整宽 */
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+body.report-scope .report-date .el-input__inner,
+body.report-scope .report-date .el-range-input { font-size: 13px; }
+/* 线上 el-date-editor 实测高 32px */
+body.report-scope .report-date .el-input__wrapper { min-height: 32px; padding: 0 10px; }
+body.report-scope .report-date .el-range-input { font-size: 13px; }
+
+/* 粒度切换（分日/分月/汇总） */
+body.report-scope .report-period .el-radio-button__inner {
+  /* 线上实测：12px / padding 9px 12px / 高 32px */
+  font-size: 12px;
+  padding: 10px 12px;
+  line-height: 12px;
+}
+
+/* ============================================================
+ * 筛选区（.report-filter）
+ * ============================================================ */
+body.report-scope .report-filter {
+  padding: 16px 16px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e8eaec;
+}
+body.report-scope .report-filter-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+body.report-scope .report-filter-row:last-child { margin-bottom: 0; }
+body.report-scope .report-dim-label {
+  font-size: 13px;
+  color: #333333;
+  line-height: 30px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  min-width: 68px;
+  text-align: right;
+}
+body.report-scope .report-dim-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* 「收起筛选配置」链接 */
+body.report-scope .report-collapse-link {
+  margin-left: auto;
+  font-size: 13px;
+  color: #197afb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* 粒度 radio 组 */
+body.report-scope .report-radio-group .el-radio-button__inner {
+  /* 线上实测：12px / padding 9px 12px / 高 32px */
+  font-size: 12px;
+  padding: 10px 12px;
+  line-height: 12px;
+}
+/* 筛选维度：label + select 组合盒（线上 select 前有一个固定 label） */
+body.report-scope .report-select-box {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid #dcdfe6;
+  border-radius: 3px;
+  background: #fff;
+  overflow: hidden;
+  height: 30px;
+}
+body.report-scope .report-select-box > label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #333333;
+  background: #f7f8fa;
+  border-right: 1px solid #dcdfe6;
+  white-space: nowrap;
+}
+body.report-scope .report-select-box .el-select {
+  width: 168px;
+  border: none;
+}
+/* 线上「账户」为远程搜索下拉，实测宽 320px */
+body.report-scope .report-select-box--wide .el-select { width: 320px; }
+/* EP 2.14 的 select 内部结构是 .el-select__wrapper（不再是 .el-input__inner） */
+body.report-scope .report-select-box .el-select__wrapper {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+  box-shadow: none;
+  border-radius: 0;
+}
+body.report-scope .report-select-box .el-select__wrapper.is-focus { box-shadow: none; }
+body.report-scope .report-select-box .el-select__selected-item { font-size: 13px; }
+body.report-scope .report-select-box .el-select__placeholder { font-size: 13px; }
+body.report-scope .report-select-box .el-select__tags { padding: 0 6px; }
+body.report-scope .report-select-box .el-tag { font-size: 12px; }
+/* 关键词搜索框 */
+body.report-scope .report-search-box {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid #dcdfe6;
+  border-radius: 3px;
+  background: #fff;
+  height: 30px;
+  width: 240px;
+}
+body.report-scope .report-search-box input {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: transparent;
+}
+body.report-scope .report-search-box .el-input__suffix-inner {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  cursor: pointer;
+  color: #909399;
+}
+body.report-scope .report-search-box .el-input__suffix-inner:hover { color: #197afb; }
+/* 「+ 添加筛选」按钮 */
+body.report-scope .report-add-filter {
+  font-size: 13px;
+  color: #666666;
+  border: 1px solid #dcdfe6;
+  background: #fff;
+  border-radius: 3px;
+  height: 30px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+body.report-scope .report-add-filter:hover { color: #197afb; border-color: #197afb; }
+/* 「筛选」按钮（数据筛选行） */
+body.report-scope .report-filter-btn {
+  font-size: 13px;
+  color: #666666;
+  border: 1px solid #dcdfe6;
+  background: #fff;
+  border-radius: 3px;
+  height: 30px;
+  padding: 0 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+body.report-scope .report-filter-btn:hover { color: #197afb; border-color: #197afb; }
+/* 线上「查询」按钮与筛选控件处于同一个换行流里（不是独立的右侧分支），
+   所以让页面里的 .filter-selects 包装层不产生盒子，其子项直接参与 .report-dim-body 的换行。 */
+body.report-scope .report-dim-body > .filter-selects { display: contents; }
+/* 查询按钮靠右 */
+body.report-scope .report-query-btn {
+  margin-left: auto;
+  /* 线上「查询」按钮实测高 32px */
+  height: 32px;
+  padding: 0 15px;
+  font-size: 12px;
+}
+/* 右侧提示（如「预计每日更新��间9:45」） */
+body.report-scope .report-tip {
+  font-size: 13px;
+  color: #909399;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ============================================================
+ * 内容区
+ * ============================================================ */
+body.report-scope .report-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 白色卡片（趋势分析 / 详细数据） */
+body.report-scope .report-card {
+  background: #fff;
+  border: 1px solid #e8eaec;
+  border-radius: 4px;
+}
+body.report-scope .report-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8eaec;
+}
+body.report-scope .report-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+body.report-scope .report-card-title .el-icon { color: #c0c4cc; cursor: pointer; }
+body.report-scope .report-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+body.report-scope .report-card-body { padding: 16px; }
+/* 卡片内二级页签（趋势分析 / 占比分析） */
+body.report-scope .report-analysis-tabs {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid #e8eaec;
+  padding: 0 16px;
+}
+body.report-scope .report-analysis-tab {
+  font-size: 14px;
+  color: #333333;
+  cursor: pointer;
+  padding: 12px 0 10px;
+  border-bottom: 2px solid transparent;
+}
+body.report-scope .report-analysis-tab.active {
+  color: #197afb;
+  border-bottom-color: #197afb;
+}
+/* 表格区（详细数据）—— 线上表格与卡片左右边缘齐平（表格 x = 卡片 x） */
+body.report-scope .report-table-wrap { padding: 0 0 16px; }
+
+/* 表格：线上 computed style 实测
+ *   th：12px / 700 / #909399，底 #fafafa，分隔线 #e8eaec，行高 56
+ *   th .cell：#333，padding 0 12px
+ *   td：12px / 400 / #606266；td .cell：#333，padding 0 12px
+ *   行高 56px（素材报表因预览图自适应为 60px）
+ */
+body.report-scope .report-table th.el-table__cell {
+  background: #fafafa;
+  color: #909399;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  border-color: #e8eaec;
+}
+body.report-scope .report-table th.el-table__cell .cell { color: #333333; }
+body.report-scope .report-table td.el-table__cell {
+  font-size: 12px;
+  font-weight: 400;
+  color: #606266;
+  padding: 0;
+  border-color: #e8eaec;
+  vertical-align: middle;
+}
+body.report-scope .report-table td.el-table__cell .cell { color: #333333; }
+/* 行高 56px（素材预览图等更高内容会自动撑开） */
+body.report-scope .report-table .el-table__row { height: 56px; }
+body.report-scope .report-table .el-table__row:hover > td.el-table__cell { background: #f7f8fa; }
+/* 合计行 */
+body.report-scope .report-table .el-table__footer-wrapper td.el-table__cell {
+  background: #fff;
+  font-weight: 600;
+  color: #333333;
+}
+/* 分页右对齐 */
+body.report-scope .report-pager {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0 0;
+}
+
+/* ============================================================
+ * 经营分析：KPI 卡片行（资金使用率）
+ * ============================================================ */
+body.report-scope .report-kpi-row {
+  display: grid;
+  /* 线上实测：4 张卡各 208px 宽、间距 24px、左对齐不铺满 */
+  grid-template-columns: repeat(auto-fill, 208px);
+  justify-content: start;
+  gap: 24px;
+}
+body.report-scope .report-kpi {
+  background: #fff;
+  border: 1px solid #e8eaec;
+  border-radius: 4px;
+  padding: 20px 24px;
+}
+body.report-scope .report-kpi-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #197afb;
+  line-height: 1.3;
+}
+body.report-scope .report-kpi-value.plain { color: #333333; }
+body.report-scope .report-kpi-label {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+body.report-scope .report-kpi-label .el-icon { color: #c0c4cc; cursor: pointer; }
+
+/* 图表容器 */
+body.report-scope .report-chart {
+  width: 100%;
+  height: 420px;
+}
+body.report-scope .report-chart-legend-note {
+  font-size: 13px;
+  color: #909399;
+  text-align: right;
+  margin-bottom: 8px;
+}
+
+/* 表格内预览图（素材/组件报表） */
+body.report-scope .report-preview {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 3px;
+  background: #f2f3f5;
+  display: block;
+}
+
+/* 表格内链接型操作（发送记录/导出/编辑/复制/删除） */
+body.report-scope .report-op-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+body.report-scope .report-op-links a {
+  color: #197afb;
+  cursor: pointer;
+  text-decoration: none;
+}
+body.report-scope .report-op-links a:hover { color: #1462c9; text-decoration: underline; }
+body.report-scope .report-op-links a.danger { color: #f53f3f; }
+
+/* 表格内「AI复刻」小按钮 */
+body.report-scope .report-mini-btn {
+  font-size: 12px;
+  color: #197afb;
+  border: 1px solid #b7d3fd;
+  background: #f0f6ff;
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+body.report-scope .report-mini-btn:hover { background: #e1edff; }
+
+/* 顶部提示条（组件报表的橙色告警） */
+body.report-scope .report-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7e8;
+  border: 1px solid #ffe1a8;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #e6a23c;
+}
+body.report-scope .report-alert .el-icon { color: #e6a23c; }
+
+/* 新建指引链接组（报表订阅） */
+body.report-scope .report-guide {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666666;
+}
+body.report-scope .report-guide a { color: #197afb; cursor: pointer; text-decoration: none; }
+body.report-scope .report-guide a:hover { text-decoration: underline; }

@@ -1,6 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
 
+// 报表页（效果分析 / 经营分析）用 glob 收集：单页尚未落地时该路由退化为空页，
+// 不影响其它路由的解析与构建（并行开发期尤其重要）。
+const REPORT_PAGE_FILES = import.meta.glob('../views/report/pages/*.vue');
+const REPORT_ROUTE_DEFS = [
+  ['AccountReport', 'report/account-report', 'report-account', '账户报表'],
+  ['ProjectReport', 'report/project-report', 'report-project', '项目报表'],
+  ['AdReport', 'report/ad-report', 'report-ad', '广告报表'],
+  ['ComponentReport', 'report/component-report', 'report-component', '组件报表'],
+  ['MaterialReport', 'report/material-report', 'report-material', '素材报表'],
+  ['ReportSubscribe', 'report/custom-report', 'report-subscribe', '报表订阅'],
+  ['PeopleReport', 'report/people-optimizer', 'report-people', '人效管理'],
+  ['FinanceReport', 'report/finance-report', 'report-finance', '财务管理'],
+  ['FundsReport', 'report/funds-report', 'report-funds', '资金使用率'],
+];
+const reportRoutes = REPORT_ROUTE_DEFS.map(([file, path, name, title]) => ({
+  path,
+  name,
+  component: REPORT_PAGE_FILES[`../views/report/pages/${file}.vue`] || { render: () => null },
+  meta: { title, group: '报表' },
+}));
+
 const routes = [
   {
     path: '/login',
@@ -96,6 +117,9 @@ const routes = [
         component: () => import('@/views/build/Reports.vue'),
         meta: { title: '数据看板', group: '报表' },
       },
+
+      // 报表 · 效果分析 / 经营分析（由上方 REPORT_ROUTE_DEFS + glob 生成）
+      ...reportRoutes,
 
       // 管理
       {

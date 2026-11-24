@@ -3437,3 +3437,95 @@ R87 未提交改动已把 7 菜单做到与线上一比一（含「创量项目�
 
 - 未提交改动（`app.vue` / `assetOptions.js` / `deep_link.vue` / `event.vue` / `landing_page.vue` / `orientation.vue`）尚未 commit / push，需用户明确指令。
 - 若需继续像素级收尾：落地页「橙子落地页」页签固定列、直达链接「操作」列行内按钮 hover 态，可用 Playwright 实机二次核对。
+
+## 一百零三、报表模块「效果分析 / 经营分析」9 页 1:1 复刻（2026-11-24）
+
+### ① 起因与范围
+
+用户要求把创量线上 `https://cl.mobgi.com/report/account-report` 的**报表**导航下
+**效果分析**（账户报表 / 项目报表 / 广告报表 / 组件报表 / 素材报表 / 报表订阅）与
+**经营分析**（人效管理 / 财务管理 / 资金使用率）共 **9 个页面** 1:1 复制到本地对应菜单下，
+要求布局、字段、列表样式、查询条件、页面按钮、页面变化、图表样式、页面展示效果完全还原，
+并要求并行 agent 实施 + 逐页验收对比。
+
+### ② 线上权威数据源
+
+- 账号 `liuziyuan01@ygsdmedia.com` 登录 cl.mobgi.com，先选「标准版」产品，落地 `/pdconfig` → 媒体账户页。
+- Playwright 采集（脚本在 `C:/tmp/rpt_harvest2.py` / `rpt_detail.py` / `rpt_trend.py`）：
+  - `C:/tmp/rpt/00_menu.json` —— 报表侧栏完整菜单树
+  - `C:/tmp/rpt/NN_<页名>.json` —— 每页 DOM 全量（筛选行 / radio 组 / 下拉选项 / 表头 / 表格样式 / 图表 canvas）
+  - `C:/tmp/rpt/NN_<页名>_detail.json` —— radio 选项组、全部下拉（含线上真实选项清单）、顶部按钮
+  - `C:/tmp/rpt/NN_<页名>.png` —— 线上截图
+  - `C:/tmp/rpt/specs/NN_<页名>.md` —— 由采集结果生成的逐页开发 spec（供并行 agent 消费）
+- 线上关键实测值（已写进共享令牌）：
+  - 主色 `#197afb`、按钮圆角 3px、次按钮字色 `#666` / 边框 `#d0d0d0`
+  - 表头 `12px / 700 / #909399`、底 `#fafafa`、分隔线 `#e8eaec`；单元格 `12px / #333`；行高 56px
+  - 顶部粒度 radio：inner `12px / padding 9px 12px / 高 32px`
+  - 「账户」为远程搜索下拉，宽 **320px**（其余下拉 168px）
+  - 顶栏（`.header`）实测高 **64px**
+  - 内容区左右留白 **16px**；详细数据表格与卡片左右边缘齐平
+  - 「小红书-计费时间」「转化回传口径（上报时间）」「指标口径」等均为**普通 select**（显示值即文案）
+
+### ③ 实施方式：5 个 agent 并行
+
+共享底座先由主控搭好（避免 agent 抢同一文件）：
+`frontend/src/views/report/reportPage.css`（报表设计令牌 + 全部类名）、
+`components/ReportPageShell.vue` / `ReportFilterRow.vue` / `ReportFilterSelect.vue` /
+`ReportFilterToolbar.vue` / `ReportDetailTable.vue`、`frontend/src/mock/reportData.js`
+（线上实测选项常量 + 行数据生成），随后并行派发 5 个 agent，每个只写自己的页文件：
+
+| agent | 页面 | 产出 |
+|---|---|---|
+| A | 账户报表 + 项目报表 | `AccountReport.vue` / `ProjectReport.vue` |
+| B | 广告报表 | `AdReport.vue` |
+| C | 组件报表 + 素材报表 | `ComponentReport.vue` / `MaterialReport.vue` |
+| D | 报表订阅 | `ReportSubscribe.vue` |
+| E | 人效管理 + 财务管理 | `PeopleReport.vue` / `FinanceReport.vue` |
+| F | 资金使用率 | `FundsReport.vue` |
+
+路由用 `import.meta.glob` 生成（`REPORT_ROUTE_DEFS`），单页尚未落地时该路由退化为空页，
+不阻塞其它路由解析与并行构建。
+
+### ④ 本轮实际改动
+
+- **新增** `frontend/src/views/report/`：`reportPage.css` + `components/`（5 个共享组件）+ `pages/`（9 个页面）
+- **新增** `frontend/src/mock/reportData.js`：线上实测选项常量（媒体 / 优化师 / 合作商 / 部门 / 创量项目 /
+  账户主体 / 素材类型 / 转化目标 / 巨量商品 / 安卓应用 / 微信小程序 / 抖音号 / 剧目专辑 …）与 9 页的行数据
+- **改** `frontend/src/router/index.js`：新增 9 条 `report-*` 路由（glob 生成）
+- **改** `frontend/src/layout/AppLayout.vue`：报表侧栏改为线上 6+3 项、`moduleOf` 补 9 个路由、
+  挂 `body.report-scope` 令牌、**顶栏高 56px → 64px**（对齐线上实测，含其依赖的 mega 面板 / body-wrap / 抽屉偏移）
+- **改** `frontend/src/main.js`：引入 `reportPage.css`
+- **共享层修正（采集对比中发现并修复）**：
+  - `.report-table .el-table th` 后代选择器在 EP 2.14 匹配不到 → 改为 `.report-table th`
+  - `.app-content > div` 全局内边距与报表页特异性打平 → 改用 `div.report-page` 压平
+  - EP 2.14 的 select 内部是 `.el-select__wrapper`（不再是 `.el-input__inner`）→ 字号/内边距选择器更新
+  - `.el-date-editor` 在 EP 2.14 下 `width` 不生效（wrapper 自带 flex-grow）→ 补 `flex: 0 0 260px` + `box-sizing: border-box`
+  - 「查询」按钮需与筛选控件处于同一换行流 → 让页面里的 `.filter-selects` 用 `display: contents`
+
+### ⑤ 验收（线上 vs 本地逐页对比）
+
+对比工具 `C:/tmp/rpt_verify.py`（harvest / shots / diff）+ `C:/tmp/rpt_visual.py`（并排图），
+产物 `C:/tmp/rpt/rpt_diff.md` 与 `C:/tmp/rpt/compare/*.png`。
+
+- **9 页全部无 JS 报错**（pageerror / console.error 均为 0）
+- **语义对比：🔴 高 0 ／ 🟡 中 1 ／ 🔵 低 5**（表格列、页签、radio 选项组、筛选下拉、按钮、卡片标题、
+  合计行、分页逐项比对）
+- 剩余 6 条已逐条核对**全部为采集器误报**，理由已复核：
+  - `编导`：线上「编导」是「+ 添加筛选」弹层里的隐藏下拉（可见行只有 编号/剪辑），本地已收录在添加筛选清单里
+  - `小红书-归因时间类型` / `指标口径` / `全部` / `请选择类型` / `请选择素材类型` / `所有账户` / `请选择媒体`：
+    线上这些是 select 的**占位文案**，实际显示的是选中值（小红书-计费时间 / 转化回传口径（上报时间） / 全部媒体 …），
+    本地与线上显示值一致（已用截图放大逐个核对）
+  - `广告主账户分析`：线上是 el-collapse（采集器归为页签），本地是卡片标题，位置与文案一致
+  - `账户/合作商/项目`：线上「数据维度」是 `div.number` 而非 radio，本地同样用按钮式，均可点且有激活态
+- **几何对比**（1920×1080 同视口）：主区 `x=160 y=64 w=1760` 与线上完全一致；
+  明细表 `x=176 w=1728`（线上 176/1728）；列宽逐列一致
+  （账户报表 60/135/590/471/471、项目报表 60/135/766/766、素材报表 60/135/106/883/120/423、
+  资金使用率 18 列全等）；筛选区高度差 6~14px。
+
+### ⑥ 待办
+
+- **本轮未 push**（`git push` 需用户明确指令）。
+- `frontend/src/views/build/Create.vue` 与 `frontend/public/third-landing-import-template.xlsx`
+  是本轮之前遗留的未提交改动，**未纳入本次提交**。
+- 剩余可精修项（均为 mock 数据差异，非布局/字段差异）：本地表格行数为原型数据，
+  与线上真实业务条数不同（线上 账户报表 79 条 / 素材报表 1020 条 / 组件报表 1309 条等）。
