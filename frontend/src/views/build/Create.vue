@@ -1210,7 +1210,10 @@
         <!-- 用户定向 -->
         </div>
         <div class="form-section">
-          <div class="form-section__title">用户定向</div>
+          <div class="form-section__title">
+            用户定向
+            <el-button link type="primary" class="sec-collapse" @click="customTargetingOpen = !customTargetingOpen">{{ customTargetingOpen ? '收起' : '自定义定向' }}</el-button>
+          </div>
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="定向包来源">
@@ -1229,7 +1232,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="使用运营商定向">
+            <el-form-item v-if="customTargetingOpen" label="使用运营商定向">
               <el-radio-group v-model="form.project.carrier_targeting">
                 <el-radio value="OFF">不使用</el-radio>
                 <el-radio value="ON">使用</el-radio>
@@ -1247,14 +1250,14 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="地域类型">
+            <el-form-item v-if="customTargetingOpen" label="地域类型">
               <el-select v-model="form.project.district" style="width: 100%">
                 <el-option value="NONE" label="不限" /><el-option value="REGION" label="行政区域" /><el-option value="BUSINESS_DISTRICT" label="商圈" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8" v-if="form.project.district !== 'NONE'">
-            <el-form-item label="位置类型">
+            <el-form-item v-if="customTargetingOpen" label="位置类型">
               <el-select v-model="form.project.location_type" style="width: 100%">
                 <el-option v-for="o in LOCATION_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
@@ -1263,21 +1266,21 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="8">
-            <el-form-item label="性别">
+            <el-form-item v-if="customTargetingOpen" label="性别">
               <el-select v-model="form.project.gender" style="width: 100%">
                 <el-option v-for="o in GENDERS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="年龄">
+            <el-form-item v-if="customTargetingOpen" label="年龄">
               <el-select v-model="form.project.age" multiple>
                 <el-option v-for="o in AGES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="过滤已转化用户">
+            <el-form-item v-if="customTargetingOpen" label="过滤已转化用户">
               <el-select v-model="form.project.hide_if_converted" style="width: 100%">
                 <el-option v-for="o in HIDE_CONVERTED" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
@@ -1286,14 +1289,14 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-form-item label="定向人群包">
+            <el-form-item v-if="customTargetingOpen" label="定向人群包">
               <el-select v-model="form.project.include_packages" multiple placeholder="包含的自定义人群">
                 <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="排除人群包">
+            <el-form-item v-if="customTargetingOpen" label="排除人群包">
               <el-select v-model="form.project.exclude_packages" multiple placeholder="排除的自定义人群">
                 <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
               </el-select>
@@ -1302,26 +1305,26 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="8">
-            <el-form-item label="行为兴趣定向">
+            <el-form-item v-if="customTargetingOpen" label="行为兴趣定向">
               <el-select v-model="form.project.interest_action_mode" @change="onInterestModeChange" style="width: 100%">
                 <el-option v-for="o in INTEREST_ACTION_MODES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8" v-if="needActionTargeting">
-            <el-form-item label="行为天数">
+            <el-form-item v-if="customTargetingOpen" label="行为天数">
               <el-select v-model="form.project.action_days" style="width: 100%">
                 <el-option v-for="o in ACTION_DAYS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8" v-if="needActionTargeting">
-            <el-form-item label="行为关键词">
+            <el-form-item v-if="customTargetingOpen" label="行为关键词">
               <el-input v-model="form.project.action_words" placeholder="多个关键词用逗号分隔" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row v-if="needActionTargeting" :gutter="12">
+        <el-row v-if="needActionTargeting && customTargetingOpen" :gutter="12">
           <el-col :span="12">
             <el-form-item label="行为类目">
               <el-select v-model="form.project.action_categories" multiple filterable allow-create default-first-option placeholder="输入并选择行为类目" />
@@ -1330,14 +1333,14 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-form-item label="重定向人群包（包含）">
+            <el-form-item v-if="customTargetingOpen" label="重定向人群包（包含）">
               <el-select v-model="form.project.retargeting_tags_include" multiple placeholder="包含的重定向人群">
                 <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="重定向人群包（排除）">
+            <el-form-item v-if="customTargetingOpen" label="重定向人群包（排除）">
               <el-select v-model="form.project.retargeting_tags_exclude" multiple placeholder="排除的重定向人群">
                 <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
               </el-select>
@@ -2801,6 +2804,8 @@ const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
 const projInfoFolded = ref(false);
 const projectRuleFolded = ref(false);
+/* 自定义定向（线上新版默认不露出，字段保留在此开关后） */
+const customTargetingOpen = ref(false);
 /* 内联表：账户|产品 / 账户|分包和链接组 / 账户名称|定向包|操作 */
 const projProductRows = computed(() => selectedAccounts.value.map((a) => ({
   account: a.name,
