@@ -119,13 +119,15 @@
               <div class="proj-block">
                 <div class="proj-block__head">
                   <span class="proj-block__title">定向包</span>
-                  <el-button link type="primary" class="proj-block__act" @click="openSection('targeting')">获取定向详情</el-button>
+                  <span class="proj-block__time" v-if="targetingDetailTime">更新时间：{{ targetingDetailTime }}</span>
+                  <el-button link type="primary" class="proj-block__act" @click="fetchTargetingDetail">获取定向详情</el-button>
                 </div>
                 <div class="proj-block__body">
                   <div v-for="a in selectedAccounts" :key="a.id" class="proj-line">
                     {{ a.name }}
                     <div class="proj-line__sub">{{ (selectedTargetings[0] || {}).name || '定向包' }}</div>
                   </div>
+                  <div v-if="targetingLoading" class="proj-line__loading">定向详情加载中</div>
                 </div>
               </div>
             </div>
@@ -152,8 +154,8 @@
             <div class="col-line">广告名称: {{ form.ad.name_template || '未设置' }}</div>
             <div class="col-line">产品名称: {{ form.ad.product_name || form.project.app_name || '无' }}</div>
             <div class="col-line">广告评论: {{ form.ad.comment || '无' }}</div>
-            <div class="col-line">客户下载次数: {{ form.ad.download_count ?? '无' }}</div>
-            <div class="col-line">所属渠道: {{ form.ad.channel || '无' }}</div>
+            <div class="col-line">客户端下载视频: {{ form.ad.download_video === 'ON' ? '启用' : '不启用' }}</div>
+            <div class="col-line">所属类别: {{ form.ad.category || '无' }}</div>
             <div class="col-line">品牌名称: {{ form.ad.brand_name || '无' }}</div>
             <div class="col-line">二级品牌名称: {{ form.ad.brand_name_2 || '无' }}</div>
           </div>
@@ -590,20 +592,17 @@
     <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
     <AdRenameDialog v-model="renameVisible" :rows="renameRows" :title="renameTitle" @confirm="onRenameConfirm" />
 
-    <!-- 查看推荐（线上：打开「行动号召」面板） -->
-    <el-drawer v-model="ctaRecommendVisible" title="行动号召" size="900px" direction="rtl">
-      <div class="cta-rec__head">
-        <span>推荐行动号召文案</span>
-        <el-button link type="primary" @click="ElMessage.success('已换一批（原型模拟）')">换一批</el-button>
-      </div>
+    <!-- 查看推荐（线上：打开「行动号召」全宽面板，最多选 6 条） -->
+    <el-dialog v-model="ctaRecommendVisible" title="行动号召" width="100%" top="6vh" append-to-body class="cta-rec-dialog">
       <el-checkbox-group v-model="ctaRecommendForm.picked" class="cta-rec__list">
         <el-checkbox v-for="c in CTA_PRESETS" :key="c" :label="c" class="cta-rec__item">{{ c }}</el-checkbox>
       </el-checkbox-group>
+      <div class="cta-rec__foot">已选: {{ ctaRecommendForm.picked.length }}/6</div>
       <template #footer>
         <el-button @click="ctaRecommendVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmCtaRecommend">确定</el-button>
       </template>
-    </el-drawer>
+    </el-dialog>
 
     <!-- 保存为模板（线上：打开「保存为模板」面板） -->
     <el-drawer v-model="ctaSaveTplVisible" title="保存为模板" size="900px" direction="rtl">
@@ -2063,6 +2062,7 @@
           <div>选择账户信息作为推广身份，无法获得更多流量</div>
           <div>推荐使用抖音号作为推广身份</div>
         </div>
+        <template v-if="!isUpgrade">
         <el-form-item label="直达链接类型">
           <el-radio-group v-model="form.ad.link_type">
             <el-radio value="DEEPLINK">Deeplink直达链接</el-radio>
@@ -2107,6 +2107,7 @@
             </template>
           </el-table-column>
         </el-table>
+        </template>
       </el-form>
       <el-form :model="form.ad" class="drawer-form" label-position="top">
         <div class="form-section">
@@ -2139,7 +2140,7 @@
               placeholder="空格分隔，最多10个，每个标签不超过6个字"
               @keyup.enter="addCtaTags"
             />
-            <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加（同车铺）')">添加（同车铺）</el-button>
+            <el-button size="small" type="primary" plain @click="addCtaTags">添加（回车键)</el-button>
             <el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button>
           </div>
           <div class="sell-ops sell-ops--tpl">
@@ -2170,8 +2171,8 @@
         </el-row>
 
         </div>
-          <!-- 广告预算与出价（线上：与广告设置同面板，滚动到本段） -->
-          <div class="form-section" id="ad-budget">
+          <!-- 广告预算与出价（线上：与广告设置同面板，滚动到本段；转化优化版无此段） -->
+          <div class="form-section" id="ad-budget" v-if="!isUpgrade">
             <div class="form-section__title">
               广告预算与出价
               <el-button link type="primary" class="sec-collapse" @click="adBudget.folded = !adBudget.folded">全部收起</el-button>
@@ -2295,7 +2296,7 @@
             <el-form-item label="产品卖点">
               <div class="sell-hint">添加的商品是10个,每个不超过5张</div>
               <div class="sell-ops">
-                <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加（同车铺）')">添加（同车铺）</el-button>
+                <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加卖点（回车键)')">添加（回车键)</el-button>
                 <el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button>
               </div>
               <div class="sell-ops sell-ops--tpl">
@@ -2411,6 +2412,11 @@
                 <el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip>
               </template>
               <el-switch v-model="form.ad.ad_auto_truncate" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="广告动态标号">
+              <el-switch v-model="form.ad.ad_dynamic_index" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -2698,7 +2704,7 @@
     </el-drawer>
 
     <!-- 标题包抽屉（线上：手动选取标题 / 动态选取标题 两个 tab） -->
-    <el-drawer v-model="titleVisible" title="标题包" size="1016px" direction="rtl">
+    <el-drawer v-model="titleVisible" title="添加标题包" size="1016px" direction="rtl">
       <el-tabs v-model="titleTab" class="drawer-tabs">
         <el-tab-pane label="手动选取标题" name="manual">
       <el-form :model="form.titles" class="drawer-form" label-position="left" label-width="144px">
@@ -3619,6 +3625,18 @@ const sectionKey = ref('');
 const sectionTitle = computed(() => ({
   related: '关联产品', monitor: '分配或监测活动', targeting: '定向包', budget: '项目预算与出价',
 }[sectionKey.value] || ''));
+/* 线上：获取定向详情为行内展开（加载态 + 更新时间），不弹面板 */
+const targetingLoading = ref(false);
+const targetingDetailTime = ref('');
+function fetchTargetingDetail() {
+  targetingLoading.value = true;
+  setTimeout(() => {
+    targetingLoading.value = false;
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    targetingDetailTime.value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }, 700);
+}
 function openSection(key) { sectionKey.value = key; sectionVisible.value = true; }
 function toggleCreateMode() {
   form.create_mode = form.create_mode === 'NEW' ? 'EXIST' : 'NEW';
@@ -4096,7 +4114,10 @@ const form = reactive({
     category: '',
     brand_name: '',
     second_brand_name: '',
+    download_video: 'OFF',
+    category: '',
     ad_name_mode: 'UNIFIED',
+    ad_dynamic_index: false,
     ad_auto_truncate: true,
     ad_random_suffix: false,
     // 兼容旧字段（素材/标题/落地页在独立抽屉）
@@ -5057,6 +5078,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .proj-line__sub { color: #c9cdd4; margin-left: 6px; }
+.proj-block__time { font-size: 12px; color: #86909c; margin-left: auto; }
+.proj-line__loading { font-size: 12px; color: #86909c; padding: 4px 0; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
 .bid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; width: 100%; }
 .bid-card { padding: 10px 12px; border: 1px solid #e5e6eb; border-radius: 4px; cursor: pointer; background: #fff; transition: border-color .2s; }
@@ -5070,7 +5093,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .sub-obj { margin: 10px 0 4px; }
 .sub-obj__hint { font-size: 12px; color: #86909c; margin-top: 6px; }
 .cta-rec__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 12px; }
-.cta-rec__list { display: flex; flex-direction: column; gap: 10px; }
+.cta-rec__list { display: flex; flex-wrap: wrap; gap: 10px 24px; max-height: 60vh; overflow-y: auto; }
+.cta-rec__foot { margin-top: 12px; font-size: 13px; color: #86909c; text-align: right; }
 .cta-rec__item { font-size: 13px; color: #1d2129; }
 .cta-tpl__list { margin-top: 16px; border-top: 1px solid #f2f3f5; padding-top: 12px; }
 .cta-tpl__head { font-size: 13px; color: #86909c; margin-bottom: 8px; }
