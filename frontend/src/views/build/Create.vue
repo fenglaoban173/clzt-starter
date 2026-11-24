@@ -796,6 +796,10 @@
           <template #prefix><span class="acct-f__label">账户主体:</span></template>
           <el-option :value="subject">{{ subject }}</el-option>
         </el-select>
+        <el-select v-model="acctFilter.developer" class="acct-f acct-f--developer" clearable placeholder="开发者">
+          <template #prefix><span class="acct-f__label">开发者:</span></template>
+          <el-option v-for="d in developerOptions" :key="d" :value="d">{{ d }}</el-option>
+        </el-select>
         <!-- 搜索组（对齐线上 图2：[账户ID ∨] | [搜索媒体账户 + 批量搜索] | [搜索按钮]） -->
         <div class="acct-sg">
           <el-select v-model="acctFilter.id_type" class="acct-sg__type">
@@ -864,7 +868,7 @@
         </div>
         <el-button link type="primary" class="acct-clear" @click="clearAcctFilter">清空</el-button>
       </div>
-      <div class="acct-tip"><el-icon class="acct-tip__icon"><Warning /></el-icon> 仅支持同主体账户</div>
+      <div class="acct-tip"><el-icon class="acct-tip__icon"><Warning /></el-icon> 仅支持同个主体账户，当前主体为：{{ subject }}</div>
 
       <div class="acct-body">
         <el-table
@@ -886,6 +890,9 @@
           <el-table-column label="账户主体" prop="subject" min-width="130" sortable show-overflow-tooltip>
             <template #default="{ row }">{{ row.subject || subject }}</template>
           </el-table-column>
+          <el-table-column label="账户备注(创量)" prop="remark_cy" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.remark_cy || '--' }}</template>
+          </el-table-column>
           <el-table-column label="账户备注(巨量)" prop="remark_jl" min-width="135" show-overflow-tooltip>
             <template #default="{ row }">{{ row.remark_jl || '--' }}</template>
           </el-table-column>
@@ -894,6 +901,9 @@
           </el-table-column>
           <el-table-column label="账户余额" prop="balance" min-width="110" sortable>
             <template #default="{ row }">{{ formatBalance(row.balance) }}</template>
+          </el-table-column>
+          <el-table-column label="账户所属开发者" prop="developer_name" min-width="130" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.developer_name || '--' }}</template>
           </el-table-column>
         </el-table>
 
@@ -3853,7 +3863,9 @@ const awemeList = ref([
   { aweme_id: 'dy8821002', nickname: '智者天下官方号' },
 ]);
 
-const acctFilter = reactive({ project: '', subject: '', keyword: '', id_type: 'id' });
+const acctFilter = reactive({ project: '', subject: '', developer: '', keyword: '', id_type: 'id' });
+/* 开发者筛选项（线上：账户弹窗第三个筛选项） */
+const developerOptions = computed(() => [...new Set((accounts.value || []).map((a) => a.developer_name).filter(Boolean))]);
 const acctTemp = ref([]);
 const acctTableRef = ref(null);
 const acctSyncing = ref(false);
@@ -4163,6 +4175,7 @@ const filteredAccounts = computed(() => {
   let rows = mediaAccounts.value;
   if (acctFilter.project) rows = rows.filter((a) => a.project === acctFilter.project);
   if (acctFilter.subject) rows = rows.filter((a) => (a.subject || subject) === acctFilter.subject);
+  if (acctFilter.developer) rows = rows.filter((a) => a.developer_name === acctFilter.developer);
   // 批量搜索：每行一个关键词，精确匹配账户ID 或 账户名称
   if (acctBatch.value.length) {
     const set = new Set(acctBatch.value.map((k) => k.toLowerCase()));
