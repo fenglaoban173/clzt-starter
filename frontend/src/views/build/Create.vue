@@ -54,7 +54,7 @@
             <span class="rule-box__value" :class="{ placeholder: !form.account_ids.length }">{{ accountSummary }}</span>
           </el-tooltip>
           <span v-if="form.account_ids.length" class="rule-box__count">已选 {{ form.account_ids.length }} 个</span>
-          <el-button link type="primary" class="rule-box__act" @click="acctVisible = true">重选</el-button>
+          <el-button link type="primary" class="rule-box__act" @click="acctVisible = true">更改</el-button>
         </div>
         <div class="rule-box" v-if="isUpgrade">
           <span class="rule-box__label">规则配置</span>
@@ -78,18 +78,19 @@
       <div class="grid-cols">
         <!-- 新建项目 / 已有项目 -->
         <div class="col">
-          <div class="col-head">{{ projColTitle }}</div>
+          <div class="col-head">
+            <span class="col-head__title">{{ projColTitle }}</span>
+            <span class="col-head__right" v-if="isUpgrade">
+              <el-button link class="col-head__link" @click="openExisting">从已有项目创建</el-button>
+              <el-button link class="col-head__link" @click="toggleCreateMode">切换</el-button>
+            </span>
+          </div>
           <div class="col-body col-body--center">
             <!-- 未选媒体账户时，线上仅展示居中的「请选择媒体账户」入口 -->
             <el-link v-if="!form.account_ids.length" type="primary" class="col-pick" @click="acctVisible = true">请选择媒体账户</el-link>
             <div class="proj-col">
-            <div v-if="form.account_ids.length" class="mode-split" :class="{ 'mode-split--links': isUpgrade }">
-              <template v-if="isUpgrade">
-                <span class="mode-split__text">{{ form.create_mode === 'EXIST' ? '已有项目' : '新建项目' }}</span>
-                <el-button link type="primary" class="mode-split__link" @click="openExisting">从已有项目创建</el-button>
-                <el-button link type="primary" class="mode-split__link" @click="toggleCreateMode">切换</el-button>
-              </template>
-              <template v-else>
+            <div v-if="form.account_ids.length" class="mode-split">
+              <template v-if="!isUpgrade">
                 <div class="mode-split__cell" :class="{ active: form.create_mode === 'EXIST' }" @click="openExisting">
                   <span class="mode-split__text">选择已有项目</span>
                 </div>
@@ -109,11 +110,10 @@
                 </div>
                 <div class="proj-block__body">
                   <div class="proj-line">项目名称: {{ form.project.name || '—' }}</div>
-                  <div class="proj-line">项目组名: {{ form.project.group_name || '—' }}</div>
-                  <div class="proj-line">项目组总价: {{ form.project.group_price || '—' }}</div>
-                  <div class="proj-line">项目收益出价: {{ form.project.group_bid || '—' }}</div>
+                  <div class="proj-line">项目预算: {{ projectBudgetText }}</div>
+                  <div class="proj-line">项目出价: {{ projectBidText }}</div>
+                  <div class="proj-line">项目深度出价: {{ projectDeepBidText }}</div>
                   <div class="proj-line">推广目的: {{ objectiveLabel }}</div>
-                  <div class="proj-line">应用推广: {{ form.project.app_name || '—' }}</div>
                 </div>
               </div>
               <div class="proj-block">
@@ -122,16 +122,10 @@
                   <el-button link type="primary" class="proj-block__act" @click="openSection('targeting')">获取定向详情</el-button>
                 </div>
                 <div class="proj-block__body">
-                  <template v-if="selectedAccounts.length > 1">
-                    <div v-for="a in selectedAccounts" :key="a.id" class="proj-line">
-                      {{ (selectedTargetings[0] || {}).name || '定向包' }}
-                      <span class="proj-line__sub">{{ a.name }}</span>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div v-for="t in selectedTargetings" :key="t.id" class="proj-line">{{ t.name }}</div>
-                  </template>
-                  <div class="proj-line">打通数据-策略</div>
+                  <div v-for="a in selectedAccounts" :key="a.id" class="proj-line">
+                    {{ a.name }}
+                    <div class="proj-line__sub">{{ (selectedTargetings[0] || {}).name || '定向包' }}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -179,9 +173,13 @@
           </div>
           <div class="col-body">
             <el-empty v-if="!materialCount" description="暂无创意素材" :image-size="60" />
-            <div v-else class="material-list">
-              <div v-for="v in selectedVideos" :key="v.id" class="material-chip">🎬 {{ v.title }}</div>
-              <div v-for="im in selectedImages" :key="im.id" class="material-chip">🖼 {{ im.title }}</div>
+            <div v-else class="mat-grid">
+              <div v-for="v in selectedVideos" :key="v.id" class="mat-tile" :title="v.title">
+                <div class="mat-tile__box"><span class="mat-tile__tag">视频</span></div>
+              </div>
+              <div v-for="im in selectedImages" :key="im.id" class="mat-tile" :title="im.title">
+                <div class="mat-tile__box"><span class="mat-tile__tag">图片</span></div>
+              </div>
             </div>
           </div>
           <div class="col-foot">
@@ -199,8 +197,11 @@
           </div>
           <div class="col-body">
             <el-empty v-if="!titleCount" description="暂无" :image-size="60" />
-            <div v-else class="material-list">
-              <div v-for="t in selectedTitlePacks" :key="t.id" class="material-chip">📝 {{ t.title }}</div>
+            <div v-else class="pick-list">
+              <div v-for="t in selectedTitles" :key="t.id" class="pick-row">
+                <span class="pick-row__name">{{ t.text }}</span>
+                <el-icon class="pick-row__x" title="移除" @click="removeTitleText(t)"><Close /></el-icon>
+              </div>
             </div>
           </div>
           <div class="col-foot">
@@ -216,7 +217,17 @@
           </div>
           <div class="col-body">
             <el-empty v-if="!landingSelected" description="暂无" :image-size="60" />
-            <div v-else class="col-line">{{ landingSummary }}</div>
+            <div v-else class="pick-list">
+              <div v-for="a in selectedAccounts" :key="a.id" class="pick-group">
+                <div class="pick-row">
+                  <span class="pick-row__name">{{ a.name }}</span>
+                </div>
+                <div class="pick-row">
+                  <span class="pick-row__url" :title="landingUrl">{{ landingUrl }}</span>
+                  <el-icon class="pick-row__x" title="移除" @click="clearLanding"><Close /></el-icon>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="col-foot">
             <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -229,12 +240,12 @@
       <!-- 线上转化优化版（线上实测 6 个：关联产品 / 分包与监测活动 / 定向包 / 项目预算与出价 / 产品信息 / 广告设置） -->
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
-          <el-button @click="relatedVisible = true">关联产品</el-button>
-          <el-button @click="monitorGroupVisible = true">分包与监测活动</el-button>
-          <el-button @click="targetingVisible = true">定向包</el-button>
-          <el-button @click="projVisible = true">项目预算与出价</el-button>
-          <el-button @click="openAdPanel('ad-products')">产品信息</el-button>
-          <el-button @click="openAdPanel('ad-settings')">广告设置</el-button>
+          <el-button @click="relatedVisible = true"><i class="tip-icon">?</i>关联产品</el-button>
+          <el-button @click="monitorGroupVisible = true"><i class="tip-icon">?</i>分包与监测活动</el-button>
+          <el-button @click="targetingVisible = true"><i class="tip-icon">?</i>定向包</el-button>
+          <el-button @click="projVisible = true"><i class="tip-icon">?</i>项目预算与出价</el-button>
+          <el-button @click="openAdPanel('ad-products')"><i class="tip-icon">?</i>产品信息</el-button>
+          <el-button @click="openAdPanel('ad-settings')"><i class="tip-icon">?</i>广告设置</el-button>
         </template>
         <template v-else>
           <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -2805,6 +2816,22 @@
       </template>
     </el-drawer>
 
+    <!-- 标题乱序弹窗（线上：560px，乱序对象 标题包 / 标题） -->
+    <el-dialog v-model="shuffleVisible" title="标题乱序" width="560px" append-to-body class="shuffle-dialog">
+      <el-form label-position="left" label-width="80px">
+        <el-form-item label="乱序对象">
+          <el-radio-group v-model="shuffleTarget" size="small">
+            <el-radio-button value="PACK">标题包</el-radio-button>
+            <el-radio-button value="TITLE">标题</el-radio-button>
+          </el-radio-group>
+          <div class="ad-warn-hint">{{ shuffleHint }}</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button type="primary" @click="confirmShuffle">确 定</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 落地页抽屉 -->
     <el-drawer v-model="lpVisible" title="选择落地页" size="1016px" direction="rtl">
       <el-form :model="form.landing" class="drawer-form" label-position="left" label-width="144px">
@@ -2940,7 +2967,7 @@
     </el-dialog>
 
     <!-- 选择已有项目抽屉（对齐线上：大卡片 = 筛选 + 当前项目 + 选择已有项目 + 项目表 + 分页） -->
-    <el-drawer v-model="existingVisible" title="选择已有项目" size="1040px" direction="rtl">
+    <el-drawer v-model="existingVisible" title="选择已有项目" size="1016px" direction="rtl">
       <div class="ex-card">
         <!-- 筛选区：每项为「标签 + 控件」合成输入框 -->
         <div class="ex-filter-grid" v-show="!exFilterFolded">
@@ -4146,11 +4173,15 @@ const accountSummary = computed(() => {
   // 只展示第一个账户名称，其余通过鼠标移入浮层查看
   return selectedAccounts.value[0]?.name || '请选择媒体账户';
 });
+const projectBudgetText = computed(() => (
+  ['OFF', 'UNLIMIT'].includes(form.project.budget_mode) ? '不限' : `${form.project.budget ?? '—'}元`
+));
+const projectBidText = computed(() => (form.project.bid ? `${form.project.bid}元` : '无'));
+const projectDeepBidText = computed(() => (form.project.deep_bid ? `${form.project.deep_bid}元` : '无'));
 const ruleSummary = computed(() => {
   const ar = AD_RULES.find((r) => r.value === form.ad_rule)?.label || '';
-  if (form.create_mode === 'EXIST') return `已有项目 广告规则: ${ar}`;
   const pr = PROJECT_RULES.find((r) => r.value === form.project_rule)?.label || '';
-  return `项目归属: ${pr} 应用规则: ${ar}`;
+  return `项目规则: ${pr} 广告规则: ${ar}`;
 });
 const externalActionLabel = computed(() => {
   const all = Object.values(EXTERNAL_ACTIONS).flat();
@@ -4166,9 +4197,18 @@ const selectedVideos = computed(() => videos.value.filter((v) => form.ad.video_i
 const selectedImages = computed(() => images.value.filter((i) => form.ad.image_ids.includes(i.id)));
 const materialCount = computed(() => selectedVideos.value.length + selectedImages.value.length);
 const selectedTitlePacks = computed(() => titlePacks.value.filter((t) => form.ad.title_packs.includes(t.id)));
+/* 标题包列逐条展示标题文案（线上：一行一条标题 + ×） */
+const selectedTitles = computed(() => selectedTitlePacks.value.flatMap((p) => (p.titles || []).map((t, i) => ({ id: `${p.id}-${i}`, text: t, packId: p.id, index: i }))));
+function removeTitleText(row) {
+  const p = selectedTitlePacks.value.find((x) => x.id === row.packId);
+  if (!p) return;
+  p.titles.splice(row.index, 1);
+  if (!p.titles.length) form.ad.title_packs = form.ad.title_packs.filter((id) => id !== p.id);
+}
 const titleCount = computed(() => selectedTitlePacks.value.reduce((n, t) => n + (t.titles?.length || 1), 0));
 const landingSelected = computed(() => !!form.ad.landing_page_id);
 const landingSummary = computed(() => landingPages.value.find((l) => l.id === form.ad.landing_page_id)?.title || '');
+const landingUrl = computed(() => landingPages.value.find((l) => l.id === form.ad.landing_page_id)?.url || '');
 
 const projectOptions = computed(() => [...new Set(mediaAccounts.value.map((a) => a.project))]);
 const filteredAccounts = computed(() => {
@@ -4559,7 +4599,36 @@ function clearMaterials() {
   form.materials.creative_groups.forEach((g) => { g.videos = []; g.images = []; g.text_images = []; });
 }
 function clearTitles() { form.ad.title_packs = []; }
-function shuffleTitles() { ElMessage.info('原型：标题已乱序（本地模拟）'); }
+/* 线上：标题乱序先弹「乱序对象」选择框（标题包 / 标题） */
+const shuffleVisible = ref(false);
+const shuffleTarget = ref('PACK');
+const shuffleHint = computed(() => (
+  shuffleTarget.value === 'PACK'
+    ? '将已选标题包随机排序,不打乱其内部标题'
+    : '将已选标题随机排序'
+));
+function shuffleTitles() {
+  shuffleVisible.value = true;
+}
+function confirmShuffle() {
+  const packs = selectedTitlePacks.value;
+  if (shuffleTarget.value === 'PACK') {
+    for (let i = packs.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [packs[i], packs[j]] = [packs[j], packs[i]];
+    }
+  } else {
+    const titles = selectedTitles.value.map((t) => t.text);
+    for (let i = titles.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [titles[i], titles[j]] = [titles[j], titles[i]];
+    }
+    let k = 0;
+    packs.forEach((p) => { p.titles.forEach((_, i) => { if (p.titles[i] !== undefined) p.titles[i] = titles[k++]; }); });
+  }
+  ElMessage.success('已乱序');
+  shuffleVisible.value = false;
+}
 function clearLanding() {
   form.ad.landing_page_id = null;
   form.landing.landing_page_name = ''; form.landing.track_url = '';
@@ -4943,23 +5012,37 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .rule-value.placeholder { color: #c9cdd4; }
 .rule-input { width: 220px; }
 /* 五列配置区（列宽比例对齐线上：项目 19.2% / 广告信息 15.4% / 创意素材 30.8% / 标题包 19.2% / 落地页 15.4%） */
-.grid-cols { display: grid; grid-template-columns: 19.2% 15.4% 30.8% 19.2% 15.4%; border: 1px solid #e5e6eb; border-radius: 4px; overflow: hidden; }
+/* 线上实测列宽：400 / 320 / 640 / 400 / 373（总 2133） */
+.grid-cols { display: grid; grid-template-columns: 18.75% 15% 30% 18.75% 17.5%; border: 1px solid #e5e6eb; border-radius: 4px; overflow: hidden; }
 .col { display: flex; flex-direction: column; min-height: 300px; border-right: 1px solid #e5e6eb; }
 .col:last-child { border-right: none; }
-.col-head { padding: 12px 16px; font-weight: 600; font-size: 14px; border-bottom: 1px solid #f2f3f5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.col-head { min-height: 32px; padding: 5px 16px; font-weight: 400; font-size: 14px; color: #333; border-bottom: 1px solid #f2f3f5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.col-head__right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.col-head__link { font-size: 12px; color: #999; padding: 0; }
 .col-head__title { color: #1d2129; }
 .col-count { font-size: 12px; font-weight: 400; color: #86909c; }
 .col-head .col-head__act { margin-left: auto; padding: 0; font-size: 12px; }
 .col-head .col-head__act + .col-head__act { margin-left: 0; }
-.col-body { flex: 1; padding: 12px 16px; overflow-y: auto; }
-.col-body--center { display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
+.col-body { flex: 1; padding: 8px 16px; overflow-y: auto; }
+.col-body--center { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; }
 .col-body--center .col-pick { align-self: center; }
 .proj-col { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: flex-start; }
 .col-pick { font-size: 13px; }
 .col-line { font-size: 13px; color: #4e5969; margin-bottom: 8px; }
 .material-list { display: flex; flex-direction: column; gap: 6px; }
 .material-chip { font-size: 12px; color: #4e5969; background: #f7f8fa; border-radius: 4px; padding: 6px 8px; }
-.col-foot { padding: 10px 16px; border-top: 1px solid #f2f3f5; text-align: center; }
+.col-foot { padding: 8px 16px; border-top: 1px solid #f2f3f5; text-align: center; }
+.col-foot .el-button { font-size: 12px; color: #197afb; }
+.mat-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.mat-tile__box { position: relative; aspect-ratio: 16 / 10; background: #f2f3f5; border-radius: 2px; display: flex; align-items: center; justify-content: center; }
+.mat-tile__tag { font-size: 10px; color: #c9cdd4; }
+.pick-list { display: flex; flex-direction: column; gap: 10px; }
+.pick-group { display: flex; flex-direction: column; gap: 2px; }
+.pick-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4e5969; }
+.pick-row__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-row__url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #86909c; }
+.pick-row__x { cursor: pointer; color: #86909c; }
+.tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; border-radius: 50%; background: #00b42a; color: #fff; font-style: normal; font-size: 10px; line-height: 1; vertical-align: -2px; cursor: help; }
 .action-bar { display: flex; justify-content: center; gap: 12px; background: #fff; border-radius: 6px; padding: 16px; }
 .preview-card { min-height: 280px; }
 .preview-title { font-size: 15px; font-weight: 600; }
@@ -5312,7 +5395,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .mode-split__text { font-size: 14px; color: #165dff; }
 .mode-split__cell.active .mode-split__text { color: #1d2129; font-weight: 600; }
 /* 抖音号 / 产品信息 / 广告设置 按钮行 */
-.cfg-btns { display: flex; gap: 12px; margin-top: 14px; }
+.cfg-btns { display: flex; gap: 12px; margin-top: 0; padding: 8px 16px; border: 1px solid #e5e6eb; border-top: none; border-radius: 0 0 4px 4px; }
+.cfg-btns .el-button { font-size: 12px; color: #666; background: #fff; border-color: #d0d0d0; border-radius: 3px; padding: 9px 15px; }
 /* 规则配置：卡片式 */
 .rule-form :deep(.el-form-item__label) { font-size: 14px; color: #1d2129; white-space: nowrap; word-break: keep-all; }
 /* 底部单行字段（每个账户指定项目数 / 每个项目广告数上限 / 每个项目指定广告数）：标签 + ⓘ + 输入框同行不换行 */

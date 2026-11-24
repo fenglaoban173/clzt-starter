@@ -10,6 +10,11 @@
     @open="init"
   >
     <div class="sg-body">
+      <!-- 页签（线上：策略组 / 铺剧策略） -->
+      <el-tabs v-model="tab" class="sg-tabs">
+        <el-tab-pane label="策略组" name="group" />
+        <el-tab-pane label="铺剧策略" name="drama" />
+      </el-tabs>
       <!-- 查询条件（对齐线上：每行 3 列，第 2 行第 3 列放名称检索 + 清空 + 自定义列） -->
       <div class="sg-filter">
         <el-select v-model="filters.objective" class="sg-f" placeholder="全部">
@@ -62,6 +67,13 @@
         </el-table-column>
         <el-table-column label="策略组ID" prop="id" width="90" show-overflow-tooltip />
         <el-table-column label="策略组名称" prop="name" width="150" show-overflow-tooltip />
+        <el-table-column
+          v-if="tab === 'drama'"
+          label="描述"
+          prop="description"
+          width="180"
+          show-overflow-tooltip
+        />
         <el-table-column
           v-for="c in shownColumns"
           :key="c.key"
@@ -142,6 +154,7 @@ const AD_TYPES = ['通投广告', '搜索广告'];
 const DELIVERY_TYPES = ['常规投放', '周期稳投', '智能托管'];
 
 // 列表数据（原型本地模拟，复制 / 删除在本地生效）
+const tab = ref('group');
 const list = ref([...strategyGroups]);
 const selectedId = ref('');
 const page = ref(1);
