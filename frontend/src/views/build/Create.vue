@@ -985,9 +985,10 @@
           <el-row :gutter="12">
             <el-col :span="24">
               <el-form-item label="选择产品">
-                <el-select v-model="form.project.product_ids" multiple filterable placeholder="选择产品" style="width: 100%">
-                  <el-option v-for="p in productOptions" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
-                </el-select>
+                <el-button type="primary" size="small" @click="relatedVisible = true">选择产品</el-button>
+                <span v-if="form.project.product_ids.length" class="sel-picked">
+                  已选 {{ form.project.product_ids.length }} 个产品
+                </span>
               </el-form-item>
             </el-col>
           </el-row>
@@ -1105,6 +1106,9 @@
             </el-form-item>
           </el-col>
           <el-col :span="12" v-if="needEventAsset">
+            <el-form-item label="选择分包和链接组">
+              <el-button type="primary" size="small" @click="monitorLinkVisible = true">选择分包和链接组</el-button>
+            </el-form-item>
             <el-form-item label="事件管理资产">
               <el-select v-model="form.project.asset_ids" multiple filterable placeholder="选择事件资产（可设备用兜底）">
                 <el-option v-for="e in eventAssets" :key="e.id" :value="e.id" :label="e.name">{{ e.name }}</el-option>
@@ -1176,9 +1180,10 @@
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="选择定向包">
-              <el-select v-model="form.project.audience_package_id" clearable placeholder="选择定向包（优先于自定义定向）" style="width: 100%">
-                <el-option v-for="o in orientationPackages" :key="o.id" :value="o.id" :label="o.name">{{ o.name }}</el-option>
-              </el-select>
+              <el-button type="primary" size="small" @click="targetingVisible = true">选择定向包</el-button>
+              <span v-if="form.project.audience_package_id" class="sel-picked">
+                {{ (orientationPackages.find(p => p.id === form.project.audience_package_id) || {}).name }}
+              </span>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -2765,6 +2770,7 @@ function onRelatedSearch() { ElMessage.success(`已按「${relatedForm.keyword |
 function confirmRelated() {
   if (!relatedForm.picked.length) { ElMessage.warning('请选择产品'); return; }
   form.project.product_ids = relatedForm.picked.slice();
+  form.ad.product_ids = relatedForm.picked.slice();
   ElMessage.success(`已关联 ${relatedForm.picked.length} 个产品`);
   relatedVisible = false;
 }
@@ -4017,6 +4023,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.sel-picked { margin-left: 10px; font-size: 12px; color: #86909c; }
 /* 线上抽屉：浅灰蓝底 + 每个板块白色圆角矩形（实测底色 #f0f2f5） */
 :deep(.el-drawer__body) { background: #f0f2f5; }
 .form-section { background: #ffffff; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
