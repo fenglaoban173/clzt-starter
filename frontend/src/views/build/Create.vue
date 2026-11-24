@@ -3078,6 +3078,9 @@ function onObjectiveChange(val) {
     type: 'warning',
   }).then(() => {
     clearObjectiveFilled();
+    // objective 与官方 landing_type 枚举一致，直接同步
+    form.project.landing_type = form.project.objective;
+    onLandingTypeChange();
   }).catch(() => {
     form.project.objective = old;
     prevObjective = old;
@@ -4067,12 +4070,6 @@ const needEventAsset = computed(() => ['APP', 'QUICK_APP'].includes(form.project
 const needActionTargeting = computed(() => ['ACTION', 'INTEREST_ACTION'].includes(form.project.interest_action_mode));
 
 const productOptions = computed(() => products.value);
-
-function onObjectiveChange() {
-  // objective 与官方 landing_type 枚举一致，直接同步
-  form.project.landing_type = form.project.objective;
-  onLandingTypeChange();
-}
 
 // ---- 分时投放网格（星期 × 小时，点击切换 / 拖动圈选）----
 const dragActive = ref(false);
