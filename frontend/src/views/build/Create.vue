@@ -18,7 +18,7 @@
           <el-button type="primary" @click="strategyVisible = true">选择策略</el-button>
           <el-button type="primary" @click="taskVisible = true">选择任务</el-button>
           <span v-if="taskSelected" class="picked-task">
-            已选「任务」: {{ taskSelected.name }}
+            已选「任务」：{{ taskSelected.name }}
             <el-icon class="picked-task__x" title="重新选择" @click="taskVisible = true"><Close /></el-icon>
             <el-button link type="primary" class="picked-task__edit" @click="taskVisible = true">更改</el-button>
           </span>
@@ -109,11 +109,11 @@
                   </el-button>
                 </div>
                 <div class="proj-block__body">
-                  <div class="proj-line">项目名称: {{ form.project.name || '—' }}</div>
-                  <div class="proj-line">项目预算: {{ projectBudgetText }}</div>
-                  <div class="proj-line">项目出价: {{ projectBidText }}</div>
-                  <div class="proj-line">项目深度出价: {{ projectDeepBidText }}</div>
-                  <div class="proj-line">推广目的: {{ objectiveLabel }}</div>
+                  <div class="proj-line">项目名称：{{ form.project.name || '—' }}</div>
+                  <div class="proj-line">项目预算：{{ projectBudgetText }}</div>
+                  <div class="proj-line">项目出价：{{ projectBidText }}</div>
+                  <div class="proj-line">项目深度出价：{{ projectDeepBidText }}</div>
+                  <div class="proj-line">推广目的：{{ objectiveLabel }}</div>
                 </div>
               </div>
               <div class="proj-block">
@@ -151,13 +151,13 @@
         <div class="col">
           <div class="col-head"><span class="col-head__title">{{ cardTitle.ad }}</span></div>
           <div class="col-body">
-            <div class="col-line">广告名称: {{ form.ad.name_template || '未设置' }}</div>
-            <div class="col-line">产品名称: {{ form.ad.product_name || form.project.app_name || '无' }}</div>
-            <div class="col-line">广告评论: {{ form.ad.comment || '无' }}</div>
-            <div class="col-line">客户端下载视频: {{ form.ad.download_video === 'ON' ? '启用' : '不启用' }}</div>
-            <div class="col-line">所属类别: {{ form.ad.category || '无' }}</div>
-            <div class="col-line">品牌名称: {{ form.ad.brand_name || '无' }}</div>
-            <div class="col-line">二级品牌名称: {{ form.ad.brand_name_2 || '无' }}</div>
+            <div class="col-line">广告名称：{{ form.ad.name_template || '未设置' }}</div>
+            <div class="col-line">产品名称：{{ form.ad.product_name || form.project.app_name || '无' }}</div>
+            <div class="col-line">广告评论：{{ form.ad.comment || '无' }}</div>
+            <div class="col-line">客户端下载视频：{{ form.ad.download_video === 'ON' ? '启用' : '不启用' }}</div>
+            <div class="col-line">所属类别：{{ form.ad.category || '无' }}</div>
+            <div class="col-line">品牌名称：{{ form.ad.brand_name || '无' }}</div>
+            <div class="col-line">二级品牌名称：{{ form.ad.brand_name_2 || '无' }}</div>
           </div>
           <div class="col-foot">
             <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -170,7 +170,7 @@
         <div class="col">
           <div class="col-head">
             <span class="col-head__title">创意素材</span>
-            <span class="col-count">已选创意组: {{ materialCount }}/500</span>
+            <span class="col-count">已选创意组：{{ materialCount }}/500</span>
             <el-button link type="primary" class="col-head__act" @click="clearMaterials">清空</el-button>
           </div>
           <div class="col-body">
@@ -193,7 +193,7 @@
         <div class="col">
           <div class="col-head">
             <span class="col-head__title">{{ cardTitle.title }}</span>
-            <span class="col-count">已选: {{ titleCount }}/{{ isUni ? 100 : 200 }}</span>
+            <span class="col-count">已选：{{ titleCount }}/{{ isUni ? 100 : 200 }}</span>
             <el-button link type="primary" class="col-head__act" @click="shuffleTitles">乱序</el-button>
             <el-button link type="primary" class="col-head__act" @click="clearTitles">清空</el-button>
           </div>
@@ -292,19 +292,28 @@
         </div>
         <div class="preview-head__right">
           <div class="est" @click="estOpen = !estOpen">
-            预估生成 <b>{{ est.total }}</b> 条{{ isOc ? '项目' : '广告' }}
+            预估生成 <b>{{ est.total }}</b> 个{{ isOc ? '项目' : '广告' }}
             <el-icon class="est__caret"><ArrowUp v-if="estOpen" /><ArrowDown v-else /></el-icon>
           </div>
-          <el-button v-if="isUni" type="primary" @click="onSubmit">全部提交审核</el-button>
+          <el-button type="primary" @click="onSubmit">全部提交审核</el-button>
         </div>
       </div>
       <template v-if="preview">
+        <el-alert type="warning" :closable="false" class="preview-alert">
+          <template #title>
+            <span class="preview-alert__text">
+              创量定向已升级至提交任务时获取最新定向信息，点击
+              <el-button link type="primary" class="preview-alert__link" @click="ElMessage.info('原型：查看此刻最新定向内容')">查看</el-button>
+              此刻最新定向内容（仅供查看实际以提交时为准）
+            </span>
+          </template>
+        </el-alert>
         <div class="stat-row">
-          <span class="stat-row__item">项目数量: <b>{{ previewStats.project_count }}</b></span>
-          <span class="stat-row__item">广告数量: <b>{{ previewStats.ad_count }}</b></span>
-          <span class="stat-row__item">已选项目: <b>{{ previewStats.selected_project }}</b></span>
-          <span class="stat-row__item">当前新增广告数: <b>{{ previewStats.new_ad_count }}</b></span>
-          <span class="stat-row__item">所有广告配额: <b>{{ previewStats.ad_quota }}</b></span>
+          <span class="stat-row__item">项目数量：<b>{{ previewStats.project_count }}</b></span>
+          <span class="stat-row__item">广告数量：<b>{{ previewStats.ad_count }}</b></span>
+          <span class="stat-row__item">已有项目：<b>{{ previewStats.selected_project }}</b></span>
+          <span class="stat-row__item">当日新建广告数：<b>{{ previewStats.new_ad_count }}</b></span>
+          <span class="stat-row__item">所有广告配额：<b>{{ previewStats.ad_quota }}</b></span>
           <el-dropdown class="preview-batch" @command="onPreviewBatch">
             <el-button size="small">
               批量操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -352,11 +361,15 @@
             <el-table-column label="项目信息" min-width="240">
               <template #default="{ row }">
                 <div class="pv-cell">
-                  <span>项目名称: {{ row.g.project.name }}</span>
-                  <span>预算: {{ row.g.project.budget }}元</span>
-                  <span>出价: {{ row.g.project.bid }}</span>
-                  <span>深度出价: {{ row.g.project.deep_bid }}</span>
-                  <span>推广目的: {{ row.g.project.goal }}</span>
+                  <span>项目名称：{{ row.g.project.name }}</span>
+                  <span>预算：{{ row.g.project.budget }}元</span>
+                  <span>出价：{{ row.g.project.bid }}</span>
+                  <span>深度出价：{{ row.g.project.deep_bid }}</span>
+                  <span>回传方式：{{ row.g.project.callback }}</span>
+                  <span>优化目标：{{ row.g.project.goal }}</span>
+                  <span>监测链接组：{{ row.g.project.link_group }}</span>
+                  <span>关联产品：{{ row.g.project.related_product }}</span>
+                  <span>资产名称：{{ row.g.project.asset_name }}</span>
                 </div>
               </template>
             </el-table-column>
@@ -398,7 +411,11 @@
               <template #default="{ row }"><span>{{ row.ad.title_pack }}</span></template>
             </el-table-column>
             <el-table-column label="广告资产" min-width="280">
-              <template #default="{ row }"><div class="pv-cell"><span>{{ row.ad.assets }}</span></div></template>
+              <template #default="{ row }">
+                <div class="pv-cell">
+                  <span v-for="(ln, li) in adAssetLines(row.ad.assets)" :key="li">{{ ln }}</span>
+                </div>
+              </template>
             </el-table-column>
             <el-table-column label="提交状态" min-width="90">
               <template #default="{ row }"><span>{{ row.ad.status }}</span></template>
@@ -3681,6 +3698,10 @@ const previewStats = computed(() => {
 });
 /* 预览区已删除的广告行（删除广告后不再展示，统计同步变化） */
 const deletedAdKeys = ref([]);
+/* 广告资产单元格：线上为多行文本，按分隔拆行 */
+function adAssetLines(text) {
+  return String(text || '').split(/\s(?=[^\s：]{2,}：)/).map((s) => s.trim()).filter(Boolean);
+}
 const previewRows = computed(() => {
   const idx = previewAccountIdx.value;
   const acc = previewAccounts.value[idx];
@@ -3695,8 +3716,8 @@ const previewRows = computed(() => {
     const base = src[i] || src[src.length - 1] || {};
     const ad = {
       name: base.name || `广告-${i + 1}`,
-      materials: base.materials || '已选: 20 个素材',
-      title_pack: base.title_pack || '标题包: 红果',
+      materials: base.materials || '已选：10个素材',
+      title_pack: base.title_pack || '红果',
       assets: base.assets || acc.project?.assets || '',
       status: base.status || '待提交',
     };
@@ -4202,7 +4223,7 @@ const projectDeepBidText = computed(() => (form.project.deep_bid ? `${form.proje
 const ruleSummary = computed(() => {
   const ar = AD_RULES.find((r) => r.value === form.ad_rule)?.label || '';
   const pr = PROJECT_RULES.find((r) => r.value === form.project_rule)?.label || '';
-  return `项目规则: ${pr} 广告规则: ${ar}`;
+  return `项目规则：${pr} 广告规则：${ar}`;
 });
 const externalActionLabel = computed(() => {
   const all = Object.values(EXTERNAL_ACTIONS).flat();
@@ -5221,6 +5242,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .preview-tab { font-size: 13px; color: #4e5969; padding: 4px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
 .preview-tab.active { color: #197afb; background: #e8f1ff; }
 .preview-head__right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.preview-alert { margin: 12px 0; }
+.preview-alert__text { font-size: 13px; color: #4e5969; }
+.preview-alert__link { font-size: 13px; padding: 0; vertical-align: baseline; }
 .stat-row { display: flex; align-items: center; gap: 24px; padding: 10px 0; font-size: 13px; color: #4e5969; }
 .stat-row__item b { color: #1d2129; font-weight: 600; }
 .preview-batch { margin-left: auto; }

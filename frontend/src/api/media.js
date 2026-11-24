@@ -107,16 +107,22 @@ export const buildApi = {
     }));
     /* 线上预览区结构：账户 → 项目 → 广告（每个账户 1 个项目 / 5 个创意组 / 5 条广告） */
     const ADS_PER_ACCOUNT = 5;
+    /* 线上预览区口径（文案逐字对齐线上） */
     const projectInfo = {
       name: plan.project?.name || '新建项目',
-      budget: plan.project?.budget ?? 999999,
-      bid: plan.project?.bid ?? 39.5,
+      budget: plan.project?.budget ?? 9999999,
+      bid: plan.project?.bid ?? 39,
       deep_bid: '无',
-      goal: '应用推广',
-      conversion: '回传方式: 应用AP回传 / 优化目标: 激活-无 / 品牌词排除: YGEX-短剧-单选-态-变-33P',
-      ad_position: '通用智选',
-      targeting: plan.targeting_name || '定向包名称: 红果短剧-定向',
-      assets: '落地页1: https://ug5.cn/app/armor/dynamic/s/ch/CC3I6KpRUMP.xgap 落地页/抖音号: 0 抖音号 原生端: 无 创意端: 无 产品名: 红果急漫跑剧 试玩端预览: 无',
+      callback: '应用API回传',
+      goal: '激活-无',
+      link_group: 'YG9EX-安卓-短剧-单激活-50户',
+      related_product: '江先生，别太野',
+      asset_name: '红果免费短剧',
+      conversion: '激活-无',
+      ad_position: '通投智选',
+      targeting: plan.targeting_name || '定向包名称：红果短剧-定向',
+      assets: '落地页1：https://ugh5.cn/ug/app/armor/dynamich5/csr/CC3I6KpRUM?page_id=914f51b1-e4b9-11f1-a072-e89e49dfda7d_8662&hide_web_button=1&template_id=wJ375jJEpV'
+        + ' 抖音号：0个抖音号 原生锚点：无 创意组件：无 产品名称：红果免费短剧 试玩落地页：无',
     };
     const accountList = (accounts.length ? accounts : ['']).map((id, ai) => ({
       id,
@@ -125,9 +131,9 @@ export const buildApi = {
       ads: ADS_PER_ACCOUNT,
       project: projectInfo,
       ads_detail: Array.from({ length: ADS_PER_ACCOUNT }, (_, i) => ({
-        name: `YGEX-and-短剧剧-天下第一剑侠-16-7575114${75053986107 + ai * 10 + i}-先广-1123-${24040 + i}`,
-        materials: '已选: 20 个素材',
-        title_pack: '标题包: 红果',
+        name: `YG9EX-and-纯短剧-江先生，别太野-16-7647494655688313880-央广-<广告创建日期>${i + 1}`,
+        materials: '已选：10个素材',
+        title_pack: '红果',
         assets: projectInfo.assets,
         status: '待提交',
       })),
