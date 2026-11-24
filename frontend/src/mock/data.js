@@ -1203,6 +1203,9 @@ export const TARGET_PACKAGE_SOURCES = [
 // 竞价策略
 export const BID_STRATEGIES = [
   { value: 'STABLE_COST', label: '稳定成本-常规版', desc: '成本稳定在出价附近' },
+  { value: 'STABLE_UPGRADE', label: '稳定成本-升级版', desc: '广告潜力探索' },
+  { value: 'VOLUME', label: '放量投放', desc: '成本上浮，获取更多跑量' },
+  { value: 'BEST_COST', label: '最优成本', desc: '均分消耗预算，成本不超过出价' },
   { value: 'MAX_CONVERT', label: '最大转化', desc: '花完预算，拿到最大转化（价值）' },
 ];
 

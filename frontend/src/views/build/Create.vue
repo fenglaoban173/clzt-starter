@@ -156,8 +156,6 @@
           <div class="col-head"><span class="col-head__title">{{ cardTitle.ad }}</span></div>
           <div class="col-body">
             <div class="col-line">广告名称: {{ form.ad.name_template || '未设置' }}</div>
-            <div class="col-line">广告预算: {{ form.ad.budget ?? '无' }}</div>
-            <div class="col-line">广告出价: {{ form.ad.bid ?? '无' }}</div>
             <div class="col-line">产品名称: {{ form.ad.product_name || form.project.app_name || '无' }}</div>
             <div class="col-line">广告评论: {{ form.ad.comment || '无' }}</div>
             <div class="col-line">客户下载次数: {{ form.ad.download_count ?? '无' }}</div>
@@ -1643,9 +1641,18 @@
             </el-form-item>
             <el-form-item label="竞价策略">
               <template #label><span class="q-label">竞价策略</span><el-tooltip :content="TIPS.bid_strategy" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template>
-              <el-select v-model="form.project.bid_strategy" style="width: 100%">
-                <el-option v-for="o in BID_STRATEGIES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
+              <div class="bid-cards">
+                <div
+                  v-for="o in BID_STRATEGIES"
+                  :key="o.value"
+                  class="bid-card"
+                  :class="{ active: form.project.bid_strategy === o.value }"
+                  @click="form.project.bid_strategy = o.value"
+                >
+                  <div class="bid-card__title">{{ o.label }}</div>
+                  <div class="bid-card__desc">{{ o.desc }}</div>
+                </div>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -2027,9 +2034,14 @@
               </template>
               <div v-show="!adBudget.folded" class="ad-rule-box">
                 <el-form-item label="预算">
-                  <el-input v-model="adBudget.budget" class="ad-rule-input">
-                    <template #append>元</template>
-                  </el-input>
+                  <div class="ad-rule-budget">
+                    <el-input v-model="adBudget.budget" class="ad-rule-input">
+                      <template #append>元</template>
+                    </el-input>
+                    <span class="ad-rule-quick">
+                      <a v-for="q in [300, 500, 1000, 2000]" :key="q" @click="adBudget.budget = String(q)">{{ q }}</a>
+                    </span>
+                  </div>
                 </el-form-item>
                 <el-form-item label="出价">
                   <el-input v-model="adBudget.bid" class="ad-rule-input">
@@ -3054,6 +3066,33 @@ const keywordPackOptions = [
   { id: 'kp_3', name: '竞品词包' },
 ];
 /* 通投 → 搜索：线上会换掉投放类型/匹配方式/项目预算，并带出关键词相关字段 */
+/* 线上：切换推广目的会先二次确认，并清空已填写内容 */
+let prevObjective = form.project.objective;
+function onObjectiveChange(val) {
+  const old = prevObjective;
+  prevObjective = val;
+  if (!old || old === val) return;
+  ElMessageBox.confirm('切换推广目的将会清空您已填写的所有内容，是否继续切换？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    clearObjectiveFilled();
+  }).catch(() => {
+    form.project.objective = old;
+    prevObjective = old;
+  });
+}
+function clearObjectiveFilled() {
+  form.project.app_promotion_type = '';
+  form.project.ad_type = '';
+  form.project.delivery_type = '';
+  form.project.delivery_mode = '';
+  form.project.marketing_goal = '';
+  form.project.inner_promotion = 'OFF';
+  form.project.app_name = '';
+  ElMessage.success('已清空已填写内容');
+}
 function onAdTypeChange() {
   if (isSearchAd.value) {
     form.project.delivery_type = 'RAPID';
@@ -4574,6 +4613,15 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .proj-line__sub { color: #c9cdd4; margin-left: 6px; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.bid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; width: 100%; }
+.bid-card { padding: 10px 12px; border: 1px solid #e5e6eb; border-radius: 4px; cursor: pointer; background: #fff; transition: border-color .2s; }
+.bid-card:hover { border-color: #197afb; }
+.bid-card.active { border-color: #197afb; background: #f5f9ff; }
+.bid-card__title { font-size: 13px; font-weight: 600; color: #1d2129; }
+.bid-card__desc { font-size: 12px; color: #86909c; margin-top: 6px; line-height: 1.5; }
+.ad-rule-budget { display: flex; align-items: center; gap: 10px; width: 100%; }
+.ad-rule-quick { display: flex; gap: 8px; font-size: 12px; }
+.ad-rule-quick a { color: #197afb; cursor: pointer; }
 .sub-obj { margin: 10px 0 4px; }
 .sub-obj__hint { font-size: 12px; color: #86909c; margin-top: 6px; }
 .cta-rec__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 12px; }
