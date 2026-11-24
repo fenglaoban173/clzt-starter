@@ -618,8 +618,8 @@
       </template>
     </el-drawer>
 
-    <!-- 随机选择（线上：更多菜单 → 随机选择） -->
-    <el-drawer v-model="randomPickVisible" title="随机选择" size="1016px" direction="rtl">
+    <!-- 随机选择 / 智能优选 / 一键测新（线上：三个入口共用同一个 800px 弹窗，标题随入口变化） -->
+    <el-dialog v-model="randomPickVisible" :title="randomPickTitle" width="800px" append-to-body class="rp-dialog">
       <el-form label-position="left" label-width="110px" class="rp-form">
         <el-form-item label="素材上传时间">
           <el-date-picker v-model="randomPickForm.uploadTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" style="width: 100%" />
@@ -633,29 +633,67 @@
           <el-select v-model="randomPickForm.catalog" multiple clearable placeholder="请选择素材目录" style="width: 100%">
             <el-option v-for="c in INVENTORY_CATALOGS" :key="c" :label="c" :value="c" />
           </el-select>
+          <div class="ad-hint">暂不支持目录下的媒体同步素材</div>
         </el-form-item>
         <el-form-item label="素材类型">
-          <el-select v-model="randomPickForm.materialType" multiple clearable placeholder="请选择素材类型" style="width: 100%">
-            <el-option v-for="t in MATERIAL_TYPES" :key="t.value" :label="t.label" :value="t.value" />
-          </el-select>
+          <el-radio-group v-model="randomPickForm.materialType" size="small">
+            <el-radio-button value="ALL">不限</el-radio-button>
+            <el-radio-button value="IMAGE">图片</el-radio-button>
+            <el-radio-button value="VIDEO">视频</el-radio-button>
+          </el-radio-group>
         </el-form-item>
         <el-form-item label="视频版式">
-          <el-select v-model="randomPickForm.videoLayout" multiple clearable placeholder="请选择视频版式" style="width: 100%">
-            <el-option v-for="v in VIDEO_MODES" :key="v.value" :label="v.label" :value="v.value" />
-          </el-select>
+          <el-radio-group v-model="randomPickForm.videoLayout" size="small">
+            <el-radio-button value="ALL">不限</el-radio-button>
+            <el-radio-button value="HORIZONTAL">横版视频</el-radio-button>
+            <el-radio-button value="VERTICAL">竖版视频</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="图片版式">
+          <el-radio-group v-model="randomPickForm.imageLayout" size="small">
+            <el-radio-button value="ALL">不限</el-radio-button>
+            <el-radio-button value="HORIZONTAL">横版图片</el-radio-button>
+            <el-radio-button value="VERTICAL">竖版图片</el-radio-button>
+            <el-radio-button value="SMALL">小图</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="素材属性">
+          <el-radio-group v-model="randomPickForm.materialAttr" size="small">
+            <el-radio-button value="ALL">不限</el-radio-button>
+            <el-radio-button value="QUALITY">优质</el-radio-button>
+            <el-radio-button value="FIRST">首发</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="素材使用情况">
+          <el-radio-group v-model="randomPickForm.useStatus" size="small">
+            <el-radio-button value="ALL">不限</el-radio-button>
+            <el-radio-button value="UNUSED">未使用</el-radio-button>
+            <el-radio-button value="NO_COST">无消耗</el-radio-button>
+            <el-radio-button value="COST">有消耗</el-radio-button>
+            <el-radio-button value="BOOM">爆量</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="素材过滤条件">
+          <el-checkbox-group v-model="randomPickForm.filters" class="rp-filters">
+            <el-checkbox v-for="f in MATERIAL_FILTERS" :key="f.value" :value="f.value">{{ f.label }}</el-checkbox>
+          </el-checkbox-group>
+          <div class="rp-filter-cnt">
+            <span>建议次数</span>
+            <el-input-number v-model="randomPickForm.suggest_count" :min="0" :max="999" controls-position="right" size="small" />
+            <span>拒审次数</span>
+            <el-input-number v-model="randomPickForm.reject_count" :min="0" :max="999" controls-position="right" size="small" />
+          </div>
+        </el-form-item>
+        <el-form-item label="创意组数量">
+          <el-input-number v-model="randomPickForm.group_count" :min="1" :max="500" controls-position="right" size="small" />
+          <span class="rp-unit">组</span>
         </el-form-item>
       </el-form>
-      <el-table :data="randomPickRows" size="small" border style="margin-top: 12px">
-        <el-table-column label="素材名称" prop="name" min-width="220" />
-        <el-table-column label="素材类型" prop="type" width="110" />
-        <el-table-column label="创量项目" prop="project" min-width="140" />
-        <el-table-column label="上传时间" prop="uploadTime" width="160" />
-      </el-table>
       <template #footer>
         <el-button @click="randomPickVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmRandomPick">确定</el-button>
       </template>
-    </el-drawer>
+    </el-dialog>
 
     <!-- 分包与监测活动（线上打开的是「选择巨量后台监测连接组」1016px，单列布局） -->
     <el-drawer v-model="monitorGroupVisible" title="选择巨量后台监测连接组" size="1016px" direction="rtl">
@@ -2437,6 +2475,7 @@
                     <el-radio-group v-model="form.materials.guide_video">
                       <el-radio value="OFF">不启用</el-radio>
                       <el-radio value="ON">原链路</el-radio>
+                      <el-radio value="NEW">新链路</el-radio>
                     </el-radio-group>
                   </el-form-item>
                 </el-col>
@@ -2456,7 +2495,7 @@
                     <el-input-number v-model="form.materials.group_text_count" :min="0" :max="10" controls-position="right" size="small" />
                   </div>
                 </div>
-                <div class="dlg-tip">即单个广告内的素材数量。注：视频不限，视频最多30个，图片最多50个，图文最多10个。</div>
+                <div class="dlg-tip">即单个广告内的素材数量。注：因媒体限制，视频最多30个，图片最多50个，图文最多10个。</div>
               </el-form-item>
               <el-form-item label="统一配置创意组名">
                 <div class="inline-row">
@@ -2479,35 +2518,50 @@
               <div class="creative-toolbar">
                 <el-button link @click="shuffleGroups">乱序</el-button>
                 <el-button link @click="clearMaterials">清空</el-button>
+                <el-button type="primary" plain size="small" @click="randomPick">随机选择</el-button>
+                <el-button type="primary" plain size="small" @click="smartPick">智能优选</el-button>
+                <el-button type="primary" plain size="small" @click="refreshGroups">一键测新</el-button>
                 <el-dropdown>
                   <el-button>更多菜单<el-icon><ArrowDown /></el-icon></el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item @click="randomPick">随机选择</el-dropdown-item>
-                      <el-dropdown-item @click="smartPick">智能优选</el-dropdown-item>
-                      <el-dropdown-item @click="refreshGroups">一键测新</el-dropdown-item>
+                      <el-dropdown-item @click="ElMessage.info('原型：批量添加封面')">批量添加封面</el-dropdown-item>
+                      <el-dropdown-item @click="ElMessage.info('原型：一键指定封面')">一键指定封面</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
-                <el-button type="primary">批量添加素材<el-icon><ArrowDown /></el-icon></el-button>
+                <el-dropdown>
+                  <el-button type="primary">批量添加素材<el-icon><ArrowDown /></el-icon></el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="ElMessage.info('原型：添加本地素材')">添加本地素材</el-dropdown-item>
+                      <el-dropdown-item @click="ElMessage.info('原型：添加冲量素材')">添加冲量素材</el-dropdown-item>
+                      <el-dropdown-item @click="ElMessage.info('原型：添加已有图文')">添加已有图文</el-dropdown-item>
+                      <el-dropdown-item @click="ElMessage.info('原型：自动新建图文')">自动新建图文</el-dropdown-item>
+                      <el-dropdown-item @click="ElMessage.info('原型：添加引导视频')">添加引导视频</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
               <div v-for="(g, gi) in form.materials.creative_groups" :key="gi" class="creative-group">
                 <div class="group-head">
-                  <el-input v-model="g.name" placeholder="创意组名称" style="width: 220px" />
+                  <span class="group-head__name">创意组{{ String(gi + 1).padStart(2, '0') }}</span>
+                  <el-button type="primary" size="small" @click="ElMessage.info('原型：添加素材')">添加素材</el-button>
+                  <el-input v-model="g.name" placeholder="创意组名称" style="width: 180px" />
                   <el-button v-if="form.materials.creative_groups.length > 1" link type="danger" @click="removeGroup(gi)">删除创意组</el-button>
                 </div>
                 <el-tabs v-model="g.tab" class="group-tabs">
-                  <el-tab-pane :label="`视频(${(g.videos || []).length}/1)`" name="video">
+                  <el-tab-pane :label="`视频(${(g.videos || []).length}/${form.materials.group_video_count})`" name="video">
                     <el-select v-model="g.videos" multiple filterable placeholder="选择视频" style="width: 100%">
                       <el-option v-for="v in videos" :key="v.id" :value="v.id" :label="v.title">{{ v.title }}</el-option>
                     </el-select>
                   </el-tab-pane>
-                  <el-tab-pane :label="`图片(${(g.images || []).length}/1)`" name="image">
+                  <el-tab-pane :label="`图片(${(g.images || []).length}/${form.materials.group_image_count})`" name="image">
                     <el-select v-model="g.images" multiple filterable placeholder="选择图片" style="width: 100%">
                       <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
                     </el-select>
                   </el-tab-pane>
-                  <el-tab-pane :label="`图文(${(g.text_images || []).length}/1)`" name="text">
+                  <el-tab-pane :label="`图文(${(g.text_images || []).length}/${form.materials.group_text_count})`" name="text">
                     <el-select v-model="g.text_images" multiple filterable placeholder="选择图文" style="width: 100%">
                       <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
                     </el-select>
@@ -2693,9 +2747,9 @@
 
     <!-- 落地页抽屉 -->
     <el-drawer v-model="lpVisible" title="选择落地页" size="1016px" direction="rtl">
-      <el-form :model="form.landing" class="drawer-form" label-position="top">
+      <el-form :model="form.landing" class="drawer-form" label-position="left" label-width="144px">
         <div class="form-section">
-          <div class="form-section__title">落地页设置</div>
+          <div class="form-section__title">选择落地页</div>
         <el-row :gutter="12">
           <el-col :span="12">
             <el-form-item label="每个广告配置">
@@ -2704,18 +2758,18 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="落地页分配方式">
-              <el-radio-group v-model="form.landing.landing_page_rule">
-                <el-radio value="ALL">全部相同</el-radio>
-                <el-radio value="PER_ACCOUNT">按账户分配</el-radio>
+            <el-form-item label="落地页类型">
+              <el-radio-group v-model="form.landing.landing_page_type" size="small">
+                <el-radio-button v-for="o in LANDING_PAGE_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="落地页类型">
-              <el-select v-model="form.landing.landing_page_type" style="width: 100%">
-                <el-option v-for="o in LANDING_PAGE_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
+            <el-form-item label="落地页分配方式">
+              <el-radio-group v-model="form.landing.landing_page_rule" size="small">
+                <el-radio-button value="ALL">全部相同</el-radio-button>
+                <el-radio-button value="PER_ACCOUNT">按账户分配</el-radio-button>
+              </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -2723,7 +2777,7 @@
               <el-input v-model="form.landing.landing_page_url" placeholder="请输入落地页链接" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" v-if="needsLandingPicker">
             <el-form-item label="选择落地页">
               <el-select v-model="form.ad.landing_page_id" clearable filterable placeholder="选择已登记落地页" style="width: 100%" @change="onLandingSelect">
                 <el-option v-for="lp in landingPages" :key="lp.id" :value="lp.id" :label="lp.title">{{ lp.title }}（{{ lp.url }}）</el-option>
@@ -2731,7 +2785,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="12">
+        <el-row :gutter="12" v-if="needsLandingDetail">
           <el-col :span="12">
             <el-form-item label="落地页名称">
               <el-input v-model="form.landing.landing_page_name" placeholder="请输入落地页名称" />
@@ -3614,6 +3668,9 @@ const adSettingVisible = ref(false);
 const matVisible = ref(false);
 const titleVisible = ref(false);
 const lpVisible = ref(false);
+/* 落地页类型决定后续字段（线上：选择已有落地页的几种类型才需要挑页面；动态生成/手动填写才要填名称与监测链接） */
+const needsLandingPicker = computed(() => ['ORANGE', 'ORANGE_SITE', 'CL_TEMPLATE', 'THIRDPARTY', 'COMMODITY'].includes(form.landing.landing_page_type));
+const needsLandingDetail = computed(() => ['DYNAMIC', 'MANUAL'].includes(form.landing.landing_page_type));
 const strategyVisible = ref(false);
 const taskVisible = ref(false);
 const saveVisible = ref(false);
@@ -4605,12 +4662,38 @@ function confirmCtaSaveTpl() {
 }
 /* 随机选择（线上：更多菜单 → 随机选择 → 抽屉 1016px） */
 const randomPickVisible = ref(false);
-const randomPickForm = reactive({ uploadTime: [], project: [], catalog: [], materialType: [], videoLayout: [] });
+const randomPickTitle = ref('随机选择');
+const MATERIAL_FILTERS = [
+  { value: 'USED_TODAY', label: '今日已使用素材' },
+  { value: 'LOW_EFFICIENCY', label: '低效素材' },
+  { value: 'LOW_QUALITY', label: '低质素材' },
+  { value: 'SIMILARITY', label: '同质化挤压严重' },
+  { value: 'QUEUE', label: '同质化排队' },
+  { value: 'REPOST', label: '搬运打压' },
+  { value: 'REJECTED', label: '预审拒绝素材' },
+  { value: 'EXTREME_SIMILAR', label: '极端相似素材' },
+  { value: 'DARK_WATERMARK', label: '暗水印素材' },
+];
+const randomPickForm = reactive({
+  uploadTime: [],
+  project: [],
+  catalog: [],
+  materialType: 'ALL',
+  videoLayout: 'ALL',
+  imageLayout: 'ALL',
+  materialAttr: 'ALL',
+  useStatus: 'ALL',
+  filters: [],
+  suggest_count: 0,
+  reject_count: 0,
+  group_count: 1,
+});
 const randomPickRows = ref([
   { name: '扮傻藏锋+我婆婆是豪门傻白甜！+261123+K0M+解压06', type: '视频', project: '知乎小说', uploadTime: '2026-11-23 10:20' },
   { name: '智冠上兵-谁在深坑里-27-11-20-知乎-半涨价-06', type: '视频', project: '知乎小说', uploadTime: '2026-11-22 18:02' },
 ]);
 function randomPick() {
+  randomPickTitle.value = '随机选择';
   randomPickVisible.value = true;
 }
 function confirmRandomPick() {
@@ -4618,9 +4701,13 @@ function confirmRandomPick() {
   randomPickVisible.value = false;
 }
 function smartPick() {
+  randomPickTitle.value = '智能优选';
+  randomPickVisible.value = true;
   ElMessage.info('原型：已智能优选素材（本地模拟）');
 }
 function refreshGroups() {
+  randomPickTitle.value = '一键测新';
+  randomPickVisible.value = true;
   ElMessage.info('原型：已一键刷新创意组（本地模拟）');
 }
 function addDynRule() {
@@ -5166,6 +5253,10 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .inline-row { display: flex; gap: 8px; align-items: center; width: 100%; }
 .inline-row .el-input { flex: 1; }
 /* 创意制作工具条 */
+.rp-filters { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.rp-filter-cnt { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: #4e5969; }
+.rp-unit { margin-left: 6px; color: #86909c; }
+.group-head__name { font-size: 13px; font-weight: 600; color: #1d2129; }
 .creative-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .creative-group { border: 1px solid #e5e6eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
 .group-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
