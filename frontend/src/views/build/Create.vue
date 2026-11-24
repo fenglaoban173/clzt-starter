@@ -899,14 +899,6 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="项目默认状态">
-              <el-radio-group v-model="form.project.operation">
-                <el-radio value="DISABLE">暂停</el-radio>
-                <el-radio value="ENABLE">开启</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
         </el-row>
         <el-row v-if="form.project.objective === 'MICRO_GAME'" :gutter="12">
           <el-col :span="8">
@@ -992,6 +984,18 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <el-table :data="projProductRows" size="small" border class="proj-inline-table">
+            <el-table-column label="账户" min-width="220">
+              <template #default="{ row }">
+                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
+              </template>
+            </el-table-column>
+            <el-table-column label="产品" min-width="220">
+              <template #default="{ row }">
+                <el-tag v-for="p in row.products" :key="p" closable class="ad-link-tag" @close="row.products = row.products.filter(x => x !== p)">{{ p }}</el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
         </template>
 
         <!-- AIGC 动态创意 -->
@@ -1160,8 +1164,21 @@
           </el-col>
         </el-row>
 
-        <!-- 投放版位 -->
+          <el-table :data="projLinkRows" size="small" border class="proj-inline-table">
+            <el-table-column label="账户" min-width="220">
+              <template #default="{ row }">
+                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
+              </template>
+            </el-table-column>
+            <el-table-column label="分包和链接组" min-width="220">
+              <template #default="{ row }">
+                <el-tag v-if="row.group" closable class="ad-link-tag" @close="row.group = ''">{{ row.group }}</el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
+
+        <!-- 投放版位 -->
         <div class="form-section">
           <div class="form-section__title">投放版位</div>
         <el-row :gutter="12">
@@ -1328,8 +1345,24 @@
           </el-col>
         </el-row>
 
-        <!-- 项目排期与预算 -->
+          <el-table :data="projAudienceRows" size="small" border class="proj-inline-table">
+            <el-table-column label="账户名称" min-width="220">
+              <template #default="{ row }">
+                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
+              </template>
+            </el-table-column>
+            <el-table-column label="定向包" min-width="220">
+              <template #default="{ row }">
+                <el-tag v-if="row.pack" closable class="ad-link-tag" @close="row.pack = ''">{{ row.pack }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="90" align="center">
+              <template #default="{ row }"><el-button link type="primary" @click="targetingVisible = true">添加</el-button></template>
+            </el-table-column>
+          </el-table>
         </div>
+
+        <!-- 项目排期与预算 -->
         <div class="form-section">
                   <!-- 搜索快投（线上：出价系数 / 定向拓展 / 搜索快投服务） -->
         <div class="form-section">
@@ -1480,7 +1513,20 @@
             </el-form-item>
           </el-col>
         </el-row>
+        </div>
+
+        <!-- 项目名称（线上独立分区） -->
+        <div class="form-section">
+          <div class="form-section__title">项目名称</div>
         <el-row :gutter="12">
+          <el-col :span="8">
+            <el-form-item label="项目默认状态">
+              <el-radio-group v-model="form.project.operation">
+                <el-radio value="DISABLE">暂停</el-radio>
+                <el-radio value="ENABLE">开启</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
           <el-col :span="8">
             <el-form-item label="名称配置模式">
               <el-select v-model="form.project.project_name_mode" style="width: 100%">
@@ -1505,6 +1551,14 @@
               <template #label><span class="q-label">随机数后缀</span><el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template><el-switch v-model="form.project.random_suffix" /></el-form-item>
           </el-col>
         </el-row>
+          <div class="name-wildcards">
+            <span class="name-wildcards__label">通配符:</span>
+            <el-button link type="primary" @click="ElMessage.info('原型：+下载链接标识')">+下载链接标识</el-button>
+            <el-button link type="primary" @click="ElMessage.info('原型：+渠道包名')">+渠道包名</el-button>
+            <el-button link type="primary" @click="ElMessage.info('原型：+监测活动名')">+监测活动名</el-button>
+            <el-button link type="primary" @click="ElMessage.info('原型：插入更多')">插入更多</el-button>
+          </div>
+          <div class="name-warn-hint">名称长度最多100字符（1汉字=2字符），使用通配符时，请注意控制自定义内容长度</div>
         </div>
       </el-form>
       <template #footer>
@@ -2743,6 +2797,22 @@ const projColTitle = computed(() => (
 const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
 const projInfoFolded = ref(false);
+/* 内联表：账户|产品 / 账户|分包和链接组 / 账户名称|定向包|操作 */
+const projProductRows = computed(() => selectedAccounts.value.map((a) => ({
+  account: a.name,
+  accountId: a.id,
+  products: (form.project.product_ids || []).map((id) => (productOptions.value.find((p) => p.id === id) || {}).name || id),
+})));
+const projLinkRows = computed(() => selectedAccounts.value.map((a) => ({
+  account: a.name,
+  accountId: a.id,
+  group: '临时监测链接组',
+})));
+const projAudienceRows = computed(() => selectedAccounts.value.map((a) => ({
+  account: a.name,
+  accountId: a.id,
+  pack: form.project.audience_package_id ? '正确测试' : '',
+})));
 /* ---- 关联产品（线上「选择头条产品」）+ 直达链接 ---- */
 const relatedVisible = ref(false);
 /* ---- 广告基本信息面板：广告预算与出价 / 定位到指定段 ---- */
@@ -4098,6 +4168,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.proj-inline-table { margin-top: 10px; }
 .sel-row { display: flex; align-items: center; gap: 10px; width: 100%; }
 .sel-row__ctrl { flex: 1; }
 .sel-row__link { font-size: 12px; margin-left: 8px; }
