@@ -3103,6 +3103,7 @@
           <div class="ex-pick__right">
             <el-button class="ex-btn" @click="openSyncDialog">同步项目</el-button>
             <el-button class="ex-btn" @click="clearSelectedProjects">清空已选</el-button>
+            <el-button class="ex-btn" @click="onMultiAccountQuickSelect">多账户快速选择</el-button>
           </div>
         </div>
 
@@ -4748,6 +4749,13 @@ function confirmExistingProjects() {
 }
 // ---- 同步项目与广告（对齐线上 图3） ----
 /** 打开同步弹窗：默认勾选外面已选的媒体账户，更新时间默认近 14 天 */
+/* 多账户快速选择（线上：为所有已选账户批量勾选项目） */
+function onMultiAccountQuickSelect() {
+  const rows = exFiltered.value || [];
+  if (!rows.length) { ElMessage.info('原型：多账户快速选择'); return; }
+  form.existing_projects = rows.map((r) => ({ account_id: r.__acctId, project_id: r.id }));
+  ElMessage.success(`已为 ${form.existing_projects.length} 个账户快速选择项目（原型模拟）`);
+}
 function openSyncDialog() {
   syncChecked.value = form.account_ids.map(Number);
   syncVisible.value = true;
