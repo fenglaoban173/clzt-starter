@@ -898,14 +898,14 @@ export const APP_PROMOTION_TYPES = [
 
 // 营销场景 marketing_goal
 export const MARKETING_GOALS = [
-  { value: 'VIDEO_AND_IMAGE', label: '短视频/图文' },
+  { value: 'VIDEO_AND_IMAGE', label: '短视频+图文' },
   { value: 'LIVE', label: '直播' },
 ];
 
 // 营销类型 ad_type
 export const AD_TYPES = [
-  { value: 'ALL', label: '通投' },
-  { value: 'SEARCH', label: '搜索' },
+  { value: 'ALL', label: '通投广告' },
+  { value: 'SEARCH', label: '搜索广告' },
 ];
 
 // 投放模式 delivery_mode
@@ -1146,6 +1146,7 @@ export const OBJECTIVES = [
 export const AD_DELIVERY_TYPES = [
   { value: 'NORMAL', label: '常规投放' },
   { value: 'CYCLE_STABLE', label: '周期稳投' },
+  { value: 'RAPID', label: '极速智投' },
 ];
 
 // 投放模式（补 UBMax）

@@ -832,7 +832,7 @@
         <div class="form-section">
           <div class="form-section__title">资产组</div>
           <el-form-item label="资产组">
-            <el-radio-group v-model="form.project.asset_group">
+            <el-radio-group v-model="form.project.asset_group" @change="onAssetGroupChange">
               <el-radio value="OFF">不启用</el-radio>
               <el-radio value="ON">启用</el-radio>
             </el-radio-group>
@@ -863,9 +863,35 @@
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="广告类型" required>
-              <el-select v-model="form.project.ad_type" style="width: 100%">
+              <el-select v-model="form.project.ad_type" style="width: 100%" @change="onAdTypeChange">
                 <el-option v-for="o in AD_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" v-if="isSearchAd">
+            <el-form-item label="蓝海关键词">
+              <el-switch v-model="form.project.blue_ocean" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" v-if="isSearchAd">
+            <el-form-item label="选择关键词包">
+              <el-select v-model="form.project.keyword_pack" multiple filterable placeholder="请选择关键词包" style="width: 100%">
+                <el-option v-for="k in keywordPackOptions" :key="k.id" :label="k.name" :value="k.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" v-if="isSearchAd">
+            <el-form-item label="智能拓流">
+              <el-switch v-model="form.project.smart_expand" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" v-if="isSearchAd">
+            <el-form-item label="出价方式">
+              <el-radio-group v-model="form.project.bid_mode">
+                <el-radio value="LADDER">阶梯出价</el-radio>
+                <el-radio value="RANDOM">随机出价</el-radio>
+              </el-radio-group>
+              <div class="ad-warn-hint">阶梯出价是指根据您的出价范围，在生成的项目中做等差分配出价；随机出价是指会在出价范围内随机分配出价</div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -875,7 +901,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" v-if="!isSearchAd && isLiveGoal">
             <el-form-item label="投放模式">
               <el-select v-model="form.project.delivery_mode" style="width: 100%">
                 <el-option v-for="o in DELIVERY_MODE_EXTRA" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
@@ -886,7 +912,7 @@
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="营销场景" required>
-              <el-select v-model="form.project.marketing_goal" style="width: 100%">
+              <el-select v-model="form.project.marketing_goal" style="width: 100%" @change="onMarketingGoalChange">
                 <el-option v-for="o in MARKETING_GOALS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
             </el-form-item>
@@ -1020,7 +1046,7 @@
           <div class="form-section__title">投放内容与目标</div>
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-form-item label="关联星广联投任务">
+            <el-form-item label="关联星广联投任务" v-if="!isSearchAd">
               <el-radio-group v-model="form.project.star_task">
                 <el-radio value="OFF">不启用</el-radio>
                 <el-radio value="ON">启用</el-radio>
@@ -1437,7 +1463,7 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="8">
-            <el-form-item label="项目预算">
+            <el-form-item label="项目预算" v-if="!isSearchAd">
               <el-radio-group v-model="form.project.budget_mode">
                 <el-radio value="OFF">不限</el-radio>
                 <el-radio value="DAY">日预算</el-radio>
@@ -1498,14 +1524,14 @@
               <el-button link type="primary" @click="searchForm.keyword = ''">清空</el-button>
             </div>
           </el-form-item>
-          <el-form-item label="出价系数">
+          <el-form-item label="出价系数" v-if="!isSearchAd">
             <el-radio-group v-model="searchForm.bid_coef">
               <el-radio value="OFF">不启用</el-radio>
               <el-radio value="ON">启用</el-radio>
             </el-radio-group>
             <div class="ad-hint">不再用出价系数时默认出价系数为1（仅针对可设置出价系数的账户生效）</div>
           </el-form-item>
-          <el-form-item label="定向拓展">
+          <el-form-item label="定向拓展" v-if="!isSearchAd">
             <template #label>
               <span class="q-label">定向拓展</span>
               <el-tooltip content="定向拓展仅对搜索广告生效，开启后可拓展更多相关人群。" placement="top">
@@ -2759,7 +2785,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, ArrowUp, Close, QuestionFilled, Tickets } from '@element-plus/icons-vue';
 import { mediaApi, assetApi, buildApi } from '@/api/media';
 import {
@@ -2804,6 +2830,53 @@ const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
 const projInfoFolded = ref(false);
 const projectRuleFolded = ref(false);
+/* ---- 线上实测的字段联动 ---- */
+const adTypeLabel = computed(() => (AD_TYPES.find((t) => t.value === form.project.ad_type) || {}).label || '');
+const isSearchAd = computed(() => adTypeLabel.value === '搜索广告');
+const isLiveGoal = computed(() => (MARKETING_GOALS.find((g) => g.value === form.project.marketing_goal) || {}).label === '直播');
+const keywordPackOptions = [
+  { id: 'kp_1', name: '品牌词包' },
+  { id: 'kp_2', name: '品类词包' },
+  { id: 'kp_3', name: '竞品词包' },
+];
+/* 通投 → 搜索：线上会换掉投放类型/匹配方式/项目预算，并带出关键词相关字段 */
+function onAdTypeChange() {
+  if (isSearchAd.value) {
+    form.project.delivery_type = 'RAPID';
+    form.project.product_match_mode = 'KEYWORD_PACK';
+    form.project.target_match_mode = 'KEYWORD_PACK';
+    form.project.budget_mode = 'UNLIMIT';
+    form.project.delivery_mode = '';
+    searchForm.keyword = '启用';
+  } else {
+    form.project.delivery_type = 'NORMAL';
+    form.project.product_match_mode = 'ACCOUNT';
+    form.project.target_match_mode = 'ACCOUNT';
+    form.project.budget_mode = 'DAY';
+  }
+}
+/* 营销场景：直播才显示「投放模式」，短视频+图文才显示「蓝海关键词」 */
+function onMarketingGoalChange() {
+  if (isLiveGoal.value) form.project.blue_ocean = false;
+}
+/* 资产组：线上切换会二次确认并清空已配置内容 */
+function onAssetGroupChange(val) {
+  ElMessageBox.confirm('切换资产组开关会清空已配置的项目、广告、素材、文案等', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    if (val === 'ON') {
+      form.project.name = '';
+      if (form.project.asset_ids) form.project.asset_ids = [];
+      if (form.materials && form.materials.creative_groups) form.materials.creative_groups = [];
+      if (form.titles) form.titles = { ...form.titles, title_packs: [] };
+      ElMessage.success('已清空相关配置');
+    }
+  }).catch(() => {
+    form.project.asset_group = val === 'ON' ? 'OFF' : 'ON';
+  });
+}
 /* 自定义定向（线上新版默认不露出，字段保留在此开关后） */
 const customTargetingOpen = ref(false);
 /* 内联表：账户|产品 / 账户|分包和链接组 / 账户名称|定向包|操作 */
@@ -3236,6 +3309,10 @@ const form = reactive({
   uni_rule_mode: 'max_count',
   project: {
     asset_group: 'OFF',
+    blue_ocean: false,
+    keyword_pack: [],
+    smart_expand: false,
+    bid_mode: 'LADDER',
     head_app: '',
     app_source: 'SINGLE',
     track_way: 'SUB_AND_MONITOR',
