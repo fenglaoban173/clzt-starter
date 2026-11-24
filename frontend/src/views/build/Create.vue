@@ -1028,7 +1028,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <div class="dlg-tip">账户需开通星广联投白名单，否则新建会报错。</div>
+        <div class="dlg-tip">账户需开通星广联投白名单，否则新建会报错。 <el-button link type="primary" class="sel-row__link" @click="ElMessage.info('原型：加白指引')">加白指引</el-button></div>
         <el-row :gutter="12">
           <el-col :span="12">
             <el-form-item label="平台类型">
@@ -1364,41 +1364,10 @@
 
         <!-- 项目排期与预算 -->
         <div class="form-section">
-                  <!-- 搜索快投（线上：出价系数 / 定向拓展 / 搜索快投服务） -->
-        <div class="form-section">
-          <div class="form-section__title">搜索快投</div>
-          <el-form-item label="关键词">
-            <div class="sell-ops">
-              <el-input v-model="searchForm.keyword" class="sell-input" placeholder="未添加关键词" readonly />
-              <el-button link type="primary">编辑</el-button>
-              <el-button link type="primary" @click="searchForm.keyword = ''">清空</el-button>
-            </div>
-          </el-form-item>
-          <el-form-item label="出价系数">
-            <el-radio-group v-model="searchForm.bid_coef">
-              <el-radio value="OFF">不启用</el-radio>
-              <el-radio value="ON">启用</el-radio>
-            </el-radio-group>
-            <div class="ad-hint">不再用出价系数时默认出价系数为1（仅针对可设置出价系数的账户生效）</div>
-          </el-form-item>
-          <el-form-item label="定向拓展">
-            <template #label>
-              <span class="q-label">定向拓展</span>
-              <el-tooltip content="定向拓展仅对搜索广告生效，开启后可拓展更多相关人群。" placement="top">
-                <el-icon class="q-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </template>
-            <el-radio-group v-model="searchForm.extend">
-              <el-radio value="OFF">不启用</el-radio>
-              <el-radio value="ON">启用</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label=" ">
-            <el-checkbox v-model="searchForm.service">搜索快投服务（仅支持媒体平台申请了搜索快投豁免账户，否则"出价系数"和"定向拓展"媒体API策略默认开启）</el-checkbox>
-          </el-form-item>
-        </div>
-
-<div class="form-section__title">项目排期与预算</div>
+<div class="form-section__title">
+            项目排期与预算
+            <el-button link type="primary" class="sec-collapse" @click="projectRuleFolded = !projectRuleFolded">{{ projectRuleFolded ? '全部收起' : '展开' }}</el-button>
+          </div>
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="配置模式">
@@ -1515,6 +1484,40 @@
         </el-row>
         </div>
 
+
+                  <!-- 搜索快投（线上：出价系数 / 定向拓展 / 搜索快投服务） -->
+        <div class="form-section">
+          <div class="form-section__title">搜索快投</div>
+          <el-form-item label="关键词">
+            <div class="sell-ops">
+              <el-input v-model="searchForm.keyword" class="sell-input" placeholder="未添加关键词" readonly />
+              <el-button link type="primary">编辑</el-button>
+              <el-button link type="primary" @click="searchForm.keyword = ''">清空</el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="出价系数">
+            <el-radio-group v-model="searchForm.bid_coef">
+              <el-radio value="OFF">不启用</el-radio>
+              <el-radio value="ON">启用</el-radio>
+            </el-radio-group>
+            <div class="ad-hint">不再用出价系数时默认出价系数为1（仅针对可设置出价系数的账户生效）</div>
+          </el-form-item>
+          <el-form-item label="定向拓展">
+            <template #label>
+              <span class="q-label">定向拓展</span>
+              <el-tooltip content="定向拓展仅对搜索广告生效，开启后可拓展更多相关人群。" placement="top">
+                <el-icon class="q-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </template>
+            <el-radio-group v-model="searchForm.extend">
+              <el-radio value="OFF">不启用</el-radio>
+              <el-radio value="ON">启用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label=" ">
+            <el-checkbox v-model="searchForm.service">搜索快投服务（仅支持媒体平台申请了搜索快投豁免账户，否则"出价系数"和"定向拓展"媒体API策略默认开启）</el-checkbox>
+          </el-form-item>
+        </div>
         <!-- 项目名称（线上独立分区） -->
         <div class="form-section">
           <div class="form-section__title">项目名称</div>
@@ -2797,6 +2800,7 @@ const projColTitle = computed(() => (
 const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
 const projInfoFolded = ref(false);
+const projectRuleFolded = ref(false);
 /* 内联表：账户|产品 / 账户|分包和链接组 / 账户名称|定向包|操作 */
 const projProductRows = computed(() => selectedAccounts.value.map((a) => ({
   account: a.name,
