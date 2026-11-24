@@ -2341,6 +2341,13 @@
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="12" v-if="form.titles.title_source === 'TITLE_LIB'">
+            <el-form-item label="每个标题包">
+              <el-select v-model="form.titles.title_pack_ids" multiple filterable placeholder="请选择标题包" style="width: 100%">
+                <el-option v-for="t in titlePackOptions" :key="t.id" :label="t.name" :value="t.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12">
@@ -2381,6 +2388,19 @@
               <el-select v-model="form.landing.landing_page_type" style="width: 100%">
                 <el-option v-for="o in LANDING_PAGE_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
               </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="form.landing.landing_page_type !== 'MANUAL'">
+            <el-form-item label="落地页选择方式">
+              <el-select v-model="form.landing.landing_page_way" style="width: 100%">
+                <el-option label="从已登记落地页选择" value="REGISTERED" />
+                <el-option label="动态链接生成" value="DYNAMIC" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-else>
+            <el-form-item label="输入落地页">
+              <el-input v-model="form.landing.landing_page_url" placeholder="请输入落地页链接" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -2846,6 +2866,11 @@ const isLiveGoal = computed(() => (MARKETING_GOALS.find((g) => g.value === form.
 function onBudgetModeChange(val) {
   if (val === 'DAY') form.project.bid_mode = 'LADDER';
 }
+const titlePackOptions = [
+  { id: 'tp_1', name: '标题包-漫剧爽点' },
+  { id: 'tp_2', name: '标题包-线索留资' },
+  { id: 'tp_3', name: '标题包-通用' },
+];
 const keywordPackOptions = [
   { id: 'kp_1', name: '品牌词包' },
   { id: 'kp_2', name: '品类词包' },
@@ -3498,10 +3523,13 @@ const form = reactive({
   titles: {
     pick_mode: 'MANUAL',
     title_source: 'TITLE_PACK',
+    title_pack_ids: [],
     assign_rule: 'REUSE',
   },
   landing: {
     landing_page_type: 'ORANGE',
+    landing_page_way: 'REGISTERED',
+    landing_page_url: '',
     landing_page_id: null,
     landing_page_name: '',
     track_url: '',
