@@ -226,17 +226,15 @@
         </div>
       </div>
 
-      <!-- 线上转化优化版：关联产品 / 分配或监测活动 / 定向包 / 项目预算与出价 / 产品信息 / 广告设置 -->
+      <!-- 线上转化优化版（线上实测 6 个：关联产品 / 分包与监测活动 / 定向包 / 项目预算与出价 / 产品信息 / 广告设置） -->
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
           <el-button @click="relatedVisible = true">关联产品</el-button>
           <el-button @click="monitorGroupVisible = true">分包与监测活动</el-button>
           <el-button @click="targetingVisible = true">定向包</el-button>
           <el-button @click="projVisible = true">项目预算与出价</el-button>
-          <el-button @click="deeplinkVisible = true">直达链接</el-button>
           <el-button @click="openAdPanel('ad-products')">产品信息</el-button>
           <el-button @click="openAdPanel('ad-settings')">广告设置</el-button>
-          <el-button @click="openAdPanel('ad-budget')">广告预算与出价</el-button>
         </template>
         <template v-else>
           <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -659,78 +657,50 @@
       </template>
     </el-drawer>
 
-    <!-- 选择巨量后台监测链接组（线上：分包与监测活动 打开的就是它） -->
-    <el-drawer v-model="monitorGroupVisible" title="选择巨量后台监测链接组" size="1000px" direction="rtl">
+    <!-- 分包与监测活动（线上打开的是「选择巨量后台监测连接组」1016px，单列布局） -->
+    <el-drawer v-model="monitorGroupVisible" title="选择巨量后台监测连接组" size="1016px" direction="rtl">
       <div class="mg-body">
-        <!-- 左：监测链接组列表 -->
-        <div class="mg-left">
-          <div class="mg-left__head">
-            <span class="mg-left__title">选择监测链接组</span>
-            <div class="mg-left__ops">
-              <el-button size="small" type="primary" plain @click="ElMessage.info('原型：多账户多捆绑')">多账户多捆绑</el-button>
-              <el-button size="small" plain @click="ElMessage.info('原型：落地页有资产')">落地页有资产</el-button>
-              <el-button size="small" plain @click="ElMessage.info('原型：多账户快速选择')">多账户快速选择</el-button>
-            </div>
-          </div>
-          <div class="mg-search">
-            <el-input v-model="monitorGroupForm.keyword" size="small" placeholder="请输入关键词" clearable @keyup.enter="onMonitorGroupSearch" />
-            <el-button size="small" @click="onMonitorGroupSearch">查询</el-button>
-          </div>
-          <div class="mg-list">
-            <label v-for="g in monitorGroups" :key="g.id" class="mg-list__item">
-              <el-checkbox v-model="g.picked" />
-              <span class="mg-list__name">{{ g.name }}</span>
-              <span class="mg-list__id">{{ g.id }}</span>
-            </label>
-          </div>
-          <div class="mg-row">
-            <span class="mg-row__label">项目数: {{ monitorGroupForm.projectCount }}</span>
-            <el-button link type="primary" @click="ElMessage.success('已刷新（原型模拟）')">刷新</el-button>
-            <el-button size="small" @click="ElMessage.info('原型：快速选择')">快速选择</el-button>
+        <div class="mg-left__head">
+          <span class="mg-left__title">选择监测链接组</span>
+          <div class="mg-left__ops">
+            <el-button size="small" plain @click="ElMessage.info('原型：多账户刷新')">多账户刷新</el-button>
+            <el-button size="small" plain @click="ElMessage.info('原型：清空所有资产')">清空所有资产</el-button>
+            <el-button size="small" plain @click="ElMessage.info('原型：多账户快速选择')">多账户快速选择</el-button>
           </div>
         </div>
-        <!-- 右：已选与匹配链接组 -->
-        <div class="mg-right">
-          <div class="mg-right__head">
-            <span>已选({{ monitorGroupForm.picked.length }})</span>
-            <el-button link type="primary" @click="monitorGroupForm.picked = []">清空</el-button>
+        <!-- 账户切换（线上：已选媒体账户列表） -->
+        <div class="mg-accounts">
+          <label v-for="a in selectedAccounts" :key="a.id" class="mg-account" :class="{ on: monitorGroupForm.accountId === a.id }">
+            <el-radio v-model="monitorGroupForm.accountId" :value="a.id" size="small">{{ a.name }}</el-radio>
+            <span class="mg-account__id">{{ a.id }}</span>
+          </label>
+        </div>
+        <div class="mg-search">
+          <el-input v-model="monitorGroupForm.keyword" size="small" placeholder="请输入关键词" clearable @keyup.enter="onMonitorGroupSearch" />
+          <el-button size="small" @click="onMonitorGroupSearch">查询</el-button>
+        </div>
+        <div class="mg-row">
+          <span class="mg-row__label">项目数：{{ monitorGroupForm.projectCount }}</span>
+          <el-button link type="primary" @click="ElMessage.success('已刷新（原型模拟）')">刷新</el-button>
+          <el-button size="small" @click="ElMessage.info('原型：快速选择')">快速选择</el-button>
+        </div>
+        <el-checkbox v-model="monitorGroupForm.onlyEmpty" class="mg-only">仅看关联数为0</el-checkbox>
+        <el-table :data="monitorGroupRows" size="small" border class="mg-table">
+          <el-table-column label="监测链接组名称" min-width="260" prop="name" />
+          <el-table-column label="类型" width="120" prop="type" />
+          <el-table-column label="关联项目数" width="120" prop="projects" />
+        </el-table>
+        <div class="mg-right__head">
+          <span>已选：{{ monitorGroupForm.picked.length }}/{{ monitorGroupForm.pickedTotal }}</span>
+          <el-button link type="primary" @click="monitorGroupForm.picked = []">清空</el-button>
+        </div>
+        <div class="mg-picked">
+          <div v-for="p in monitorGroupForm.picked" :key="p" class="mg-picked__row">
+            <span>{{ p }}</span>
+            <el-icon class="mg-picked__x" @click="monitorGroupForm.picked = monitorGroupForm.picked.filter(x => x !== p)"><Close /></el-icon>
           </div>
-          <div class="mg-picked">
-            <span v-for="p in monitorGroupForm.picked" :key="p" class="mg-picked__item">
-              {{ p }}
-              <el-icon class="mg-picked__x" @click="monitorGroupForm.picked = monitorGroupForm.picked.filter(x => x !== p)"><Close /></el-icon>
-            </span>
-          </div>
-          <el-table :data="monitorGroupRows" size="small" border class="mg-table">
-            <el-table-column label="匹配链接组名称" min-width="220">
-              <template #default="{ row }">
-                <div class="mg-cell">
-                  <span>{{ row.name }}</span>
-                  <span class="mg-cell__sub">{{ row.count }}</span>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="类型" width="110" prop="type" />
-            <el-table-column label="关联项目数" width="110" prop="projects" />
-          </el-table>
-          <div class="mg-tree">
-            <div v-for="t in monitorGroupTree" :key="t.url" class="mg-tree__node">
-              <div class="mg-tree__row">
-                <el-icon class="mg-tree__caret"><ArrowDown /></el-icon>
-                <span>{{ t.url }}</span>
-                <span class="mg-tree__count">{{ t.count }}</span>
-              </div>
-              <div v-for="c in t.children" :key="c.name" class="mg-tree__child">
-                <el-checkbox v-model="c.picked" />
-                <span>{{ c.name }}</span>
-                <span class="mg-tree__count">{{ c.count }}</span>
-                <el-button link type="primary" class="mg-tree__create" @click="ElMessage.info('原型：创建')">创建</el-button>
-              </div>
-            </div>
-            <div class="mg-tree__node mg-tree__node--plain">
-              <span>观星关联组名称</span>
-              <span class="mg-tree__count">{{ monitorGroupTree.length * 7 }}</span>
-            </div>
+          <div v-for="d in monitorGroupForm.pickedDetail" :key="d" class="mg-picked__row mg-picked__row--sub">
+            <span>{{ d }}</span>
           </div>
         </div>
       </div>
@@ -3375,17 +3345,18 @@ const monitorGroups = ref([
   { id: '1879740549850608', name: '红果-央广-50', picked: true },
   { id: '1879740539885770', name: '红果-央广-49', picked: true },
 ]);
-const monitorGroupForm = reactive({ keyword: '', projectCount: 1, picked: ['https://ugapk.com/YG9EX', 'YG9EX-安卓-短剧-半涨价'] });
+const monitorGroupForm = reactive({
+  keyword: '',
+  projectCount: 1,
+  accountId: '',
+  onlyEmpty: false,
+  picked: ['https://ugapk.com/YG9EX'],
+  pickedDetail: ['YG9EX-安卓-短剧-单激活-50户'],
+  pickedTotal: 1,
+});
 const monitorGroupRows = ref([
-  { name: 'https://ugapk.com/YG9EX', count: 7, type: '短剧', projects: 7 },
-  { name: 'YG9EX-安卓-短剧-半涨价', count: 7, type: '短剧', projects: 7 },
-]);
-const monitorGroupTree = ref([
-  {
-    url: 'https://ugapk.com/YG9EX',
-    count: 7,
-    children: [{ name: 'YG9EX-安卓-短剧-半涨价', count: 7, picked: true }],
-  },
+  { name: 'https://ugapk.com/YG9EX', type: '', projects: 7 },
+  { name: 'YG9EX-安卓-短剧-单激活-50户', type: '自建', projects: 7 },
 ]);
 function onMonitorGroupSearch() { ElMessage.success('已按关键词查询（原型模拟）'); }
 function confirmMonitorGroup() {
@@ -4847,7 +4818,12 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .cta-tpl__head { font-size: 13px; color: #86909c; margin-bottom: 8px; }
 .cta-tpl__item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1d2129; padding: 4px 0; }
 .cta-tpl__x { cursor: pointer; color: #86909c; }
-.mg-body { display: flex; gap: 16px; min-height: 520px; }
+.mg-body { display: flex; flex-direction: column; gap: 12px; min-height: 520px; }
+.mg-accounts { display: flex; flex-direction: column; gap: 6px; }
+.mg-account { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1d2129; }
+.mg-account.on .mg-account__id { color: #197afb; }
+.mg-account__id { color: #86909c; font-size: 12px; }
+.mg-only { margin-bottom: 2px; }
 .mg-left { width: 420px; flex: none; border-right: 1px solid #e5e6eb; padding-right: 16px; }
 .mg-left__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .mg-left__title { font-size: 14px; font-weight: 600; color: #1d2129; }
@@ -4859,8 +4835,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .mg-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; color: #4e5969; }
 .mg-right { flex: 1; min-width: 0; }
 .mg-right__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 8px; }
-.mg-picked { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.mg-picked__item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #f2f3f5; border-radius: 4px; font-size: 12px; color: #1d2129; }
+.mg-picked { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.mg-picked__row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #1d2129; }
+.mg-picked__row--sub { padding-left: 16px; color: #4e5969; }
 .mg-picked__x { cursor: pointer; color: #86909c; }
 .mg-table { margin-bottom: 12px; }
 .mg-cell { display: flex; flex-direction: column; font-size: 12px; color: #1d2129; }
