@@ -232,7 +232,7 @@
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
           <el-button @click="relatedVisible = true">关联产品</el-button>
-          <el-button @click="monitorLinkVisible = true">分包与监测活动</el-button>
+          <el-button @click="monitorGroupVisible = true">分包与监测活动</el-button>
           <el-button @click="targetingVisible = true">定向包</el-button>
           <el-button @click="projVisible = true">项目预算与出价</el-button>
           <el-button @click="deeplinkVisible = true">直达链接</el-button>
@@ -582,6 +582,87 @@
 
     <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
     <AdRenameDialog v-model="renameVisible" :rows="renameRows" :title="renameTitle" @confirm="onRenameConfirm" />
+
+    <!-- 选择巨量后台监测链接组（线上：分包与监测活动 打开的就是它） -->
+    <el-drawer v-model="monitorGroupVisible" title="选择巨量后台监测链接组" size="1000px" direction="rtl">
+      <div class="mg-body">
+        <!-- 左：监测链接组列表 -->
+        <div class="mg-left">
+          <div class="mg-left__head">
+            <span class="mg-left__title">选择监测链接组</span>
+            <div class="mg-left__ops">
+              <el-button size="small" type="primary" plain @click="ElMessage.info('原型：多账户多捆绑')">多账户多捆绑</el-button>
+              <el-button size="small" plain @click="ElMessage.info('原型：落地页有资产')">落地页有资产</el-button>
+              <el-button size="small" plain @click="ElMessage.info('原型：多账户快速选择')">多账户快速选择</el-button>
+            </div>
+          </div>
+          <div class="mg-search">
+            <el-input v-model="monitorGroupForm.keyword" size="small" placeholder="请输入关键词" clearable @keyup.enter="onMonitorGroupSearch" />
+            <el-button size="small" @click="onMonitorGroupSearch">查询</el-button>
+          </div>
+          <div class="mg-list">
+            <label v-for="g in monitorGroups" :key="g.id" class="mg-list__item">
+              <el-checkbox v-model="g.picked" />
+              <span class="mg-list__name">{{ g.name }}</span>
+              <span class="mg-list__id">{{ g.id }}</span>
+            </label>
+          </div>
+          <div class="mg-row">
+            <span class="mg-row__label">项目数: {{ monitorGroupForm.projectCount }}</span>
+            <el-button link type="primary" @click="ElMessage.success('已刷新（原型模拟）')">刷新</el-button>
+            <el-button size="small" @click="ElMessage.info('原型：快速选择')">快速选择</el-button>
+          </div>
+        </div>
+        <!-- 右：已选与匹配链接组 -->
+        <div class="mg-right">
+          <div class="mg-right__head">
+            <span>已选({{ monitorGroupForm.picked.length }})</span>
+            <el-button link type="primary" @click="monitorGroupForm.picked = []">清空</el-button>
+          </div>
+          <div class="mg-picked">
+            <span v-for="p in monitorGroupForm.picked" :key="p" class="mg-picked__item">
+              {{ p }}
+              <el-icon class="mg-picked__x" @click="monitorGroupForm.picked = monitorGroupForm.picked.filter(x => x !== p)"><Close /></el-icon>
+            </span>
+          </div>
+          <el-table :data="monitorGroupRows" size="small" border class="mg-table">
+            <el-table-column label="匹配链接组名称" min-width="220">
+              <template #default="{ row }">
+                <div class="mg-cell">
+                  <span>{{ row.name }}</span>
+                  <span class="mg-cell__sub">{{ row.count }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="类型" width="110" prop="type" />
+            <el-table-column label="关联项目数" width="110" prop="projects" />
+          </el-table>
+          <div class="mg-tree">
+            <div v-for="t in monitorGroupTree" :key="t.url" class="mg-tree__node">
+              <div class="mg-tree__row">
+                <el-icon class="mg-tree__caret"><ArrowDown /></el-icon>
+                <span>{{ t.url }}</span>
+                <span class="mg-tree__count">{{ t.count }}</span>
+              </div>
+              <div v-for="c in t.children" :key="c.name" class="mg-tree__child">
+                <el-checkbox v-model="c.picked" />
+                <span>{{ c.name }}</span>
+                <span class="mg-tree__count">{{ c.count }}</span>
+                <el-button link type="primary" class="mg-tree__create" @click="ElMessage.info('原型：创建')">创建</el-button>
+              </div>
+            </div>
+            <div class="mg-tree__node mg-tree__node--plain">
+              <span>观星关联组名称</span>
+              <span class="mg-tree__count">{{ monitorGroupTree.length * 7 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="monitorGroupVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmMonitorGroup">确定</el-button>
+      </template>
+    </el-drawer>
 
     <!-- 通用配置抽屉：分包与监测活动 / 定向包 / 项目预算与出价 / 广告预算与出价 -->
     <el-drawer v-model="sectionVisible" :title="sectionTitle" size="780px" direction="rtl">
@@ -2962,6 +3043,29 @@ const adBudgetSummary = computed(() => ({
   pay_mode: { OCPM: '目标转化出价-按展示付费', CPC: '目标转化出价-按点击付费' }[adBudget.pay_mode] || '',
 }));
 /* ---- 广告基本信息：直达链接行 / 行动号召输入 ---- */
+/* 监测链接组（线上「选择巨量后台监测链接组」抽屉） */
+const monitorGroupVisible = ref(false);
+const monitorGroups = ref([
+  { id: '1879740549850608', name: '红果-央广-50', picked: true },
+  { id: '1879740539885770', name: '红果-央广-49', picked: true },
+]);
+const monitorGroupForm = reactive({ keyword: '', projectCount: 1, picked: ['https://ugapk.com/YG9EX', 'YG9EX-安卓-短剧-半涨价'] });
+const monitorGroupRows = ref([
+  { name: 'https://ugapk.com/YG9EX', count: 7, type: '短剧', projects: 7 },
+  { name: 'YG9EX-安卓-短剧-半涨价', count: 7, type: '短剧', projects: 7 },
+]);
+const monitorGroupTree = ref([
+  {
+    url: 'https://ugapk.com/YG9EX',
+    count: 7,
+    children: [{ name: 'YG9EX-安卓-短剧-半涨价', count: 7, picked: true }],
+  },
+]);
+function onMonitorGroupSearch() { ElMessage.success('已按关键词查询（原型模拟）'); }
+function confirmMonitorGroup() {
+  ElMessage.success(`已选择 ${monitorGroupForm.picked.length} 个链接组（原型模拟）`);
+  monitorGroupVisible = false;
+}
 /* 创意组件候选（线上：附加创意组件启用后带出） */
 const extraComponentOptions = [
   { id: 'ec_1', name: '答题组件' },
@@ -4353,6 +4457,31 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .proj-line__sub { color: #c9cdd4; margin-left: 6px; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.mg-body { display: flex; gap: 16px; min-height: 520px; }
+.mg-left { width: 420px; flex: none; border-right: 1px solid #e5e6eb; padding-right: 16px; }
+.mg-left__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mg-left__title { font-size: 14px; font-weight: 600; color: #1d2129; }
+.mg-left__ops { display: flex; gap: 8px; }
+.mg-search { display: flex; gap: 8px; margin-bottom: 10px; }
+.mg-list { max-height: 150px; overflow: auto; border: 1px solid #f2f3f5; border-radius: 4px; padding: 8px; }
+.mg-list__item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; color: #1d2129; }
+.mg-list__id { color: #86909c; font-size: 12px; }
+.mg-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; color: #4e5969; }
+.mg-right { flex: 1; min-width: 0; }
+.mg-right__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 8px; }
+.mg-picked { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.mg-picked__item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #f2f3f5; border-radius: 4px; font-size: 12px; color: #1d2129; }
+.mg-picked__x { cursor: pointer; color: #86909c; }
+.mg-table { margin-bottom: 12px; }
+.mg-cell { display: flex; flex-direction: column; font-size: 12px; color: #1d2129; }
+.mg-cell__sub { color: #86909c; }
+.mg-tree { border: 1px solid #f2f3f5; border-radius: 4px; padding: 10px; }
+.mg-tree__node { margin-bottom: 8px; font-size: 13px; color: #1d2129; }
+.mg-tree__node--plain { color: #86909c; }
+.mg-tree__row { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.mg-tree__child { display: flex; align-items: center; gap: 8px; padding-left: 20px; margin-top: 4px; font-weight: 400; }
+.mg-tree__count { margin-left: auto; color: #86909c; font-size: 12px; }
+.mg-tree__create { font-size: 12px; }
 .proj-inline-table { margin-top: 10px; }
 .sel-row { display: flex; align-items: center; gap: 10px; width: 100%; }
 .sel-row__ctrl { flex: 1; }
