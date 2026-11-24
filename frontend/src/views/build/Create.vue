@@ -885,7 +885,7 @@
               <el-switch v-model="form.project.smart_expand" />
             </el-form-item>
           </el-col>
-          <el-col :span="8" v-if="isSearchAd">
+          <el-col :span="8" v-if="isSearchAd && form.project.budget_mode !== 'DAY'">
             <el-form-item label="出价方式">
               <el-radio-group v-model="form.project.bid_mode">
                 <el-radio value="LADDER">阶梯出价</el-radio>
@@ -1464,7 +1464,7 @@
         <el-row :gutter="12">
           <el-col :span="8">
             <el-form-item label="项目预算" v-if="!isSearchAd">
-              <el-radio-group v-model="form.project.budget_mode">
+              <el-radio-group v-model="form.project.budget_mode" @change="onBudgetModeChange">
                 <el-radio value="OFF">不限</el-radio>
                 <el-radio value="DAY">日预算</el-radio>
               </el-radio-group>
@@ -1493,7 +1493,7 @@
         </el-row>
         <el-row :gutter="12">
           <el-col :span="8">
-            <el-form-item label="日预算（元）" required>
+            <el-form-item label="日预算（元）" required v-if="form.project.budget_mode === 'DAY'">
               <el-input-number v-model="form.project.budget" :min="budgetMin" :step="50" style="width: 100%" />
             </el-form-item>
           </el-col>
@@ -1702,7 +1702,7 @@
           <div class="ad-warn-hint">该直达链接类型仅Deeplink生效</div>
         </el-form-item>
         <el-form-item label="直达链接来源">
-          <el-radio-group v-model="form.ad.link_source">
+          <el-radio-group v-model="form.ad.link_source" @change="onLinkSourceChange">
             <el-radio value="IMPORT">导入直达链接</el-radio>
             <el-radio value="LP_AUTO">落地页自动关联</el-radio>
             <el-radio value="DYNAMIC">动态链接生成</el-radio>
@@ -1710,14 +1710,17 @@
             <el-radio value="MANUAL">手动填写</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="匹配方式">
+        <el-form-item label="匹配方式" v-if="form.ad.link_source === 'DYNAMIC'">
           <el-radio-group v-model="form.ad.link_match_mode">
             <el-radio value="PROJECT">所有项目选择一个直达链接</el-radio>
             <el-radio value="ACCOUNT">每个账户选择一个直达链接</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="选择直达链接">
+        <el-form-item label="选择直达链接" v-if="['IMPORT', 'MANUAL'].includes(form.ad.link_source)">
           <el-button type="primary" size="small" @click="ElMessage.info('原型：选择直达链接')">选择直达链接</el-button>
+        </el-form-item>
+        <el-form-item label="选择动态链接" v-if="form.ad.link_source === 'DYNAMIC'">
+          <el-button type="primary" size="small" @click="ElMessage.info('原型：选择动态链接')">选择动态链接</el-button>
         </el-form-item>
         <el-table :data="adLinkRows" size="small" border class="ad-link-table">
           <el-table-column label="账户" min-width="240">
@@ -1741,10 +1744,15 @@
         <el-row :gutter="12">
           <el-col :span="12">
             <el-form-item label="附加创意组件">
-              <el-radio-group v-model="form.ad.extra_component">
+              <el-radio-group v-model="form.ad.extra_component" @change="onExtraComponentChange">
                 <el-radio value="OFF">不启用</el-radio>
                 <el-radio value="ON">启用</el-radio>
               </el-radio-group>
+            </el-form-item>
+            <el-form-item label="选择创意组件" v-if="form.ad.extra_component === 'ON'">
+              <el-select v-model="form.ad.extra_component_ids" multiple filterable placeholder="请选择创意组件" style="width: 100%">
+                <el-option v-for="c in extraComponentOptions" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -2834,6 +2842,10 @@ const projectRuleFolded = ref(false);
 const adTypeLabel = computed(() => (AD_TYPES.find((t) => t.value === form.project.ad_type) || {}).label || '');
 const isSearchAd = computed(() => adTypeLabel.value === '搜索广告');
 const isLiveGoal = computed(() => (MARKETING_GOALS.find((g) => g.value === form.project.marketing_goal) || {}).label === '直播');
+/* 项目预算：不限 ⇄ 日预算（线上：日预算时才显示日预算字段，并隐藏出价方式） */
+function onBudgetModeChange(val) {
+  if (val === 'DAY') form.project.bid_mode = 'LADDER';
+}
 const keywordPackOptions = [
   { id: 'kp_1', name: '品牌词包' },
   { id: 'kp_2', name: '品类词包' },
@@ -2909,6 +2921,25 @@ const adBudgetSummary = computed(() => ({
   pay_mode: { OCPM: '目标转化出价-按展示付费', CPC: '目标转化出价-按点击付费' }[adBudget.pay_mode] || '',
 }));
 /* ---- 广告基本信息：直达链接行 / 行动号召输入 ---- */
+/* 创意组件候选（线上：附加创意组件启用后带出） */
+const extraComponentOptions = [
+  { id: 'ec_1', name: '答题组件' },
+  { id: 'ec_2', name: '播放器组件' },
+  { id: 'ec_3', name: '点赞组件' },
+];
+/* 直达链接来源切换：匹配方式只在「动态链接生成」下出现 */
+function onLinkSourceChange(val) {
+  if (val === 'LP_AUTO') form.ad.link_match_mode = '';
+}
+/* 附加创意组件启用 → 带出选择器，并把匹配方式口径切成创意组件 */
+function onExtraComponentChange(val) {
+  if (val === 'ON') {
+    form.ad.link_match_mode = 'ACCOUNT';
+    form.ad.extra_component_ids = [];
+  } else {
+    form.ad.extra_component_ids = [];
+  }
+}
 const adLinkRows = ref([
   { account: '央广-雷盟-知乎-APP内付费-124-792335571-在投', accountId: '1873758649506203', url: 'zhhuz://market/paid_column/...' },
   { account: '央广-雷盟-知乎-APP内付费-118-792335571-在投', accountId: '1873758652234324', url: 'zhhuz://market/paid_column/...' },
