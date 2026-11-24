@@ -583,6 +583,45 @@
     <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
     <AdRenameDialog v-model="renameVisible" :rows="renameRows" :title="renameTitle" @confirm="onRenameConfirm" />
 
+    <!-- 查看推荐（线上：打开「行动号召」面板） -->
+    <el-drawer v-model="ctaRecommendVisible" title="行动号召" size="900px" direction="rtl">
+      <div class="cta-rec__head">
+        <span>推荐行动号召文案</span>
+        <el-button link type="primary" @click="ElMessage.success('已换一批（原型模拟）')">换一批</el-button>
+      </div>
+      <el-checkbox-group v-model="ctaRecommendForm.picked" class="cta-rec__list">
+        <el-checkbox v-for="c in CTA_PRESETS" :key="c" :label="c" class="cta-rec__item">{{ c }}</el-checkbox>
+      </el-checkbox-group>
+      <template #footer>
+        <el-button @click="ctaRecommendVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmCtaRecommend">确定</el-button>
+      </template>
+    </el-drawer>
+
+    <!-- 保存为模板（线上：打开「保存为模板」面板） -->
+    <el-drawer v-model="ctaSaveTplVisible" title="保存为模板" size="900px" direction="rtl">
+      <el-form label-position="left" label-width="110px" class="cta-tpl-form">
+        <el-form-item label="模板名称">
+          <el-input v-model="ctaSaveTplForm.name" maxlength="20" show-word-limit placeholder="请输入模板名称" />
+        </el-form-item>
+        <el-form-item label="模板内容">
+          <el-input v-model="ctaSaveTplForm.content" type="textarea" :rows="5" placeholder="请输入模板内容" />
+        </el-form-item>
+      </el-form>
+      <div class="cta-tpl__list">
+        <div class="cta-tpl__head">已保存模板</div>
+        <div v-for="t in ctaSaveTplForm.saved" :key="t.name" class="cta-tpl__item">
+          <span>{{ t.name }}</span>
+          <el-button link type="primary" @click="ctaSaveTplForm.content = t.content">使用</el-button>
+          <el-icon class="cta-tpl__x" @click="ctaSaveTplForm.saved = ctaSaveTplForm.saved.filter(x => x.name !== t.name)"><Close /></el-icon>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="ctaSaveTplVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmCtaSaveTpl">保存</el-button>
+      </template>
+    </el-drawer>
+
     <!-- 随机选择（线上：更多菜单 → 随机选择） -->
     <el-drawer v-model="randomPickVisible" title="随机选择" size="1016px" direction="rtl">
       <el-form label-position="left" label-width="110px" class="rp-form">
@@ -1901,13 +1940,13 @@
               @keyup.enter="addCtaTags"
             />
             <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加（同车铺）')">添加（同车铺）</el-button>
-            <el-button size="small" @click="ElMessage.info('原型：查看推荐')">查看推荐</el-button>
+            <el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button>
           </div>
           <div class="sell-ops sell-ops--tpl">
             <el-select v-model="ctaTemplate" class="sell-tpl" clearable placeholder="选择模板">
               <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
             </el-select>
-            <el-button size="small" @click="ElMessage.info('原型：保存为模板')">保存为模板</el-button>
+            <el-button size="small" @click="openCtaSaveTpl()">保存为模板</el-button>
           </div>
           <div class="sell-tags sell-tags--grid">
             <div class="sell-tags__head">
@@ -1925,8 +1964,8 @@
           </div>
         </el-form-item>
         <el-row :gutter="12">
-          <el-col :span="8"><el-button size="small" @click="ElMessage.info('原型：查看推荐文案')">查看推荐</el-button></el-col>
-          <el-col :span="8"><el-button size="small" @click="ElMessage.info('原型：保存为模板')">保存为模板</el-button></el-col>
+          <el-col :span="8"><el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button></el-col>
+          <el-col :span="8"><el-button size="small" @click="openCtaSaveTpl()">保存为模板</el-button></el-col>
           <el-col :span="8"><el-form-item label="开启智能生成"><el-switch v-model="form.ad.cta_smart" /></el-form-item></el-col>
         </el-row>
 
@@ -2052,13 +2091,13 @@
               <div class="sell-hint">添加的商品是10个,每个不超过5张</div>
               <div class="sell-ops">
                 <el-button size="small" type="primary" plain @click="ElMessage.info('原型：添加（同车铺）')">添加（同车铺）</el-button>
-                <el-button size="small" @click="ElMessage.info('原型：查看推荐')">查看推荐</el-button>
+                <el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button>
               </div>
               <div class="sell-ops sell-ops--tpl">
                 <el-select v-model="form.ad.sell_template" class="sell-tpl" clearable placeholder="选择模板">
                   <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
                 </el-select>
-                <el-button size="small" @click="ElMessage.info('原型：保存为模板')">保存为模板</el-button>
+                <el-button size="small" @click="openCtaSaveTpl()">保存为模板</el-button>
               </div>
               <div class="sell-tags">
                 <div class="sell-tags__head">
@@ -4311,6 +4350,32 @@ function copyFirstGroup() {
     tab: 'video',
   });
 }
+/* 查看推荐（线上：打开「行动号召」面板） / 保存为模板 */
+const ctaRecommendVisible = ref(false);
+const ctaRecommendForm = reactive({ picked: [] });
+function confirmCtaRecommend() {
+  if (!ctaRecommendForm.picked.length) { ElMessage.warning('请选择行动号召文案'); return; }
+  form.ad.cta_tags = [...new Set([...(form.ad.cta_tags || []), ...ctaRecommendForm.picked])];
+  ElMessage.success(`已添加 ${ctaRecommendForm.picked.length} 条行动号召`);
+  ctaRecommendVisible.value = false;
+}
+const ctaSaveTplVisible = ref(false);
+const ctaSaveTplForm = reactive({
+  name: '',
+  content: '',
+  saved: [{ name: '通用-短剧', content: '点击看全集，精彩不迷路' }],
+});
+function openCtaSaveTpl() {
+  ctaSaveTplForm.name = '';
+  ctaSaveTplForm.content = (form.ad.cta_tags || []).join(' ');
+  ctaSaveTplVisible.value = true;
+}
+function confirmCtaSaveTpl() {
+  if (!ctaSaveTplForm.name.trim()) { ElMessage.warning('请输入模板名称'); return; }
+  ctaSaveTplForm.saved.unshift({ name: ctaSaveTplForm.name, content: ctaSaveTplForm.content });
+  ElMessage.success('模板已保存（原型模拟）');
+  ctaSaveTplVisible.value = false;
+}
 /* 随机选择（线上：更多菜单 → 随机选择 → 抽屉 1016px） */
 const randomPickVisible = ref(false);
 const randomPickForm = reactive({ uploadTime: [], project: [], catalog: [], materialType: [], videoLayout: [] });
@@ -4507,6 +4572,13 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .proj-line__sub { color: #c9cdd4; margin-left: 6px; }
 .sec-list { display: flex; flex-direction: column; gap: 10px; }
+.cta-rec__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 12px; }
+.cta-rec__list { display: flex; flex-direction: column; gap: 10px; }
+.cta-rec__item { font-size: 13px; color: #1d2129; }
+.cta-tpl__list { margin-top: 16px; border-top: 1px solid #f2f3f5; padding-top: 12px; }
+.cta-tpl__head { font-size: 13px; color: #86909c; margin-bottom: 8px; }
+.cta-tpl__item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1d2129; padding: 4px 0; }
+.cta-tpl__x { cursor: pointer; color: #86909c; }
 .mg-body { display: flex; gap: 16px; min-height: 520px; }
 .mg-left { width: 420px; flex: none; border-right: 1px solid #e5e6eb; padding-right: 16px; }
 .mg-left__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
