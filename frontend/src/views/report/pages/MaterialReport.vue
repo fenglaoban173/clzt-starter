@@ -140,30 +140,13 @@
 
         <!-- 数据筛选 -->
         <ReportFilterRow v-if="!collapsed" label="数据筛选：">
-          <el-popover
+          <!-- 「数据筛选」弹层（线上 1:1） -->
+          <DataFilterPopover
             v-model:visible="dataFilterVisible"
-            placement="bottom-start"
-            :width="372"
-            trigger="click"
-          >
-            <template #reference>
-              <button class="report-filter-btn" type="button">
-                <el-icon><Filter /></el-icon>筛选
-              </button>
-            </template>
-            <div class="data-filter">
-              <div class="data-filter-item">
-                <span class="data-filter-label">消耗</span>
-                <el-input v-model="costMin" size="small" placeholder="最小消耗" />
-                <span class="data-filter-split">—</span>
-                <el-input v-model="costMax" size="small" placeholder="最大消耗" />
-              </div>
-              <div class="data-filter-footer">
-                <el-button size="small" @click="resetDataFilter">重置</el-button>
-                <el-button type="primary" size="small" @click="applyDataFilter">确定</el-button>
-              </div>
-            </div>
-          </el-popover>
+            v-model:filter="dataFilter"
+            metric-key="material"
+            @apply="onDataFilterApply"
+          />
         </ReportFilterRow>
       </div>
     </template>
@@ -414,7 +397,7 @@ import {
   computed, nextTick, onBeforeUnmount, onMounted, ref, watch,
 } from 'vue';
 import {
-  Search, Filter, Operation, QuestionFilled, VideoPlay,
+  Search, Operation, QuestionFilled, VideoPlay,
 } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
@@ -426,6 +409,7 @@ import ReportFilterSelect from '../components/ReportFilterSelect.vue';
 import CustomMetricDialog from '../components/CustomMetricDialog.vue';
 import ExportResultDialog from '../components/ExportResultDialog.vue';
 import MaterialPreviewDrawer from '../components/MaterialPreviewDrawer.vue';
+import DataFilterPopover, { matchDataFilter } from '../components/DataFilterPopover.vue';
 import {
   MEDIA_OPTIONS,
   OPTIMIZER_OPTIONS,
@@ -638,8 +622,8 @@ const tableCollapsed = ref(false);
 const relation = ref([]);
 const addFilterVisible = ref(false);
 const dataFilterVisible = ref(false);
-const costMin = ref('');
-const costMax = ref('');
+/* 「数据筛选」已生效的条件：{ logic: 'all'|'any', conditions: [{ metric, operator, value }] } */
+const dataFilter = ref({ logic: 'all', conditions: [] });
 const page = ref(1);
 const pageSize = ref(20);
 // 线上默认按消耗倒序
@@ -803,8 +787,6 @@ const signature = computed(() => JSON.stringify([
   dimension.value,
   keyword.value,
   selects.value.map((s) => `${s.key}:${(s.model || []).join(',')}`).join('|'),
-  costMin.value,
-  costMax.value,
 ]));
 const DEFAULT_SIGNATURE = computed(() => JSON.stringify([
   'history',
@@ -814,8 +796,6 @@ const DEFAULT_SIGNATURE = computed(() => JSON.stringify([
   '素材',
   '',
   selects.value.map((s) => `${s.key}:`).join('|'),
-  '',
-  '',
 ]));
 
 const allRows = computed(() => {
@@ -905,8 +885,6 @@ const allRows = computed(() => {
 
 const filteredRows = computed(() => {
   const kw = keyword.value.trim();
-  const min = costMin.value === '' ? null : Number(costMin.value);
-  const max = costMax.value === '' ? null : Number(costMax.value);
   return allRows.value.filter((row) => {
     if (kw) {
       const hit = materialType.value === 'id'
@@ -914,11 +892,17 @@ const filteredRows = computed(() => {
         : row.title.includes(kw);
       if (!hit) return false;
     }
-    if (min !== null && !Number.isNaN(min) && row.stat_cost < min) return false;
-    if (max !== null && !Number.isNaN(max) && row.stat_cost > max) return false;
+    // 数据筛选：指标 + 运算符 + 值 的组合条件（所有 = AND，任一 = OR）
+    if (!matchDataFilter(row, dataFilter.value, resolveMetricValue)) return false;
     return true;
   });
 });
+
+/** 「数据筛选」取指标值：消耗取 stat_cost，其余指标按名称生成演示值 */
+function resolveMetricValue(row, name) {
+  if (name === '消耗') return Number(row.stat_cost) || 0;
+  return metricValue(row, name);
+}
 
 const sortedRows = computed(() => {
   const list = filteredRows.value.slice();
@@ -1122,17 +1106,8 @@ function onAddFilter(dim) {
   page.value = 1;
 }
 
-/** 数据筛选浮层：重置 */
-function resetDataFilter() {
-  costMin.value = '';
-  costMax.value = '';
-  dataFilterVisible.value = false;
-  page.value = 1;
-}
-
-/** 数据筛选浮层：确定 */
-function applyDataFilter() {
-  dataFilterVisible.value = false;
+/** 数据筛选浮层：确定后条件写回 dataFilter，表格回到第一页 */
+function onDataFilterApply() {
   page.value = 1;
 }
 
@@ -1316,26 +1291,6 @@ function metricValue(row, name) {
   background: #f7f8fa;
 }
 
-/* 数据筛选浮层 */
-.data-filter-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.data-filter-label {
-  font-size: 13px;
-  color: #333333;
-  width: 34px;
-}
-.data-filter-split {
-  color: #c0c4cc;
-}
-.data-filter-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
 
 /* 卡片头 */
 .relation-select {

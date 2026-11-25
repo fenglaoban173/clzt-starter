@@ -1,11 +1,17 @@
 <template>
   <!-- 素材预览详情抽屉 —— 对齐线上 cl.mobgi.com 素材报表「素材预览」点击后的右侧抽屉
-   * 线上实测：右侧滑出，宽 1128px，高=视口高
-   *   头部：左「ID：0」+ ⓘ 说明，右「×」关闭
-   *   页签行：素材详情 / 数据概览 / 素材数据，右侧「历史版本」下拉（默认「无数据」）
-   *   素材详情：左素材预览（手机竖屏样式，右侧竖排 热点/同城/朋友/推荐），右指标卡
-   *   数据概览：筛选行（媒体 + 日期区间 + 自定义指标）+ 指标卡 + 趋势图提示
-   *   素材数据：筛选行（媒体 + 日期区间 + 自定义指标）+ 指标卡行（同步时间/大小/消耗/点击率/展示率）
+   * 线上实测（cl.mobgi.com/report/material-report，右抽屉 1128px）：
+   *   头部：左「ID：0」+ ⓘ 说明气泡，右「×」关闭
+   *   上半区：左侧素材预览（来源图标栏 + 黑色圆角手机竖屏，顶部横排 热点/同城/朋友/推荐，
+   *            框内右侧竖排 5 个互动图标，每个图标下面跟一个 0），
+   *            右侧「素材详情」页签 + 同一行最右侧的「历史版本」下拉，右侧其余区域留白
+   *   下半区：另起一行的「数据概览 / 素材数据」页签
+   *            数据概览：筛选行（全部媒体 + 日期区间 + 自定义指标）+ 一行 4 张指标卡 + 趋势图提示
+   *            素材数据：筛选行 + 一行指标卡（同步时间 / 大小 / 消耗 / 点击率 / 展示率）
+   *   指标卡底色/圆点（线上采样）：
+   *     消耗 #ebf5ff / #41a2f7、点击率 #ebfffb / #41f7d3、
+   *     转化成本 #efffeb / #66f741、转化率 #fffbeb / #f7d13b
+   *   指标值（线上原文）：897.46 / 10.61% / 8.47 / 23.61%
    -->
   <el-drawer
     :model-value="modelValue"
@@ -35,155 +41,169 @@
     </template>
 
     <div class="mpd-body">
-      <!-- ============ 页签行（+ 右侧历史版本） ============ -->
-      <div class="mpd-tabbar">
-        <el-tabs v-model="activeTab" class="mpd-tabs">
-          <!-- 素材详情 -->
-          <el-tab-pane name="detail">
-            <template #label><span class="mpd-tab-label">素材详情</span></template>
-            <div class="mpd-pane">
-              <div class="mpd-detail">
-                <!-- 左：素材预览（手机竖屏样式） -->
-                <div class="mpd-preview-box">
-                  <div class="mpd-phone" @click="openImageViewer">
-                    <div class="mpd-phone-screen">
-                      <img class="mpd-phone-img" :src="preview" alt="素材预览" />
-                      <div class="mpd-phone-actions">
-                        <span>热点</span>
-                        <span>同城</span>
-                        <span>朋友</span>
-                        <span class="active">推荐</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 右：指标卡 -->
-                <div class="mpd-cards mpd-cards-grid">
-                  <div
-                    v-for="m in mainMetrics"
-                    :key="m.label"
-                    class="mpd-card"
-                    :style="{ backgroundColor: m.bg }"
-                  >
-                    <div class="mpd-card-title">
-                      <span class="mpd-card-dot" :style="{ backgroundColor: m.color }" />
-                      {{ m.label }}
-                    </div>
-                    <div class="mpd-card-value">{{ m.value }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="mpd-tip">{{ TIP_TREND }}</div>
+      <!-- ============ 上半区：素材预览 + 「素材详情」页签 + 「历史版本」 ============ -->
+      <div class="mpd-top">
+        <!-- 左：素材预览（来源图标栏 + 手机竖屏预览框） -->
+        <div class="mpd-preview">
+          <!-- 线上左侧竖排预览来源图标（无边框 / 抖音 / 千川 / 视频号） -->
+          <div class="mpd-src-rail">
+            <div
+              v-for="s in PREVIEW_SOURCES"
+              :key="s.key"
+              class="mpd-src-item"
+              :class="{ active: s.key === previewSource }"
+              :title="s.name"
+              @click="previewSource = s.key"
+            >
+              <svg class="mpd-src-ico" viewBox="0 0 24 24" v-html="s.icon" />
             </div>
-          </el-tab-pane>
+          </div>
 
-          <!-- 数据概览 -->
-          <el-tab-pane name="overview">
-            <template #label><span class="mpd-tab-label">数据概览</span></template>
-            <div class="mpd-pane">
-              <div class="mpd-filter-row">
-                <el-select
-                  v-model="drawerMedia"
-                  size="small"
-                  class="mpd-media-select"
-                  placeholder="全部媒体"
-                >
-                  <el-option v-for="o in MEDIA_OPTIONS" :key="o" :label="o" :value="o" />
-                </el-select>
+          <!-- 手机竖屏预览框（黑色圆角边框，线上实测约 250 × 450） -->
+          <div class="mpd-phone" @click="openImageViewer">
+            <div class="mpd-phone-screen">
+              <img class="mpd-phone-img" :src="preview" alt="素材预览" />
 
-                <el-date-picker
-                  v-model="drawerDateRange"
-                  type="daterange"
-                  size="small"
-                  class="mpd-date-range"
-                  range-separator="至"
-                  start-placeholder="开始日期"
-                  end-placeholder="结束日期"
-                  value-format="YYYY-MM-DD"
-                />
+              <!-- 顶部/右侧压暗层：保证白色图标在浅色封面上也可读 -->
+              <div class="mpd-phone-scrim" />
 
-                <el-button size="small" class="mpd-metric-btn" @click="metricVisible = true">
-                  <el-icon><Setting /></el-icon>自定义指标
-                </el-button>
-              </div>
-
-              <div class="mpd-cards">
-                <div
-                  v-for="m in mainMetrics"
-                  :key="m.label"
-                  class="mpd-card"
-                  :style="{ backgroundColor: m.bg }"
-                >
-                  <div class="mpd-card-title">
-                    <span class="mpd-card-dot" :style="{ backgroundColor: m.color }" />
-                    {{ m.label }}
-                  </div>
-                  <div class="mpd-card-value">{{ m.value }}</div>
+              <!-- 顶部一行：☰ 菜单 —— 热点 同城 朋友 推荐 —— 🔍 搜索 -->
+              <div class="mpd-phone-topbar">
+                <svg class="mpd-phone-ico" viewBox="0 0 24 24" v-html="ICON_MENU" />
+                <div class="mpd-phone-tabs">
+                  <span
+                    v-for="t in PHONE_TABS"
+                    :key="t.text"
+                    class="mpd-phone-tab"
+                    :class="{ active: t.active }"
+                  >{{ t.text }}</span>
                 </div>
+                <svg class="mpd-phone-ico" viewBox="0 0 24 24" v-html="ICON_SEARCH" />
               </div>
 
-              <div class="mpd-tip">{{ TIP_TREND }}</div>
-            </div>
-          </el-tab-pane>
-
-          <!-- 素材数据 -->
-          <el-tab-pane name="data">
-            <template #label><span class="mpd-tab-label">素材数据</span></template>
-            <div class="mpd-pane">
-              <div class="mpd-filter-row">
-                <el-select
-                  v-model="drawerMedia"
-                  size="small"
-                  class="mpd-media-select"
-                  placeholder="全部媒体"
-                >
-                  <el-option v-for="o in MEDIA_OPTIONS" :key="o" :label="o" :value="o" />
-                </el-select>
-
-                <el-date-picker
-                  v-model="drawerDateRange"
-                  type="daterange"
-                  size="small"
-                  class="mpd-date-range"
-                  range-separator="至"
-                  start-placeholder="开始日期"
-                  end-placeholder="结束日期"
-                  value-format="YYYY-MM-DD"
-                />
-
-                <el-button size="small" class="mpd-metric-btn" @click="metricVisible = true">
-                  <el-icon><Setting /></el-icon>自定义指标
-                </el-button>
-              </div>
-
-              <div class="mpd-cards">
-                <div
-                  v-for="m in dataMetrics"
-                  :key="m.label"
-                  class="mpd-card mpd-card-plain"
-                >
-                  <div class="mpd-card-title">
-                    <span class="mpd-card-dot" :style="{ backgroundColor: m.color || '#3b9ff7' }" />
-                    {{ m.label }}
-                  </div>
-                  <div class="mpd-card-value">{{ m.value }}</div>
+              <!-- 右侧竖排 5 个互动图标，每个图标下面跟一个 0 -->
+              <div class="mpd-phone-rail">
+                <svg class="mpd-rail-avatar" viewBox="0 0 24 24" v-html="ICON_AVATAR" />
+                <div v-for="i in PHONE_ICONS" :key="i.key" class="mpd-rail-item">
+                  <svg class="mpd-rail-ico" viewBox="0 0 24 24" v-html="i.icon" />
+                  <span class="mpd-rail-count">{{ i.count }}</span>
                 </div>
               </div>
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </div>
+        </div>
 
-        <!-- 历史版本 -->
-        <el-select
-          v-model="historyVersion"
-          size="small"
-          class="mpd-history-select"
-          placeholder="历史版本"
-        >
-          <el-option label="无数据" value="none" />
-        </el-select>
+        <!-- 右：「素材详情」页签（右侧其余区域留白）+ 同一行最右侧的「历史版本」下拉 -->
+        <div class="mpd-top-right">
+          <el-tabs v-model="topTab" class="mpd-top-tabs">
+            <el-tab-pane name="detail" label="素材详情" />
+          </el-tabs>
+
+          <el-select
+            v-model="historyVersion"
+            size="small"
+            class="mpd-history-select"
+            placeholder="历史版本"
+            clearable
+          >
+            <el-option label="无数据" value="none" />
+          </el-select>
+        </div>
       </div>
+
+      <!-- ============ 下半区：「数据概览 / 素材数据」页签 ============ -->
+      <el-tabs v-model="activeTab" class="mpd-tabs">
+        <!-- 数据概览 -->
+        <el-tab-pane name="overview" label="数据概览">
+          <div class="mpd-pane">
+            <div class="mpd-filter-row">
+              <el-select
+                v-model="drawerMedia"
+                class="mpd-media-select"
+                placeholder="全部媒体"
+              >
+                <el-option v-for="o in MEDIA_OPTIONS" :key="o" :label="o" :value="o" />
+              </el-select>
+
+              <el-date-picker
+                v-model="drawerDateRange"
+                type="daterange"
+                class="mpd-date-range"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+              />
+
+              <el-button class="mpd-metric-btn" @click="metricVisible = true">
+                <svg class="mpd-metric-ico" viewBox="0 0 24 24" v-html="ICON_TUNE" />
+                自定义指标
+              </el-button>
+            </div>
+
+            <div class="mpd-cards">
+              <div
+                v-for="m in mainMetrics"
+                :key="m.label"
+                class="mpd-card"
+                :style="{ backgroundColor: m.bg }"
+              >
+                <div class="mpd-card-title">
+                  <span class="mpd-card-dot" :style="{ backgroundColor: m.color }" />
+                  {{ m.label }}
+                </div>
+                <div class="mpd-card-value">{{ m.value }}</div>
+              </div>
+            </div>
+
+            <div class="mpd-tip">{{ TIP_TREND }}</div>
+          </div>
+        </el-tab-pane>
+
+        <!-- 素材数据 -->
+        <el-tab-pane name="data" label="素材数据">
+          <div class="mpd-pane">
+            <div class="mpd-filter-row">
+              <el-select
+                v-model="drawerMedia"
+                class="mpd-media-select"
+                placeholder="全部媒体"
+              >
+                <el-option v-for="o in MEDIA_OPTIONS" :key="o" :label="o" :value="o" />
+              </el-select>
+
+              <el-date-picker
+                v-model="drawerDateRange"
+                type="daterange"
+                class="mpd-date-range"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+              />
+
+              <el-button class="mpd-metric-btn" @click="metricVisible = true">
+                <svg class="mpd-metric-ico" viewBox="0 0 24 24" v-html="ICON_TUNE" />
+                自定义指标
+              </el-button>
+            </div>
+
+            <div class="mpd-cards">
+              <div
+                v-for="m in dataMetrics"
+                :key="m.label"
+                class="mpd-card mpd-card-plain"
+              >
+                <div class="mpd-card-title">
+                  <span class="mpd-card-dot" :style="{ backgroundColor: m.color || '#3b9ff7' }" />
+                  {{ m.label }}
+                </div>
+                <div class="mpd-card-value">{{ m.value }}</div>
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <!-- 素材大图预览 -->
@@ -205,7 +225,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Close, QuestionFilled, Setting } from '@element-plus/icons-vue';
+import { Close, QuestionFilled } from '@element-plus/icons-vue';
 import CustomMetricDialog from './CustomMetricDialog.vue';
 
 const props = defineProps({
@@ -219,18 +239,18 @@ const emit = defineEmits(['update:modelValue']);
  * 线上实测文案
  * ------------------------------------------------------------------ */
 const TIP_ID = '素材ID为该素材在媒体平台侧的标识，部分素材由创量生成素材后回传媒体，ID为 0 表示该素材未在媒体平台创建。';
-const TIP_TREND = '请选择大于3天的时间以展示完整的趋势图';
+const TIP_TREND = '请筛选大于3天的时间以展示完整的趋势图';
 
 /* 抽屉内「媒体」下拉（线上实测选项） */
 const MEDIA_OPTIONS = [
   '全部媒体', '巨量广告', '腾讯广告3.0', '巨量广告·全域', '巨量广告·智擎',
 ];
 
-/* 指标卡（线上实测值） */
+/* 指标卡（线上原值 + 线上采样底色/圆点色） */
 const mainMetrics = [
-  { label: '消耗', value: '897.46', color: '#3b9ff7', bg: '#ebf5ff' },
-  { label: '点击率', value: '10.61%', color: '#3bf7d1', bg: '#ebfffb' },
-  { label: '转化成本', value: '8.47', color: '#61f73b', bg: '#efffeb' },
+  { label: '消耗', value: '897.46', color: '#41a2f7', bg: '#ebf5ff' },
+  { label: '点击率', value: '10.61%', color: '#41f7d3', bg: '#ebfffb' },
+  { label: '转化成本', value: '8.47', color: '#66f741', bg: '#efffeb' },
   { label: '转化率', value: '23.61%', color: '#f7d13b', bg: '#fffbeb' },
 ];
 
@@ -243,15 +263,86 @@ const BASE_DATA_METRICS = [
 ];
 
 /* ------------------------------------------------------------------ *
+ * 素材预览区（线上：左侧来源图标栏 + 手机竖屏预览框）
+ * ------------------------------------------------------------------ */
+const ICON_MENU = '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+  + '<path d="M3.5 6.5h17M3.5 12h12M3.5 17.5h8"/></g>';
+const ICON_SEARCH = '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+  + '<circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6L21 21"/></g>';
+const ICON_TUNE = '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">'
+  + '<path d="M3.5 7h6M13.5 7h7M3.5 12h10M17.5 12h3M3.5 17h3M10.5 17h10"/>'
+  + '<circle cx="11" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="17" r="2"/></g>';
+const ICON_AVATAR = '<circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.6"/>';
+const ICON_HEART = '<path fill="currentColor" d="M12 20.4s-7.4-4.5-7.4-9.3A4.1 4.1 0 0 1 12 8.5'
+  + 'a4.1 4.1 0 0 1 7.4 2.6c0 4.8-7.4 9.3-7.4 9.3z"/>';
+const ICON_COMMENT = '<path fill="currentColor" d="M12 4.4c4.2 0 7.6 2.8 7.6 6.4 0 3.6-3.4 6.4-7.6 6.4'
+  + '-.8 0-1.6-.1-2.4-.3l-4.2 2.1 1.3-3.2c-1.5-1.2-2.3-3-2.3-5 0-3.6 3.4-6.4 7.6-6.4z"/>';
+const ICON_STAR = '<path fill="currentColor" d="M12 3.8l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7'
+  + '1-5.8-4.2-4.1 5.8-.8L12 3.8z"/>';
+const ICON_SHARE = '<g fill="currentColor"><path d="M12 3.2l5.2 5.2h-3.3v6.4h-3.8V8.4H6.8L12 3.2z"/>'
+  + '</g><path d="M4.8 13.4v6.4h14.4v-6.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+
+/* 线上左侧竖排预览来源图标 */
+const PREVIEW_SOURCES = [
+  {
+    key: 'noborder',
+    name: '无边框',
+    icon: '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">'
+      + '<path d="M2.6 12S6.6 5.6 12 5.6c1.9 0 3.6.6 5 1.5"/>'
+      + '<path d="M21.4 12s-4 6.4-9.4 6.4c-1.9 0-3.6-.6-5-1.5"/>'
+      + '<circle cx="12" cy="12" r="2.6"/><path d="M3.4 3.4l17.2 17.2"/></g>',
+  },
+  {
+    key: 'douyin',
+    name: '抖音',
+    icon: '<path fill="currentColor" d="M16.2 2.6c.4 2.4 2 4.1 4.4 4.5v2.9c-1.7 0-3.3-.5-4.7-1.5v6.6'
+      + 'c0 3.7-2.6 6.2-6.1 6.2-3.2 0-5.8-2.6-5.8-5.8 0-3.4 2.8-6 6.2-5.7v3c-1.7-.2-3.2 1.1-3.2 2.8 0 1.5 1.3 2.7 2.9 2.7'
+      + '1.7 0 3-1.3 3-3.1V2.6h3.3z"/>',
+  },
+  {
+    key: 'qianchuan',
+    name: '千川',
+    icon: '<g fill="currentColor"><rect x="2.6" y="12.4" width="5" height="9" rx="1.2"/>'
+      + '<rect x="9.5" y="5.6" width="5" height="15.8" rx="1.2"/>'
+      + '<rect x="16.4" y="9.2" width="5" height="12.2" rx="1.2"/></g>',
+  },
+  {
+    key: 'shipinhao',
+    name: '视频号',
+    icon: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M4.6 5.4v6.2l3.1 6.4 4.3-12.2 4.3 12.2 3.1-6.4V5.4"/></g>',
+  },
+];
+
+/* 手机预览框顶部横排页签（线上：热点 / 同城 / 朋友 / 推荐，「推荐」选中） */
+const PHONE_TABS = [
+  { text: '热点' },
+  { text: '同城' },
+  { text: '朋友' },
+  { text: '推荐', active: true },
+];
+
+/* 手机预览框右侧竖排互动图标（线上：圆形 / 爱心 / 评论 / 星星 / 转发，计数均为 0） */
+const PHONE_ICONS = [
+  { key: 'like', count: '0', icon: ICON_HEART },
+  { key: 'comment', count: '0', icon: ICON_COMMENT },
+  { key: 'collect', count: '0', icon: ICON_STAR },
+  { key: 'share', count: '0', icon: ICON_SHARE },
+];
+
+/* ------------------------------------------------------------------ *
  * 抽屉状态
  * ------------------------------------------------------------------ */
-const activeTab = ref('detail');
-const historyVersion = ref('none');
-const drawerMedia = ref('全部媒体');
+const topTab = ref('detail');
+const activeTab = ref('overview');
+// 线上该下拉未选中任何值，显示灰色占位「历史版本」
+const historyVersion = ref('');
+const drawerMedia = ref('巨量广告');
 const drawerDateRange = ref(['2026-11-24', '2026-11-24']);
 const metricVisible = ref(false);
 const imageVisible = ref(false);
 const customMetrics = ref([]);
+const previewSource = ref('douyin');
 
 const materialId = computed(() => {
   const v = props.row && props.row.material_id;
@@ -278,9 +369,11 @@ watch(
   () => props.modelValue,
   (v) => {
     if (v) {
-      activeTab.value = 'detail';
-      historyVersion.value = 'none';
+      topTab.value = 'detail';
+      activeTab.value = 'overview';
+      historyVersion.value = '';
       customMetrics.value = [];
+      previewSource.value = 'douyin';
     } else {
       // 抽屉关闭时同步关掉大图预览
       imageVisible.value = false;
@@ -309,8 +402,8 @@ function close() {
 }
 .el-drawer.mpd-drawer .el-drawer__header {
   margin-bottom: 0;
-  padding: 16px 24px;
-  border-bottom: 1px solid #f0f2f5;
+  padding: 12px 16px;
+  border-bottom: none;
 }
 .el-drawer.mpd-drawer .el-drawer__body {
   padding: 0;
@@ -330,11 +423,12 @@ function close() {
   gap: 6px;
 }
 .mpd-header-id {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   color: #333333;
 }
 .mpd-help {
+  font-size: 16px;
   color: #c0c4cc;
   cursor: pointer;
 }
@@ -358,25 +452,196 @@ function close() {
   color: #197afb;
 }
 
-/* 页签行 */
+/* 抽屉主体 */
 .mpd-body {
-  padding: 0 24px 24px;
+  padding: 0 16px 16px;
   box-sizing: border-box;
 }
-.mpd-tabbar {
+
+/* ============ 上半区：素材预览 + 素材详情页签 + 历史版本 ============ */
+.mpd-top {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 8px;
 }
-.mpd-tabs {
+.mpd-top-right {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 470px;
+  padding-top: 6px;
 }
-.mpd-tabs .el-tabs__header {
+.mpd-top-tabs .el-tabs__header {
   margin-bottom: 0;
 }
-.mpd-tabs .el-tabs__nav-wrap::after {
+.mpd-top-tabs .el-tabs__item {
+  height: 40px;
+  font-size: 14px;
+  color: #303133;
+}
+.mpd-top-tabs .el-tabs__item.is-active {
+  color: #303133;
+}
+/* 线上「素材详情」并非选中态（active-bar 宽度为 0），这里保持一致 */
+.mpd-top-tabs .el-tabs__active-bar {
   display: none;
+}
+.mpd-top-tabs .el-tabs__content {
+  display: none;
+}
+.mpd-history-select {
+  position: absolute;
+  right: 0;
+  top: 8px;
+  width: 240px;
+}
+
+/* 左：来源图标栏 + 手机竖屏预览 */
+.mpd-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.mpd-src-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 5px;
+  border-radius: 4px;
+  background: #f5f5f5;
+}
+.mpd-src-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  color: #8a94a6;
+  cursor: pointer;
+}
+.mpd-src-item:hover {
+  color: #197afb;
+}
+.mpd-src-item.active {
+  background: #ffffff;
+  color: #333333;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.mpd-src-ico {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.mpd-src-item:last-child .mpd-src-ico {
+  color: #ff8f1f;
+}
+
+/* 手机竖屏预览框（黑色圆角边框，线上实测约 250 × 450） */
+.mpd-phone {
+  box-sizing: border-box;
+  width: 250px;
+  height: 450px;
+  padding: 6px;
+  border-radius: 30px;
+  background: #0f0f0f;
+  cursor: zoom-in;
+}
+.mpd-phone-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #000000;
+}
+.mpd-phone-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+/* 顶部 / 右侧压暗层（线上封面为纯黑时不可见，保证浅色封面上白色图标可读） */
+.mpd-phone-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0, rgba(0, 0, 0, 0) 60px),
+    linear-gradient(270deg, rgba(0, 0, 0, 0.4) 0, rgba(0, 0, 0, 0) 70px);
+}
+/* 顶部一行：菜单 —— 热点 同城 朋友 推荐 —— 搜索 */
+.mpd-phone-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  color: #ffffff;
+}
+.mpd-phone-ico {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex: 0 0 auto;
+}
+.mpd-phone-tabs {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+}
+.mpd-phone-tab {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.mpd-phone-tab.active {
+  text-decoration: underline;
+}
+/* 右侧竖排 5 个互动图标（每个图标下面跟一个 0） */
+.mpd-phone-rail {
+  position: absolute;
+  right: 10px;
+  top: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+}
+.mpd-rail-avatar {
+  width: 34px;
+  height: 34px;
+  display: block;
+  margin-bottom: 2px;
+}
+.mpd-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.mpd-rail-ico {
+  width: 23px;
+  height: 23px;
+  display: block;
+}
+.mpd-rail-count {
+  font-size: 12px;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+/* ============ 下半区：数据概览 / 素材数据 ============ */
+.mpd-tabs .el-tabs__header {
+  margin-bottom: 0;
 }
 .mpd-tabs .el-tabs__item {
   height: 46px;
@@ -386,86 +651,21 @@ function close() {
 .mpd-tabs .el-tabs__item.is-active {
   color: #197afb;
 }
-.mpd-tab-label {
-  font-size: 14px;
-}
-.mpd-history-select {
-  flex: 0 0 200px;
-  margin-top: 9px;
-}
 .mpd-pane {
   padding-top: 8px;
 }
 
-/* 素材详情：左预览 + 右指标卡 */
-.mpd-detail {
-  display: flex;
-  align-items: flex-start;
-  gap: 32px;
-}
-.mpd-preview-box {
-  flex: 0 0 300px;
-  display: flex;
-  justify-content: center;
-  padding-top: 8px;
-}
-.mpd-phone {
-  box-sizing: border-box;
-  width: 240px;
-  height: 420px;
-  padding: 8px;
-  border-radius: 20px;
-  background: #111111;
-  cursor: zoom-in;
-}
-.mpd-phone-screen {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 13px;
-  overflow: hidden;
-  background: #000000;
-}
-.mpd-phone-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.mpd-phone-actions {
-  position: absolute;
-  top: 12px;
-  right: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.mpd-phone-actions span {
-  font-size: 12px;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-}
-.mpd-phone-actions span.active {
-  font-weight: 700;
-}
+/* 指标卡 */
 .mpd-cards {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
 }
-.mpd-cards-grid {
-  flex: 1 1 auto;
-  align-content: flex-start;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
 .mpd-card {
   box-sizing: border-box;
-  flex: 1 1 200px;
-  min-width: 190px;
+  flex: 0 0 205px;
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: 16px 12px;
 }
 .mpd-card-plain {
   background: #f7f8fa;
@@ -473,7 +673,7 @@ function close() {
 .mpd-card-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   color: #606266;
 }
@@ -481,11 +681,13 @@ function close() {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  flex: 0 0 auto;
 }
 .mpd-card-value {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 20px;
   font-weight: 700;
+  line-height: 1.2;
   color: #333333;
 }
 
@@ -497,7 +699,7 @@ function close() {
   color: #909399;
 }
 
-/* 筛选行 */
+/* 筛选行（线上实测：媒体下拉 120px / 日期区间 230px / 自定义指标按钮） */
 .mpd-filter-row {
   display: flex;
   align-items: center;
@@ -505,12 +707,48 @@ function close() {
   margin: 8px 0 16px;
 }
 .mpd-media-select {
-  width: 130px;
+  width: 120px;
+  flex: 0 0 120px;
 }
 .mpd-date-range {
-  width: 300px;
+  width: 230px;
+  min-width: 0;
+  flex: 0 0 230px;
 }
 .mpd-metric-btn {
   margin-left: 4px;
+  border-color: transparent;
+  background: transparent;
+  color: #333333;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.mpd-metric-btn:hover {
+  color: #197afb;
+  border-color: transparent;
+  background: transparent;
+}
+.mpd-metric-ico {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: -3px;
+}
+.el-drawer.mpd-drawer .mpd-media-select .el-select__wrapper {
+  background: #f5f5f5;
+  box-shadow: none;
+}
+.el-drawer.mpd-drawer .mpd-date-range.el-range-editor {
+  width: 230px;
+  min-width: 0;
+  background: #f5f5f5;
+  box-shadow: none;
+}
+.el-drawer.mpd-drawer .mpd-date-range .el-range-input {
+  font-size: 13px;
+}
+.el-drawer.mpd-drawer .mpd-history-select .el-select__wrapper {
+  background: #fafafa;
+  box-shadow: none;
 }
 </style>

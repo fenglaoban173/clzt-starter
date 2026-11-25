@@ -67,30 +67,13 @@
           collapse-text="收起筛选配置"
           @toggle-collapse="filterCollapsed = !filterCollapsed"
         >
-          <el-popover
+          <!-- 「数据筛选」弹层（线上 1:1） -->
+          <DataFilterPopover
             v-model:visible="dataFilterVisible"
-            placement="bottom-start"
-            :width="372"
-            trigger="click"
-          >
-            <template #reference>
-              <button class="report-filter-btn" type="button">
-                <el-icon><Filter /></el-icon>筛选
-              </button>
-            </template>
-            <div class="data-filter">
-              <div class="data-filter-item">
-                <span class="data-filter-label">消耗</span>
-                <el-input v-model="costMin" size="small" placeholder="最小花费" />
-                <span class="data-filter-split">—</span>
-                <el-input v-model="costMax" size="small" placeholder="最大花费" />
-              </div>
-              <div class="data-filter-footer">
-                <el-button size="small" @click="resetDataFilter">重置</el-button>
-                <el-button type="primary" size="small" @click="applyDataFilter">确定</el-button>
-              </div>
-            </div>
-          </el-popover>
+            v-model:filter="dataFilter"
+            metric-key="project"
+            @apply="onDataFilterApply"
+          />
         </ReportFilterRow>
       </div>
     </template>
@@ -223,12 +206,13 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { Filter, QuestionFilled, Operation, Download } from '@element-plus/icons-vue';
+import { QuestionFilled, Operation, Download } from '@element-plus/icons-vue';
 import ReportPageShell from '../components/ReportPageShell.vue';
 import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
 import CustomMetricDialog from '../components/CustomMetricDialog.vue';
 import ExportResultDialog from '../components/ExportResultDialog.vue';
+import DataFilterPopover, { matchDataFilter } from '../components/DataFilterPopover.vue';
 import { REPORT_METRICS, REPORT_METRIC_DEFAULT_SELECTED } from '@/mock/reportMetrics';
 import { REPORT_TIPS } from '@/mock/reportTips';
 import {
@@ -331,8 +315,8 @@ const attribution = ref('小红书-计费时间');
 const filterSelects = ref(FILTER_DEFS.map((d, i) => ({ ...d, uid: `f${i}`, model: [] })));
 const addFilterVisible = ref(false);
 const dataFilterVisible = ref(false);
-const costMin = ref('');
-const costMax = ref('');
+// 「数据筛选」已生效的条件：{ logic: 'all'|'any', conditions: [{ metric, operator, value }] }
+const dataFilter = ref({ logic: 'all', conditions: [] });
 const metricVisible = ref(false);
 const exportVisible = ref(false);
 // 已选自定义指标（线上默认已选「消耗」）
@@ -431,12 +415,15 @@ function matchRow(r) {
     if (!sel.length) continue;
     if (!sel.includes(r[s.field])) return false;
   }
-  // 数据筛选：消耗区间
-  const min = Number(costMin.value);
-  const max = Number(costMax.value);
-  if (costMin.value !== '' && Number.isFinite(min) && r.stat_cost < min) return false;
-  if (costMax.value !== '' && Number.isFinite(max) && r.stat_cost > max) return false;
+  // 数据筛选：指标 + 运算符 + 值 的组合条件（所有 = AND，任一 = OR）
+  if (!matchDataFilter(r, dataFilter.value, resolveMetricValue)) return false;
   return true;
+}
+
+/** 「数据筛选」取指标值：消耗取 stat_cost，其余指标按名称生成演示值 */
+function resolveMetricValue(row, name) {
+  if (name === '消耗') return Number(row.stat_cost) || 0;
+  return metricValue(row, name);
 }
 
 // 合计行：首列「合计」，消耗列累计
@@ -548,14 +535,9 @@ function onAddFilter(label) {
   addFilterVisible.value = false;
 }
 
-// 数据筛选浮层
-function applyDataFilter() {
-  dataFilterVisible.value = false;
-}
-
-function resetDataFilter() {
-  costMin.value = '';
-  costMax.value = '';
+// 数据筛选浮层：确定后条件写回 dataFilter
+function onDataFilterApply() {
+  /* 本页无分页，条件写回后表格自动重算 */
 }
 
 // 「自定义指标」：打开线上 1:1 的弹窗
@@ -617,27 +599,6 @@ function hash(str) {
 .add-filter-item:hover {
   color: #197afb;
   background: #f7f8fa;
-}
-
-/* 数据筛选浮层 */
-.data-filter-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.data-filter-label {
-  font-size: 13px;
-  color: #333333;
-  width: 34px;
-}
-.data-filter-split {
-  color: #c0c4cc;
-}
-.data-filter-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
 }
 
 /* 卡片头 */

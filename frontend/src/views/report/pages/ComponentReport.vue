@@ -71,30 +71,13 @@
 
         <!-- 数据筛选 -->
         <ReportFilterRow v-if="!collapsed" label="数据筛选：">
-          <el-popover
+          <!-- 「数据筛选」弹层（线上 1:1） -->
+          <DataFilterPopover
             v-model:visible="dataFilterVisible"
-            placement="bottom-start"
-            :width="372"
-            trigger="click"
-          >
-            <template #reference>
-              <button class="report-filter-btn" type="button">
-                <el-icon><Filter /></el-icon>筛选
-              </button>
-            </template>
-            <div class="data-filter">
-              <div class="data-filter-item">
-                <span class="data-filter-label">花费</span>
-                <el-input v-model="costMin" size="small" placeholder="最小花费" />
-                <span class="data-filter-split">—</span>
-                <el-input v-model="costMax" size="small" placeholder="最大花费" />
-              </div>
-              <div class="data-filter-footer">
-                <el-button size="small" @click="resetDataFilter">清空</el-button>
-                <el-button type="primary" size="small" @click="applyDataFilter">确定</el-button>
-              </div>
-            </div>
-          </el-popover>
+            v-model:filter="dataFilter"
+            metric-key="component"
+            @apply="onDataFilterApply"
+          />
         </ReportFilterRow>
       </div>
     </template>
@@ -264,13 +247,17 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import {
-  Search, Filter, Operation, QuestionFilled, WarningFilled, VideoPlay,
+  Search, Operation, QuestionFilled, WarningFilled, VideoPlay,
 } from '@element-plus/icons-vue';
 import ReportPageShell from '../components/ReportPageShell.vue';
 import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
 import CustomMetricDialog from '../components/CustomMetricDialog.vue';
 import ExportResultDialog from '../components/ExportResultDialog.vue';
+import DataFilterPopover, {
+  matchDataFilter,
+  demoMetricValue,
+} from '../components/DataFilterPopover.vue';
 import { REPORT_METRICS, REPORT_METRIC_DEFAULT_SELECTED } from '@/mock/reportMetrics';
 import { REPORT_TIPS } from '@/mock/reportTips';
 import {
@@ -353,8 +340,8 @@ const caliber = ref(METRIC_CALIBER_OPTIONS[1]);
 const relation = ref([]);
 const addFilterVisible = ref(false);
 const dataFilterVisible = ref(false);
-const costMin = ref('');
-const costMax = ref('');
+/* 「数据筛选」已生效的条件：{ logic: 'all'|'any', conditions: [{ metric, operator, value }] } */
+const dataFilter = ref({ logic: 'all', conditions: [] });
 const page = ref(1);
 const pageSize = ref(20);
 // 线上默认按花费倒序
@@ -548,8 +535,6 @@ const signature = computed(() => JSON.stringify([
   media.value,
   keyword.value,
   visibleSelects.value.map((s) => `${s.key}:${(s.model || []).join(',')}`).join('|'),
-  costMin.value,
-  costMax.value,
 ]));
 const DEFAULT_SIGNATURE = computed(() => JSON.stringify([
   '汇总',
@@ -557,8 +542,6 @@ const DEFAULT_SIGNATURE = computed(() => JSON.stringify([
   'gdt_upgrade',
   '',
   visibleSelects.value.map((s) => `${s.key}:`).join('|'),
-  '',
-  '',
 ]));
 
 const allRows = computed(() => {
@@ -634,15 +617,23 @@ const allRows = computed(() => {
 /** 关键词 / 数据筛选后的结果集 */
 const filteredRows = computed(() => {
   const kw = keyword.value.trim();
-  const min = costMin.value === '' ? null : Number(costMin.value);
-  const max = costMax.value === '' ? null : Number(costMax.value);
   return allRows.value.filter((row) => {
     if (kw && !row.component_id.includes(kw)) return false;
-    if (min !== null && !Number.isNaN(min) && row.stat_cost < min) return false;
-    if (max !== null && !Number.isNaN(max) && row.stat_cost > max) return false;
+    // 数据筛选：指标 + 运算符 + 值 的组合条件（所有 = AND，任一 = OR）
+    if (!matchDataFilter(row, dataFilter.value, resolveMetricValue)) return false;
     return true;
   });
 });
+
+/** 「数据筛选」取指标值：花费取 stat_cost，其余指标按名称生成演示值 */
+function resolveMetricValue(row, name) {
+  if (name === '花费' || name === '消耗') return Number(row.stat_cost) || 0;
+  const col = columns.value.find((c) => c.label === name);
+  if (col && col.prop && row[col.prop] !== undefined && row[col.prop] !== null && row[col.prop] !== '') {
+    return row[col.prop];
+  }
+  return demoMetricValue(row, name, Number(row.stat_cost) || 0);
+}
 
 const sortedRows = computed(() => {
   const list = filteredRows.value.slice();
@@ -701,16 +692,8 @@ function onQuery() {
   page.value = 1;
 }
 
-/* 数据筛选：清空 / 确定 */
-function resetDataFilter() {
-  costMin.value = '';
-  costMax.value = '';
-  dataFilterVisible.value = false;
-  page.value = 1;
-}
-
-function applyDataFilter() {
-  dataFilterVisible.value = false;
+/* 数据筛选：确定后条件写回 dataFilter，表格回到第一页 */
+function onDataFilterApply() {
   page.value = 1;
 }
 
@@ -798,26 +781,6 @@ function onPreview(row) {
   margin-right: 0;
 }
 
-/* 数据筛选浮层 */
-.data-filter-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.data-filter-label {
-  font-size: 13px;
-  color: #333333;
-  width: 34px;
-}
-.data-filter-split {
-  color: #c0c4cc;
-}
-.data-filter-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
 
 /* 卡片头 */
 .caliber-select {
