@@ -117,7 +117,7 @@
                 :value="o.value"
                 :disabled="o.disabled"
               >
-                <el-popover placement="top" :width="260" trigger="click">
+                <el-popover placement="top" :width="260" trigger="hover">
                   <template #reference>
                     <span class="attribution-option">{{ o.label }}</span>
                   </template>
@@ -141,7 +141,7 @@
             <!-- 自定义指标 -->
             <el-button size="small" @click="handleCustomMetric">
               <el-icon><Operation /></el-icon>自定义指标
-              <el-popover placement="top" :width="200" trigger="click">
+              <el-popover placement="top" :width="200" trigger="hover">
                 <template #reference>
                   <el-icon class="action-help"><QuestionFilled /></el-icon>
                 </template>
@@ -152,7 +152,7 @@
             <!-- 导出数据 -->
             <el-button size="small" @click="handleExport">
               <el-icon><Download /></el-icon>导出数据
-              <el-popover placement="top" :width="200" trigger="click">
+              <el-popover placement="top" :width="200" trigger="hover">
                 <template #reference>
                   <el-icon class="action-help"><QuestionFilled /></el-icon>
                 </template>
@@ -182,15 +182,14 @@
               <el-table-column
                 :prop="col.prop"
                 :label="col.label"
-                :width="col.width"
-                :min-width="col.minWidth"
+                :min-width="col.width || col.minWidth"
                 :align="col.align || 'left'"
                 :sortable="col.sortable"
                 show-overflow-tooltip
               >
                 <!-- 线上：列头文字本身是 ⓘ 气泡的触发点（点击列头弹出口径说明） -->
                 <template #header>
-                  <el-popover v-if="col.tip" placement="bottom" :width="300" trigger="click">
+                  <el-popover v-if="col.tip" placement="bottom" :width="300" trigger="hover">
                     <template #reference>
                       <span class="col-tip-label">{{ col.label }}</span>
                     </template>

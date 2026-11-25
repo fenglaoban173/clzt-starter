@@ -4,7 +4,7 @@
     <div class="report-card-head">
       <div class="report-card-title">
         {{ title }}
-        <el-popover v-if="help" placement="right" :width="420" trigger="click">
+        <el-popover v-if="help" placement="right" :width="420" trigger="hover">
           <template #reference>
             <el-icon class="report-help-icon"><QuestionFilled /></el-icon>
           </template>
@@ -50,8 +50,7 @@
           <el-table-column
             :prop="col.prop"
             :label="col.label"
-            :width="col.width"
-            :min-width="col.minWidth"
+            :min-width="col.width || col.minWidth"
             :align="col.align || 'left'"
             :fixed="col.fixed"
             :sortable="col.sortable"

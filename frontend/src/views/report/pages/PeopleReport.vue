@@ -30,7 +30,7 @@
       <div class="report-card-head">
         <div class="report-card-title">
           趋势分析
-          <el-popover placement="right" :width="250" trigger="click">
+          <el-popover placement="right" :width="250" trigger="hover">
             <template #reference><el-icon><QuestionFilled /></el-icon></template>
             {{ tipText('趋势变化只展示Top5的数据 。') }}
           </el-popover>
@@ -68,7 +68,7 @@
           </el-select>
           <el-button size="small" plain @click="onExport">导出数据</el-button>
           <!-- 导出数据 ⓘ（线上：按钮右侧问号气泡，200px） -->
-          <el-popover placement="bottom" :width="200" trigger="click">
+          <el-popover placement="bottom" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="card-help-icon" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -91,7 +91,7 @@
             :key="col.prop"
             :prop="col.prop"
             :label="col.label"
-            :width="col.width"
+            :min-width="col.width"
             :align="col.align || 'left'"
             :sortable="col.sortable"
             show-overflow-tooltip

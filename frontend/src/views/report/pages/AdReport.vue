@@ -86,7 +86,7 @@
           </div>
 
           <!-- + 添加筛选（线上是「已选筛选维度」多选，选项即维度清单） -->
-          <el-popover placement="bottom-start" :width="200" trigger="click">
+          <el-popover placement="bottom-start" :width="200" trigger="hover">
             <template #reference>
               <button class="report-add-filter" type="button">+ 添加筛选</button>
             </template>
@@ -155,11 +155,13 @@
           </el-popover>
         </div>
         <div class="report-card-actions">
-          <!-- 关联维度：线上宽 120px、占位文案「关联维度」 -->
+          <!-- 关联维度：线上宽 120px、占位文案「关联维度」（多选，勾选后表格多出对应列） -->
           <el-select
             v-model="relationDim"
             class="ad-relation-select"
             size="small"
+            multiple
+            collapse-tags
             placeholder="关联维度"
           >
             <el-option v-for="o in RELATION_DIM_AD_OPTIONS" :key="o" :label="o" :value="o" />
@@ -168,7 +170,7 @@
             <el-icon><Operation /></el-icon>自定义指标
           </el-button>
           <!-- 自定义指标 ⓘ -->
-          <el-popover placement="top" :width="200" trigger="click">
+          <el-popover placement="top" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="ad-help-icon" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -178,7 +180,7 @@
             <el-icon><Download /></el-icon>导出数据
           </el-button>
           <!-- 导出数据 ⓘ -->
-          <el-popover placement="top" :width="200" trigger="click">
+          <el-popover placement="top" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="ad-help-icon" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -202,22 +204,22 @@
           <el-table-column type="selection" width="60" fixed="left" />
 
           <el-table-column
-            v-for="col in columns"
-            :key="col.prop"
+            v-for="(col, ci) in columns"
+            :key="`${col.prop}_${ci}`"
             :prop="col.prop"
             :label="col.label"
-            :width="col.width"
-            :min-width="col.minWidth"
+            :min-width="col.width || col.minWidth"
             :align="col.align || 'left'"
             :fixed="col.fixed"
             :sortable="col.sortable"
             show-overflow-tooltip
           >
-            <!-- 线上列头：文字本身即提示气泡的锚点（hover 出现口径说明） -->
+            <!-- 线上列头：文字本身即提示气泡的锚点（hover 出现口径说明；关联维度列无线上口径说明） -->
             <template #header>
-              <el-tooltip :content="col.tip" placement="top" :show-after="150">
+              <el-tooltip v-if="col.tip" :content="col.tip" placement="top" :show-after="150">
                 <span class="ad-col-title">{{ col.label }}</span>
               </el-tooltip>
+              <span v-else class="ad-col-title">{{ col.label }}</span>
             </template>
             <template #default="{ row }">
               <span v-if="col.money">{{ money(row[col.prop]) }}</span>
@@ -268,6 +270,7 @@ import {
   DEPT_OPTIONS,
   PROJECT_OPTIONS,
   PRODUCT_OPTIONS,
+  SUBJECT_OPTIONS,
   CONVERT_GOAL_OPTIONS,
   DEEP_CONVERT_OPTIONS,
   OUYAN_PRODUCT_OPTIONS,
@@ -290,7 +293,7 @@ const dimension = ref('账户');          // 数据维度，默认「账户」
 const keyword = ref('');
 const collapsed = ref(false);          // 收起筛选配置
 const cardCollapsed = ref(false);      // 卡片收起 / 展开
-const relationDim = ref('');           // 关联维度
+const relationDim = ref([]);           // 关联维度（多选：勾选后表格多出对应列）
 
 /* ---------------- 问号提示文案（全部取自线上采集：mock/reportTips.js） ---------------- */
 const AD_TIPS = REPORT_TIPS.ad || [];
@@ -414,6 +417,26 @@ const RELATION_DIM_AD_OPTIONS = [
   '剧目/专辑ID', '巨量商品', '巨量应用', '优化目标', '小程序/小游戏', '抖音号',
 ];
 
+/* 关联维度 → 表格列（线上实测：勾选后插在固定列之后、指标列之前） */
+const RELATION_COLUMN_MAP = {
+  媒体: { prop: 'media_name', width: 160 },
+  优化师: { prop: 'optimizer', width: 200 },
+  合作商: { prop: 'partner', width: 180 },
+  部门: { prop: 'dept', width: 160 },
+  产品: { prop: 'product', width: 160 },
+  智投项目: { prop: 'project', width: 160 },
+  账户主体: { prop: 'subject', width: 220 },
+  账户备注: { prop: 'account_note', width: 180 },
+  '剧目/专辑ID': { prop: 'drama_id', width: 160 },
+  巨量商品: { prop: 'ouyan_product', width: 160 },
+  巨量应用: { prop: 'ouyan_app', width: 160 },
+  优化目标: { prop: 'convert_goal', width: 160 },
+  '小程序/小游戏': { prop: 'mini_app', width: 160 },
+  抖音号: { prop: 'douyin_account', width: 160 },
+};
+/* 关联维度取值需要跟着聚合行一起带过去的字段 */
+const RELATION_FIELDS = Object.values(RELATION_COLUMN_MAP).map((c) => c.prop);
+
 /* ---------------- 行数据 ---------------- */
 const MEDIA_ROW_TAG = [
   'toutiao_upgrade', 'toutiao_upgrade', 'toutiao_upgrade',
@@ -470,6 +493,12 @@ function enrichRows() {
     mini_app: MINI_APP_OPTIONS[i % MINI_APP_OPTIONS.length],
     douyin_no: DOUYIN_NO_OPTIONS[0],
     drama: DRAMA_ALBUM_OPTIONS[0],
+    // 关联维度列取值（媒体显示名 / 账户主体 / 账户备注 / 抖音号 / 剧目专辑ID）
+    media_name: MEDIA_LABELS[MEDIA_ROW_TAG[i % MEDIA_ROW_TAG.length]] || '',
+    subject: SUBJECT_OPTIONS[i % SUBJECT_OPTIONS.length],
+    account_note: `备注-${i % 5 + 1}`,
+    douyin_account: `dy_${1869584152800000 + i * 13}`,
+    drama_id: String(6900000000 + i * 7),
   }));
 }
 
@@ -595,6 +624,11 @@ const tableRows = computed(() => {
     const name = entity(r);
     const key = `${r.date}__${name}`;
     if (!buckets.has(key)) {
+      /* 关联维度列的取值随聚合行一起带过去（取该分组首行的维度值） */
+      const dims = {};
+      RELATION_FIELDS.forEach((f) => {
+        if (r[f] !== undefined) dims[f] = r[f];
+      });
       buckets.set(key, {
         id: key,
         date: r.date,
@@ -604,6 +638,7 @@ const tableRows = computed(() => {
         douyin_nick: '--',
         is_native: '--',
         stat_cost: 0,
+        ...dims,
       });
     }
     buckets.get(key).stat_cost += Number(r.stat_cost) || 0;
@@ -665,9 +700,22 @@ const METRIC_DESC = (() => {
   return map;
 })();
 
-/* 表格列 = 固定列 + 「自定义指标」里选中的指标列 */
+/* 关联维度列（线上：勾选后表格多出对应列，插在固定列之后、指标列之前） */
+const relationColumns = computed(() =>
+  relationDim.value
+    .filter((k) => RELATION_COLUMN_MAP[k])
+    .map((k) => ({
+      prop: RELATION_COLUMN_MAP[k].prop,
+      label: k,
+      width: RELATION_COLUMN_MAP[k].width,
+      align: 'left',
+      tip: '',
+    }))
+);
+
+/* 表格列 = 固定列 + 关联维度列 + 「自定义指标」里选中的指标列 */
 const columns = computed(() => {
-  const list = [...FIXED_COLUMNS];
+  const list = [...FIXED_COLUMNS, ...relationColumns.value];
   selectedMetrics.value.forEach((name) => {
     const tip = METRIC_DESC[name] || name;
     const meta = METRIC_COLUMN_META[name];

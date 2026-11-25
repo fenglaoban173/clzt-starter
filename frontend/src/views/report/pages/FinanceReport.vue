@@ -29,7 +29,7 @@
         <div class="report-card-title">
           详细数据
           <!-- 线上：标题右侧 ⓘ 气泡（600px）——页面级数据说明 -->
-          <el-popover placement="right" :width="600" trigger="click">
+          <el-popover placement="right" :width="600" trigger="hover">
             <template #reference><el-icon><QuestionFilled /></el-icon></template>
             <div v-for="(line, i) in PAGE_TIP_LINES" :key="i">{{ line }}</div>
           </el-popover>
@@ -50,7 +50,7 @@
           </el-select>
           <el-button size="small" plain @click="onExport">导出数据</el-button>
           <!-- 导出数据 ⓘ（线上：按钮右侧问号气泡，200px） -->
-          <el-popover placement="bottom" :width="200" trigger="click">
+          <el-popover placement="bottom" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="card-help-icon" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -73,7 +73,7 @@
             :key="col.prop"
             :prop="col.prop"
             :label="col.label"
-            :width="col.width"
+            :min-width="col.width"
             :align="col.align || 'left'"
             :sortable="col.sortable"
             show-overflow-tooltip

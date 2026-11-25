@@ -173,7 +173,7 @@
           <div class="report-card-title">
             详细数据
             <!-- 线上：标题右侧的 ⓘ 说明（文案取自线上采集） -->
-            <el-popover placement="right" :width="600" trigger="click">
+            <el-popover placement="right" :width="600" trigger="hover">
               <template #reference>
                 <el-icon class="card-help-icon"><QuestionFilled /></el-icon>
               </template>
@@ -197,7 +197,7 @@
             <!-- 自定义指标 -->
             <el-button size="small" @click="handleCustomMetric">
               <el-icon><Operation /></el-icon>自定义指标
-              <el-popover placement="top" :width="200" trigger="click">
+              <el-popover placement="top" :width="200" trigger="hover">
                 <template #reference>
                   <el-icon class="action-help"><QuestionFilled /></el-icon>
                 </template>
@@ -208,7 +208,7 @@
             <!-- 导出数据 -->
             <el-button size="small" @click="handleExport">
               <el-icon><Download /></el-icon>导出数据
-              <el-popover placement="top" :width="200" trigger="click">
+              <el-popover placement="top" :width="200" trigger="hover">
                 <template #reference>
                   <el-icon class="action-help"><QuestionFilled /></el-icon>
                 </template>
@@ -234,19 +234,19 @@
             <!-- 线上勾选列实测宽 60px -->
             <el-table-column type="selection" width="60" fixed="left" />
 
-            <template v-for="col in columns" :key="col.prop">
+            <!-- key 带序号：数据维度列与关联维度列可能同名（如「优化师」），避免 key 重复 -->
+            <template v-for="(col, ci) in columns" :key="`${col.prop}_${ci}`">
               <el-table-column
                 :prop="col.prop"
                 :label="col.label"
-                :width="col.width"
-                :min-width="col.minWidth"
+                :min-width="col.width || col.minWidth"
                 :align="col.align || 'left'"
                 :sortable="col.sortable"
                 show-overflow-tooltip
               >
                 <!-- 线上：列头文字本身是 ⓘ 气泡的触发点（点击列头弹出口径说明） -->
                 <template #header>
-                  <el-popover v-if="col.tip" placement="bottom" :width="300" trigger="click">
+                  <el-popover v-if="col.tip" placement="bottom" :width="300" trigger="hover">
                     <template #reference>
                       <span class="col-tip-label">{{ col.label }}</span>
                     </template>
@@ -310,6 +310,7 @@ import {
   DEPT_OPTIONS,
   PROJECT_OPTIONS,
   PRODUCT_OPTIONS,
+  SUBJECT_OPTIONS,
   ADVERTISER_OPTIONS,
   RELATION_DIM_ACCOUNT,
   DIM_ACCOUNT,
@@ -430,7 +431,34 @@ const metricColumns = computed(() =>
   }))
 );
 
-const columns = computed(() => [...baseColumns.value, ...metricColumns.value]);
+// 关联维度：线上勾选后表格多出对应列（实测列序：固定列之后、指标列之前）
+const RELATION_COLUMN_MAP = {
+  媒体: { prop: 'media', width: 160 },
+  优化师: { prop: 'optimizer', width: 200 },
+  合作商: { prop: 'partner', width: 180 },
+  部门: { prop: 'dept', width: 160 },
+  智投项目: { prop: 'project', width: 160 },
+  商品: { prop: 'product', width: 160 },
+  账户主体: { prop: 'subject', width: 220 },
+  账户备注: { prop: 'account_note', width: 180 },
+};
+const relationColumns = computed(() =>
+  relation.value
+    .filter((k) => RELATION_COLUMN_MAP[k])
+    .map((k) => ({
+      prop: RELATION_COLUMN_MAP[k].prop,
+      label: k,
+      width: RELATION_COLUMN_MAP[k].width,
+      align: 'left',
+      tip: '',
+    }))
+);
+
+const columns = computed(() => [
+  ...baseColumns.value,
+  ...relationColumns.value,
+  ...metricColumns.value,
+]);
 
 /** 指标口径说明（取自线上采集的指标集） */
 function metricDesc(name) {
@@ -459,6 +487,9 @@ const rows = computed(() => {
       project: PROJECT_OPTIONS[i % PROJECT_OPTIONS.length],
       product: PRODUCT_OPTIONS[i % PRODUCT_OPTIONS.length],
       media: MEDIA_OPTIONS[(i % 4) + 1].label,
+      // 关联维度列取值（账户主体 / 账户备注）
+      subject: SUBJECT_OPTIONS[i % SUBJECT_OPTIONS.length],
+      account_note: `备注-${i % 5 + 1}`,
       stat_cost: Number(r.stat_cost),
     };
     metricColumns.value.forEach((col) => {

@@ -146,7 +146,7 @@
             <el-icon><Operation /></el-icon>自定义指标
           </el-button>
           <!-- 自定义指标 ⓘ -->
-          <el-popover placement="top" :width="200" trigger="click">
+          <el-popover placement="top" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="export-help" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -157,7 +157,7 @@
             导出数据
           </el-button>
           <!-- 导出数据 ⓘ -->
-          <el-popover placement="top" :width="200" trigger="click">
+          <el-popover placement="top" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="export-help" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -183,21 +183,21 @@
           <el-table-column type="selection" width="60" fixed="left" />
 
           <el-table-column
-            v-for="col in columns"
-            :key="col.prop"
+            v-for="(col, ci) in columns"
+            :key="`${col.prop}_${ci}`"
             :prop="col.prop"
             :label="col.label"
-            :width="col.width"
-            :min-width="col.minWidth"
+            :min-width="col.width || col.minWidth"
             :align="col.align || 'left'"
             :sortable="col.sortable"
             :show-overflow-tooltip="col.type !== 'preview'"
           >
-            <!-- 线上列头：文字本身即提示气泡锚点（hover 出现口径说明） -->
+            <!-- 线上列头：文字本身即提示气泡锚点（hover 出现口径说明；关联维度列无线上口径说明） -->
             <template #header>
-              <el-tooltip :content="col.tip" placement="top" :show-after="150">
+              <el-tooltip v-if="col.tip" :content="col.tip" placement="top" :show-after="150">
                 <span class="cr-col-title">{{ col.label }}</span>
               </el-tooltip>
+              <span v-else class="cr-col-title">{{ col.label }}</span>
             </template>
 
             <template v-if="col.type === 'preview'" #default="{ row }">
@@ -276,6 +276,7 @@ import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   ADVERTISER_OPTIONS,
   PROJECT_OPTIONS,
+  SUBJECT_OPTIONS,
   RELATION_DIM_COMPONENT,
   METRIC_CALIBER_OPTIONS,
 } from '@/mock/reportData';
@@ -493,8 +494,32 @@ const METRIC_DESC = (() => {
   return map;
 })();
 
+/* 关联维度 → 表格列（线上实测：勾选后插在固定列之后、指标列之前） */
+const RELATION_COLUMN_MAP = {
+  账户: { prop: 'account', width: 220 },
+  广告ID: { prop: 'ad_id', width: 200 },
+  创意ID: { prop: 'creative_id', width: 200 },
+  组件类型: { prop: 'comp_type', width: 180 },
+  账户主体: { prop: 'subject', width: 220 },
+  账户备注: { prop: 'account_note', width: 180 },
+  编导: { prop: 'director', width: 160 },
+  剪辑: { prop: 'editor', width: 160 },
+};
+/* 关联维度列（线上：勾选后表格多出对应列） */
+const relationColumns = computed(() =>
+  relation.value
+    .filter((k) => RELATION_COLUMN_MAP[k])
+    .map((k) => ({
+      prop: RELATION_COLUMN_MAP[k].prop,
+      label: k,
+      width: RELATION_COLUMN_MAP[k].width,
+      align: 'left',
+      tip: '',
+    }))
+);
+
 const columns = computed(() => {
-  const list = [...FIXED_COLUMNS];
+  const list = [...FIXED_COLUMNS, ...relationColumns.value];
   selectedMetrics.value.forEach((name) => {
     const tip = METRIC_DESC[name] || name;
     const meta = COMPONENT_METRIC_META[name];
@@ -551,6 +576,15 @@ const allRows = computed(() => {
       preview: PREVIEWS[i % PREVIEWS.length],
       is_video: i % 4 !== 3,
       stat_cost: head ? head[1] : 0,
+      /* 关联维度列取值 */
+      account: ADVERTISER_OPTIONS[i % ADVERTISER_OPTIONS.length],
+      ad_id: String(1869584152800000 + i * 13),
+      creative_id: String(1940452378000 + i * 7),
+      comp_type: COMPONENT_TYPE_OPTIONS[i % COMPONENT_TYPE_OPTIONS.length],
+      subject: SUBJECT_OPTIONS[i % SUBJECT_OPTIONS.length],
+      account_note: `备注-${i % 5 + 1}`,
+      director: STAFF_OPTIONS[i % STAFF_OPTIONS.length],
+      editor: STAFF_OPTIONS[(i + 3) % STAFF_OPTIONS.length],
     });
   }
 

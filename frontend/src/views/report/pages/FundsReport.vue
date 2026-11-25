@@ -34,7 +34,7 @@
             <div class="report-kpi-value">{{ kpi.rate }}</div>
             <div class="report-kpi-label">
               昨日资金使用率
-              <el-popover placement="right" :width="320" trigger="click">
+              <el-popover placement="right" :width="320" trigger="hover">
                 <template #reference>
                   <el-icon><QuestionFilled /></el-icon>
                 </template>
@@ -55,7 +55,7 @@
             <div class="report-kpi-value plain">{{ kpi.today }}</div>
             <div class="report-kpi-label">
               今日消耗
-              <el-popover placement="right" :width="250" trigger="click">
+              <el-popover placement="right" :width="250" trigger="hover">
                 <template #reference>
                   <el-icon><QuestionFilled /></el-icon>
                 </template>
@@ -169,7 +169,7 @@
           </el-select>
           <el-button size="small" plain @click="onExport">导出数据</el-button>
           <!-- 导出数据 ⓘ（线上：按钮右侧问号气泡；本页文案为「导出表格所有的数据」） -->
-          <el-popover placement="bottom" :width="200" trigger="click">
+          <el-popover placement="bottom" :width="200" trigger="hover">
             <template #reference>
               <el-icon class="funds-col-tip" @click.stop><QuestionFilled /></el-icon>
             </template>
@@ -192,7 +192,7 @@
             :key="col.prop"
             :prop="col.prop"
             :label="col.label"
-            :width="col.width"
+            :min-width="col.width"
             :align="col.align || 'left'"
             :sortable="col.sortable"
             show-overflow-tooltip

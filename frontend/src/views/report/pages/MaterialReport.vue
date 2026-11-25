@@ -46,7 +46,7 @@
           </el-radio-group>
 
           <!-- 预计每日更新时间提示 -->
-          <el-popover placement="right" :width="288" trigger="click">
+          <el-popover placement="right" :width="288" trigger="hover">
             <template #reference>
               <span class="report-tip filter-tip">
                 预计每日更新时间9:45
@@ -173,7 +173,7 @@
       <div class="report-card-head">
         <div class="report-card-title">
           详细数据
-          <el-popover placement="right" :width="600" trigger="click">
+          <el-popover placement="right" :width="600" trigger="hover">
             <template #reference>
               <el-icon><QuestionFilled /></el-icon>
             </template>
@@ -196,7 +196,7 @@
           <el-button size="small" @click="metricVisible = true">
             <el-icon><Operation /></el-icon>自定义指标
             <span class="tip-wrap" @click.stop>
-              <el-popover placement="top" :width="140" trigger="click">
+              <el-popover placement="top" :width="140" trigger="hover">
                 <template #reference>
                   <el-icon class="export-help"><QuestionFilled /></el-icon>
                 </template>
@@ -208,7 +208,7 @@
           <el-button size="small" @click="exportVisible = true">
             导出数据
             <span class="tip-wrap" @click.stop>
-              <el-popover placement="top" :width="200" trigger="click">
+              <el-popover placement="top" :width="200" trigger="hover">
                 <template #reference>
                   <el-icon class="export-help"><QuestionFilled /></el-icon>
                 </template>
@@ -284,6 +284,18 @@
             </template>
           </el-table-column>
 
+          <!-- 「关联维度」勾选后追加的列（取消勾选即移除） -->
+          <el-table-column
+            v-for="col in relationColumns"
+            :key="col.prop"
+            :prop="col.prop"
+            :label="col.label"
+            :min-width="col.width || col.minWidth"
+            show-overflow-tooltip
+          >
+            <template #default="{ row }">{{ row[col.prop] }}</template>
+          </el-table-column>
+
           <el-table-column
             v-if="selectedMetrics.includes('消耗')"
             prop="stat_cost"
@@ -347,13 +359,8 @@
     />
     <ExportResultDialog v-model="exportTaskVisible" mode="default" />
 
-    <!-- 素材预览层 -->
-    <el-image-viewer
-      v-if="previewUrl"
-      :url-list="[previewUrl]"
-      teleported
-      @close="previewUrl = ''"
-    />
+    <!-- 素材预览详情抽屉（点「素材预览」列缩略图打开） -->
+    <MaterialPreviewDrawer v-model="previewVisible" :row="previewRow" />
 
     <!-- AI复刻 -->
     <el-dialog
@@ -418,9 +425,12 @@ import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
 import CustomMetricDialog from '../components/CustomMetricDialog.vue';
 import ExportResultDialog from '../components/ExportResultDialog.vue';
+import MaterialPreviewDrawer from '../components/MaterialPreviewDrawer.vue';
 import {
   MEDIA_OPTIONS,
   OPTIMIZER_OPTIONS,
+  PARTNER_OPTIONS,
+  DEPT_OPTIONS,
   SUBJECT_OPTIONS,
   PROJECT_OPTIONS,
   MATERIAL_TYPE_OPTIONS,
@@ -499,12 +509,57 @@ const ADD_FILTER_OPTIONS = [
   '小程序/小游戏', '抖音号', '剧目/专辑ID',
 ];
 // 关联维度（共享 mock 基础上补齐线上实测剩余项）
-const RELATION_DIM = [
+const RELATION_DIM = Array.from(new Set([
   ...RELATION_DIM_MATERIAL,
-  '上传时间', '优化师', '素材类型', '素材标签', '剧目/专辑ID', '编导', '剪辑',
+  // 线上「关联维度」下拉中的媒体 / 优化师 / 合作商 / 部门 / 商品 / 账户主体 / 账户备注
+  '媒体', '优化师', '合作商', '部门', '商品', '账户主体', '账户备注',
+  '上传时间', '素材类型', '素材标签', '剧目/专辑ID', '编导', '剪辑',
   '摄像', '演员', '配音', '录屏', '制作', '脚本', '巨量商品', '巨量应用',
   '优化目标', '小程序/小游戏', '抖音号',
-];
+]));
+/* 关联维度 → 表格新增列（勾选后追加，取消勾选即移除） */
+const RELATION_COLUMN_MAP = {
+  媒体: { prop: 'media', width: 160 },
+  优化师: { prop: 'optimizer', width: 160 },
+  合作商: { prop: 'partner', width: 180 },
+  部门: { prop: 'dept', width: 160 },
+  智投项目: { prop: 'project', width: 160 },
+  商品: { prop: 'product', width: 160 },
+  账户主体: { prop: 'subject', width: 220 },
+  账户备注: { prop: 'account_note', width: 180 },
+  账户: { prop: 'account', width: 220 },
+  广告ID: { prop: 'ad_id', width: 160 },
+  项目ID: { prop: 'project_id', width: 160 },
+  专辑: { prop: 'album', width: 160 },
+  上传时间: { prop: 'upload_time', width: 160 },
+  素材类型: { prop: 'material_type', width: 140 },
+  素材标签: { prop: 'material_tag', width: 140 },
+  '剧目/专辑ID': { prop: 'drama_album_id', width: 160 },
+  编导: { prop: 'director', width: 140 },
+  剪辑: { prop: 'editor', width: 140 },
+  摄像: { prop: 'cameraman', width: 140 },
+  演员: { prop: 'actor', width: 140 },
+  配音: { prop: 'dubbing', width: 140 },
+  录屏: { prop: 'screen_record', width: 140 },
+  制作: { prop: 'producer', width: 140 },
+  脚本: { prop: 'script', width: 140 },
+  巨量商品: { prop: 'ouyan_product', width: 160 },
+  巨量应用: { prop: 'ouyan_app', width: 160 },
+  优化目标: { prop: 'convert_goal', width: 160 },
+  '小程序/小游戏': { prop: 'mini_app', width: 160 },
+  抖音号: { prop: 'douyin_no', width: 160 },
+};
+// 关联维度列（跟在基础列之后、指标列之前）
+const relationColumns = computed(() =>
+  relation.value
+    .filter((k) => RELATION_COLUMN_MAP[k])
+    .map((k) => ({
+      prop: RELATION_COLUMN_MAP[k].prop,
+      label: k,
+      width: RELATION_COLUMN_MAP[k].width,
+      align: 'left',
+    }))
+);
 // 编导 / 剪辑 / 编号 / 素材来源 等下拉（线上实测人员名单）
 const STAFF_OPTIONS = [
   '黄莹曦', '马学泰', '张浩', '王研', '张瑞凯', '裴心怡', '李玉玲', '冯逸',
@@ -594,7 +649,8 @@ const sortOrder = ref('descending');
 const metricVisible = ref(false);        // 自定义指标弹窗
 const exportVisible = ref(false);        // 导出数据：素材预览地址来源
 const exportTaskVisible = ref(false);    // 导出数据：任务创建成功
-const previewUrl = ref('');              // 素材预览层
+const previewVisible = ref(false);       // 素材预览详情抽屉
+const previewRow = ref(null);            // 抽屉对应的表格行
 const aiCopyVisible = ref(false);        // AI复刻弹窗
 const aiCopyRow = ref(null);
 const aiCopyName = ref('');
@@ -691,6 +747,54 @@ function hash(str) {
 const round2 = (n) => Math.round(n * 100) / 100;
 const money = (n) => n.toFixed(2);
 
+/* ------------------------------------------------------------------ *
+ * 关联维度字段（本地 mock，按行序确定性取值）
+ * ------------------------------------------------------------------ */
+// 媒体名（去掉「不限」）
+const MEDIA_LABELS = MEDIA_OPTIONS.filter((m) => m.value !== 'aggregate').map((m) => m.label);
+// 专辑（关联维度里有「专辑」「剧目/专辑ID」）
+const ALBUM_OPTIONS = [
+  '短剧《夜色难眠》', '漫剧《星际军师》', '商品《618大促》', '图文《秋日上新》', '短剧《龙王传说》',
+];
+// 人员（编导 / 剪辑 / 摄像 / 演员 / 配音 / 录屏 / 制作 / 脚本）
+const RELATION_STAFF = [
+  '黄莹曦', '马学泰', '张浩', '王研', '张瑞凯', '裴心怡', '李玉玲', '冯逸',
+];
+
+function relationFields(i) {
+  return {
+    media: MEDIA_LABELS[i % MEDIA_LABELS.length],
+    optimizer: OPTIMIZER_OPTIONS[i % OPTIMIZER_OPTIONS.length],
+    partner: PARTNER_OPTIONS[i % PARTNER_OPTIONS.length],
+    dept: DEPT_OPTIONS[i % DEPT_OPTIONS.length],
+    project: PROJECT_OPTIONS[i % PROJECT_OPTIONS.length],
+    product: PRODUCT_OPTIONS[i % PRODUCT_OPTIONS.length],
+    subject: SUBJECT_OPTIONS[i % SUBJECT_OPTIONS.length],
+    account_note: `备注-${(i % 5) + 1}`,
+    account: ADVERTISER_OPTIONS[i % ADVERTISER_OPTIONS.length],
+    ad_id: `70${String(12000000 + i * 137).slice(0, 9)}`,
+    project_id: `p_${100000 + i * 7}`,
+    album: ALBUM_OPTIONS[i % ALBUM_OPTIONS.length],
+    upload_time: `2026-11-${String((i % 24) + 1).padStart(2, '0')}`,
+    material_type: MATERIAL_TYPE_OPTIONS[i % MATERIAL_TYPE_OPTIONS.length],
+    material_tag: MATERIAL_TAG_OPTIONS[i % MATERIAL_TAG_OPTIONS.length],
+    drama_album_id: `62${String(9000000 + i * 31)}`,
+    director: RELATION_STAFF[i % RELATION_STAFF.length],
+    editor: RELATION_STAFF[(i + 1) % RELATION_STAFF.length],
+    cameraman: RELATION_STAFF[(i + 2) % RELATION_STAFF.length],
+    actor: RELATION_STAFF[(i + 3) % RELATION_STAFF.length],
+    dubbing: RELATION_STAFF[(i + 4) % RELATION_STAFF.length],
+    screen_record: RELATION_STAFF[(i + 5) % RELATION_STAFF.length],
+    producer: RELATION_STAFF[(i + 6) % RELATION_STAFF.length],
+    script: RELATION_STAFF[(i + 7) % RELATION_STAFF.length],
+    ouyan_product: OUYAN_PRODUCT_OPTIONS[i % OUYAN_PRODUCT_OPTIONS.length],
+    ouyan_app: ANDROID_APP_OPTIONS[i % ANDROID_APP_OPTIONS.length],
+    convert_goal: CONVERT_GOAL_OPTIONS[i % CONVERT_GOAL_OPTIONS.length],
+    mini_app: MINI_APP_OPTIONS[i % MINI_APP_OPTIONS.length],
+    douyin_no: DOUYIN_NO_OPTIONS[i % DOUYIN_NO_OPTIONS.length],
+  };
+}
+
 const signature = computed(() => JSON.stringify([
   subTab.value,
   period.value,
@@ -738,6 +842,8 @@ const allRows = computed(() => {
       is_video: i % 5 === 2,
       trend: Array.from({ length: 7 }, () => Math.round(r() * 100) / 100),
       stat_cost: base.stat_cost,
+      // 关联维度字段（勾选哪些维度，表格就多出哪些列）
+      ...relationFields(i),
     });
   }
 
@@ -778,6 +884,7 @@ const allRows = computed(() => {
       is_video: false,
       trend: Array.from({ length: 7 }, () => Math.round(r() * 100) / 100),
       stat_cost: 0,
+      ...relationFields(TOTAL_COUNT + i),
     });
   });
 
@@ -930,6 +1037,9 @@ function renderChart(id) {
   const el = chartEls.get(id);
   const row = rowMap.value.get(id);
   if (!el || !row) return;
+  // 表格列宽尚未算完时容器宽高为 0，echarts.init 会报
+  // 「Can't get DOM width or height」——此时先跳过，等 ResizeObserver 回调再来渲染
+  if (!el.clientWidth || !el.clientHeight) return;
   let chart = charts.get(id);
   if (!chart || chart.isDisposed()) {
     chart = echarts.init(el, null, { renderer: 'canvas' });
@@ -1038,9 +1148,10 @@ function onExportConfirm() {
   exportTaskVisible.value = true;
 }
 
-/** 素材预览：打开大图预览层 */
+/** 素材预览：打开右侧详情抽屉 */
 function onPreview(row) {
-  previewUrl.value = row.preview;
+  previewRow.value = row;
+  previewVisible.value = true;
 }
 
 /** AI复刻：打开复刻弹窗 */
