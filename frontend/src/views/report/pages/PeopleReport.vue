@@ -88,10 +88,10 @@
         >
           <el-table-column
             v-for="col in tableColumns"
-            :key="col.prop"
+            :key="col.key || col.prop"
             :prop="col.prop"
             :label="col.label"
-            :min-width="col.width"
+            :min-width="col.width || col.minWidth"
             :align="col.align || 'left'"
             :sortable="col.sortable"
             show-overflow-tooltip
@@ -215,20 +215,35 @@ const PEOPLE_TIP = {
   cpc: tipText('总消耗/点击数'),
   convert_cost: tipText('总消耗/转化数。巨量广告·全域、磁力金牛(全站)不参与转化相关指标计算，其消耗与转化数均不计入分子分母。'),
 };
-// 第二列随「数据维度 / 关联维度」切换
+// 第二列随页头「数据维度」切换
 const DIM_COLUMN = {
   人员: { prop: 'optimizer', label: '优化师' },
   部门: { prop: 'dept', label: '部门' },
   账户主体: { prop: 'subject', label: '账户主体' },
-  项目: { prop: 'project', label: '项目' },
-  产品: { prop: 'product', label: '产品' },
 };
-const dimColumn = computed(() => {
-  const rel = relationDim.value.length ? relationDim.value[0] : '';
-  return DIM_COLUMN[rel] || DIM_COLUMN[dataDim.value] || DIM_COLUMN.人员;
-});
-const tableColumns = computed(() =>
-  PEOPLE_COLUMNS.map((c) => {
+const dimColumn = computed(() => DIM_COLUMN[dataDim.value] || DIM_COLUMN.人员);
+
+/* 关联维度 → 表格新增列（线上：多选勾选后追加，取消勾选即移除） */
+const RELATION_COLUMN_MAP = {
+  部门: { prop: 'dept', width: 160 },
+  项目: { prop: 'project', width: 160 },
+  产品: { prop: 'product', width: 160 },
+};
+/* 关联维度列：插在「优化师」列之后、指标列之前；线上无口径说明，故不给 tip（不加气泡） */
+const relationColumns = computed(() =>
+  relationDim.value
+    .filter((k) => RELATION_COLUMN_MAP[k])
+    .map((k) => ({
+      key: `rel_${RELATION_COLUMN_MAP[k].prop}`,
+      prop: RELATION_COLUMN_MAP[k].prop,
+      label: k,
+      width: RELATION_COLUMN_MAP[k].width,
+      align: 'left',
+    }))
+);
+
+const tableColumns = computed(() => {
+  const base = PEOPLE_COLUMNS.map((c) => {
     const col = { ...c, width: PEOPLE_WIDTH[c.prop] || c.width };
     if (c.prop === 'optimizer') {
       col.prop = dimColumn.value.prop;
@@ -237,8 +252,12 @@ const tableColumns = computed(() =>
     }
     if (PEOPLE_TIP[c.prop]) col.tip = PEOPLE_TIP[c.prop];
     return col;
-  })
-);
+  });
+  // 关联维度列紧跟在「优化师」列（第二列）之后，指标列之前
+  const at = base.findIndex((c) => c.prop === dimColumn.value.prop);
+  const idx = at < 0 ? 1 : at + 1;
+  return [...base.slice(0, idx), ...relationColumns.value, ...base.slice(idx)];
+});
 
 // ---------- 工具 ----------
 function hashStr(s) {
@@ -287,7 +306,7 @@ const stateKey = computed(() => JSON.stringify({
   d: dateRange.value,
   s: subTab.value,
   dim: dataDim.value,
-  rel: relationDim.value,
+  // 注意：关联维度只是「加列」，不参与数据签名 —— 否则勾选维度会让指标数值整体重算
   f: {
     o: selects[0].model, p: selects[1].model, j: selects[2].model, d: selects[3].model, m: selects[4].model,
   },
@@ -396,16 +415,46 @@ const trendData = computed(() => {
     .map(([name, value]) => ({ name, value: +Number(value).toFixed(2) }));
 });
 
-// y 轴上限：实际最大值向上对齐到 50 的整数倍（线上 0~300 / 间隔 50）
-const AXIS_STEP = 50;
-const axisMax = computed(() => {
+// y 轴自适应刻度（1:1 对齐线上）
+// 线上算法（用 cl.mobgi.com「人效管理」逐指标实测反推）：
+//   1) 目标刻度区间约 7 个 → 候选步长 raw = m / 7
+//   2) p = 10^floor(log10(raw))，再在 {1, 2, 3, 5, 10} 里挑第一个 >= raw/p 的倍数 → step = 倍数 * p
+//   3) max = (floor(m / step) + 1) * step —— 始终严格大于数据最大值，保证最高柱顶端仍留一段灰条
+// 线上实测对照（m = Top5 最大值）：
+//   m=58        → step 10      / max 60          （新建广告（创意）数，0~60 间隔 10）
+//   m=1,575,105 → step 300,000 / max 1,800,000   （展示数，0~1,800,000 间隔 300,000）
+//   m=14,055.87 → step 3,000   / max 15,000       （总消耗，0~15,000 间隔 3,000）
+//   m=103,544   → step 20,000  / max 120,000      （点击数，0~120,000 间隔 20,000）
+//   m=61,098    → step 10,000  / max 70,000       （转化数，0~70,000 间隔 10,000）
+//   m=231       → step 50      / max 250          （2026-11-24 线上截图，0~250 间隔 50）
+//   m=260       → step 50      / max 300
+//   m=1,200,000 → step 200,000 / max 1,400,000
+function niceAxis(m) {
+  // m 为 0 或非法值时给一个合理下限，避免出现 0~5 这种退化坐标轴
+  if (!Number.isFinite(m) || m <= 0) return { max: 10, step: 2 };
+  const raw = m / 7;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const mult = [1, 2, 3, 5, 10].find((x) => x >= raw / p) ?? 10;
+  const step = mult * p;
+  // 消除浮点误差（可能出现 29999.999999 之类）
+  const max = Math.round((Math.floor(m / step) + 1) * step * 1e10) / 1e10;
+  return { max: max > 0 ? max : step, step };
+}
+const axisScale = computed(() => {
   const m = trendData.value.reduce((a, b) => Math.max(a, b.value), 0);
-  return Math.max(AXIS_STEP, Math.ceil(m / AXIS_STEP) * AXIS_STEP);
+  return niceAxis(m);
 });
+// 千分位（线上：300,000 / 1,800,000），并消除浮点噪声（0.30000000000000004 → 0.3）
+function axisNum(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return String(v);
+  const r = Math.round(n * 1e10) / 1e10;
+  return Number.isInteger(r) ? r.toLocaleString('en-US') : String(r);
+}
 
 function trendOption() {
   const items = trendData.value;
-  const max = axisMax.value;
+  const { max, step } = axisScale.value;
   return {
     animationDuration: 300,
     // grid 用 echarts 默认值（left/right 10%、top/bottom 60），与线上一致
@@ -429,8 +478,8 @@ function trendOption() {
       type: 'value',
       min: 0,
       max,
-      interval: AXIS_STEP,
-      axisLabel: { color: '#333333', fontSize: 12 },
+      interval: step,
+      axisLabel: { color: '#333333', fontSize: 12, formatter: axisNum },
       axisLine: { lineStyle: { color: '#333333' } },
       axisTick: { show: false },
       splitLine: { lineStyle: { color: '#cccccc' } },
