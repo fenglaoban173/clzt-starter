@@ -41,8 +41,8 @@
           </el-radio-group>
         </ReportFilterRow>
 
-        <!-- 筛选维度 -->
-        <ReportFilterRow label="筛选维度：">
+        <!-- 筛选维度（线上「收起筛选配置」后本行整体隐藏） -->
+        <ReportFilterRow v-if="!collapsed" label="筛选维度：">
           <div class="report-search-box">
             <el-input
               v-model="keyword"
@@ -105,11 +105,32 @@
           </el-button>
         </ReportFilterRow>
 
-        <!-- 数据筛选 -->
-        <ReportFilterRow label="数据筛选：">
-          <button class="report-filter-btn" type="button" @click="onDataFilter">
-            <el-icon><Filter /></el-icon>筛选
-          </button>
+        <!-- 数据筛选（线上「收起筛选配置」后本行整体隐藏） -->
+        <ReportFilterRow v-if="!collapsed" label="数据筛选：">
+          <el-popover
+            v-model:visible="dataFilterVisible"
+            placement="bottom-start"
+            :width="372"
+            trigger="click"
+          >
+            <template #reference>
+              <button class="report-filter-btn" type="button">
+                <el-icon><Filter /></el-icon>筛选
+              </button>
+            </template>
+            <div class="ad-data-filter">
+              <div class="ad-data-filter-item">
+                <span class="ad-data-filter-label">消耗</span>
+                <el-input v-model="costMin" size="small" placeholder="最小消耗" />
+                <span class="ad-data-filter-split">—</span>
+                <el-input v-model="costMax" size="small" placeholder="最大消耗" />
+              </div>
+              <div class="ad-data-filter-footer">
+                <el-button size="small" @click="resetDataFilter">清空</el-button>
+                <el-button type="primary" size="small" @click="applyDataFilter">确定</el-button>
+              </div>
+            </div>
+          </el-popover>
         </ReportFilterRow>
       </div>
     </template>
@@ -119,16 +140,18 @@
       <div class="report-card-head">
         <div class="report-card-title">
           详细数据
+          <!-- 线上：标题右侧 ⓘ 气泡（600px）——页面级数据说明 -->
           <el-popover
-            v-model="helpVisible"
-            :width="420"
+            :width="600"
             placement="right"
-            trigger="click"
+            trigger="hover"
           >
             <template #reference>
               <el-icon><QuestionFilled /></el-icon>
             </template>
-            <div class="ad-help-text">{{ HELP_TEXT }}</div>
+            <div class="ad-help-text">
+              <div v-for="(line, i) in PAGE_TIP_LINES" :key="i">{{ line }}</div>
+            </div>
           </el-popover>
         </div>
         <div class="report-card-actions">
@@ -144,9 +167,23 @@
           <el-button size="small" @click="onCustomMetric">
             <el-icon><Operation /></el-icon>自定义指标
           </el-button>
+          <!-- 自定义指标 ⓘ -->
+          <el-popover placement="top" :width="200" trigger="click">
+            <template #reference>
+              <el-icon class="ad-help-icon" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('自定义指标') }}
+          </el-popover>
           <el-button size="small" @click="onExport">
             <el-icon><Download /></el-icon>导出数据
           </el-button>
+          <!-- 导出数据 ⓘ -->
+          <el-popover placement="top" :width="200" trigger="click">
+            <template #reference>
+              <el-icon class="ad-help-icon" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('导出所有页面的数据') }}
+          </el-popover>
           <a class="report-collapse-link" @click="cardCollapsed = !cardCollapsed">
             {{ cardCollapsed ? '展开' : '收起' }}
           </a>
@@ -175,7 +212,18 @@
             :fixed="col.fixed"
             :sortable="col.sortable"
             show-overflow-tooltip
-          />
+          >
+            <!-- 线上列头：文字本身即提示气泡的锚点（hover 出现口径说明） -->
+            <template #header>
+              <el-tooltip :content="col.tip" placement="top" :show-after="150">
+                <span class="ad-col-title">{{ col.label }}</span>
+              </el-tooltip>
+            </template>
+            <template #default="{ row }">
+              <span v-if="col.money">{{ money(row[col.prop]) }}</span>
+              <span v-else>{{ row[col.prop] }}</span>
+            </template>
+          </el-table-column>
         </el-table>
 
         <div class="report-pager">
@@ -191,15 +239,28 @@
       </div>
     </div>
   </ReportPageShell>
+
+  <!-- 自定义指标弹窗（线上 1:1：标题「自定义指标」/ 左分类 + 中指标 + 右已选） -->
+  <CustomMetricDialog
+    v-model="metricVisible"
+    metric-key="ad"
+    @apply="onMetricApply"
+  />
+
+  <!-- 导出数据结果提示（线上：「任务创建成功，请前往工具—下载中心查看详情」） -->
+  <ExportResultDialog v-model="exportVisible" mode="default" />
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
 import { Search, Filter, QuestionFilled, Operation, Download } from '@element-plus/icons-vue';
 import ReportPageShell from '../components/ReportPageShell.vue';
 import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
+import CustomMetricDialog from '../components/CustomMetricDialog.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
+import { REPORT_METRICS, REPORT_METRIC_DEFAULT_SELECTED } from '@/mock/reportMetrics';
+import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   MEDIA_OPTIONS,
   OPTIMIZER_OPTIONS,
@@ -230,10 +291,33 @@ const keyword = ref('');
 const collapsed = ref(false);          // 收起筛选配置
 const cardCollapsed = ref(false);      // 卡片收起 / 展开
 const relationDim = ref('');           // 关联维度
-const helpVisible = ref(false);
 
-const HELP_TEXT =
-  '表示广告在投放期内的预估花费金额。当天数据可能会有波动，次日稳定消耗';
+/* ---------------- 问号提示文案（全部取自线上采集：mock/reportTips.js） ---------------- */
+const AD_TIPS = REPORT_TIPS.ad || [];
+/** 按原文取提示文案（命中则原样返回，未命中也原样返回，避免文案走样） */
+function tipText(s) {
+  const hit = AD_TIPS.find((t) => t.body === s);
+  return hit ? hit.body : s;
+}
+/* 页面顶部整体说明（线上「详细数据」标题右侧 ⓘ，两行） */
+const PAGE_TIP_LINES = (() => {
+  const body = tipText(
+    '1.每天上午10点可以查看前一天数据，当天数据每15分钟同步一次； 2.账户若当日授权失效，次日数据会少于当日数据甚至缺失；您可通过再授权的方式重新获取账户数据。重新授权当天，只会拉取近2天数据，后续会逐步拉取历史30天的数据；'
+  );
+  const i = body.indexOf(' 2.');
+  return i > 0 ? [body.slice(0, i), body.slice(i + 1)] : [body];
+})();
+
+/* ---------------- 自定义指标 / 导出数据 ---------------- */
+const metricVisible = ref(false);      // 「自定义指标」弹窗
+const exportVisible = ref(false);      // 「导出数据」结果提示
+/* 已选指标：线上默认「抖音号 / 抖音昵称 / 是否原生广告 / 消耗」 */
+const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.ad || [])]);
+
+/* ---------------- 数据筛选 ---------------- */
+const dataFilterVisible = ref(false);
+const costMin = ref('');
+const costMax = ref('');
 
 /* ---------------- 筛选维度：11 个组合盒 ---------------- */
 /* 5 个纯文本 label 组合盒（优化师 / 合作商 / 部门 / 创量项目 / 产品） */
@@ -319,20 +403,10 @@ const visibleGroupedSelects = computed(() =>
   groupedSelects.filter((g) => activeDims.value.includes(g.dim))
 );
 
-/* 「收起筛选配置」时只保留前 3 个筛选条件（与线上、共享 ReportFilterToolbar 一致） */
-const shownKeys = computed(() => {
-  const all = [
-    ...visiblePlainSelects.value.map((s) => s.key),
-    ...visibleGroupedSelects.value.map((g) => g.key),
-  ];
-  return new Set(collapsed.value ? all.slice(0, 3) : all);
-});
-const shownPlainSelects = computed(() =>
-  visiblePlainSelects.value.filter((s) => shownKeys.value.has(s.key))
-);
-const shownGroupedSelects = computed(() =>
-  visibleGroupedSelects.value.filter((g) => shownKeys.value.has(g.key))
-);
+/* 「收起筛选配置」：线上把「筛选维度：」「数据筛选：」整行隐藏，
+   只保留「媒体：」「数据维度：」两行（见模板中的 v-if="!collapsed"） */
+const shownPlainSelects = computed(() => visiblePlainSelects.value);
+const shownGroupedSelects = computed(() => visibleGroupedSelects.value);
 
 /* 关联维度下拉（线上广告报表 14 项） */
 const RELATION_DIM_AD_OPTIONS = [
@@ -465,6 +539,16 @@ const filteredRows = computed(() => {
     }
   });
 
+  // 数据筛选：消耗区间
+  const min = costMin.value === '' ? null : Number(costMin.value);
+  const max = costMax.value === '' ? null : Number(costMax.value);
+  if (min !== null && !Number.isNaN(min)) {
+    list = list.filter((r) => (Number(r.stat_cost) || 0) >= min);
+  }
+  if (max !== null && !Number.isNaN(max)) {
+    list = list.filter((r) => (Number(r.stat_cost) || 0) <= max);
+  }
+
   return list;
 });
 
@@ -535,7 +619,17 @@ const page = ref(1);
 const pageSize = ref(20);
 const pagedRows = computed(() => {
   const start = (page.value - 1) * pageSize.value;
-  return tableRows.value.slice(start, start + pageSize.value);
+  const list = tableRows.value.slice(start, start + pageSize.value);
+  /* 自定义指标里新增的、无 mock 字段的指标列：数值 0 占位 */
+  const blanks = columns.value.filter((c) => c.placeholder);
+  if (!blanks.length) return list;
+  return list.map((r) => {
+    const o = { ...r };
+    blanks.forEach((c) => {
+      o[c.prop] = 0;
+    });
+    return o;
+  });
 });
 watch(
   () => [tableRows.value.length, pageSize.value],
@@ -545,12 +639,57 @@ watch(
   }
 );
 
-/* ---------------- 表格列（严格按 spec） ---------------- */
-/* spec：勾选列 / 时间 / 账户ID / 账户名称 / 抖音号 / 抖音昵称 / 是否原生广告 / 消耗
+/* ---------------- 表格列 ---------------- */
+/* 线上固定列（不属于「自定义指标」指标集）：时间 / 账户ID / 账户名称 */
+const FIXED_PROPS = ['date', 'advertiser_id', 'advertiser_name'];
+const FIXED_COLUMNS = AD_COLUMNS
+  .filter((c) => FIXED_PROPS.includes(c.prop))
+  .map((c) => ({ ...c, tip: tipText(c.label) }));
+/* 基础指标列（与 mock 行字段绑定）：抖音号 / 抖音昵称 / 是否原生广告 / 消耗
    「是否原生广告」线上为右对齐，这里覆盖共享 AD_COLUMNS 的居中对齐 */
-const columns = AD_COLUMNS.map((c) =>
-  c.prop === 'is_native' ? { ...c, align: 'right' } : c
-);
+const METRIC_COLUMN_META = AD_COLUMNS
+  .filter((c) => !FIXED_PROPS.includes(c.prop))
+  .map((c) => (c.prop === 'is_native' ? { ...c, align: 'right' } : c))
+  .reduce((m, c) => {
+    m[c.label] = c.prop === 'stat_cost' ? { ...c, money: true } : c;
+    return m;
+  }, {});
+/* 指标口径说明（列头 ⓘ 文案，取自线上采集的指标集 mock/reportMetrics.js） */
+const METRIC_DESC = (() => {
+  const map = {};
+  ((REPORT_METRICS.ad || {}).blocks || []).forEach((b) => {
+    (b.metrics || []).forEach((m) => {
+      map[m.name] = m.desc;
+    });
+  });
+  return map;
+})();
+
+/* 表格列 = 固定列 + 「自定义指标」里选中的指标列 */
+const columns = computed(() => {
+  const list = [...FIXED_COLUMNS];
+  selectedMetrics.value.forEach((name) => {
+    const tip = METRIC_DESC[name] || name;
+    const meta = METRIC_COLUMN_META[name];
+    if (meta) {
+      list.push({ ...meta, label: name, tip });
+    } else {
+      /* 没有 mock 字段的指标：仍然成列（数值为 0 占位），保证「列增减生效」 */
+      list.push({
+        prop: name,
+        label: name,
+        width: 140,
+        align: 'right',
+        money: true,
+        tip,
+        placeholder: true,
+      });
+    }
+  });
+  return list;
+});
+
+const money = (n) => (Number(n) || 0).toFixed(2);
 
 /* 合计行：首格「合计」，中间「--」，末列消耗合计（对全量数据求和） */
 function summaryMethod({ columns: cols }) {
@@ -563,17 +702,35 @@ function summaryMethod({ columns: cols }) {
 }
 
 /* ---------------- 交互 ---------------- */
+/* 「查询」：线上不弹任何提示，仅回到第一页 */
 function onQuery() {
-  ElMessage.success('查询成功');
+  page.value = 1;
 }
-function onExport() {
-  ElMessage.success('导出成功');
-}
+/* 「自定义指标」：打开线上同款弹窗 */
 function onCustomMetric() {
-  ElMessage.info('自定义指标');
+  metricVisible.value = true;
 }
-function onDataFilter() {
-  ElMessage.info('数据筛选');
+/* 「应 用」：把弹窗里选中的指标应用到表格（列增减生效） */
+function onMetricApply(payload = {}) {
+  selectedMetrics.value = Array.isArray(payload.selected)
+    ? [...payload.selected]
+    : [...(REPORT_METRIC_DEFAULT_SELECTED.ad || [])];
+  page.value = 1;
+}
+/* 「导出数据」：线上弹出「任务创建成功，请前往工具—下载中心查看详情」 */
+function onExport() {
+  exportVisible.value = true;
+}
+/* 数据筛选：清空 / 确定 */
+function resetDataFilter() {
+  costMin.value = '';
+  costMax.value = '';
+  dataFilterVisible.value = false;
+  page.value = 1;
+}
+function applyDataFilter() {
+  dataFilterVisible.value = false;
+  page.value = 1;
 }
 </script>
 
@@ -617,5 +774,43 @@ function onDataFilter() {
   font-size: 13px;
   line-height: 1.7;
   color: #666;
+}
+/* 按钮右侧的 ⓘ 提示图标 */
+.ad-help-icon {
+  color: #c0c4cc;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.ad-help-icon:hover {
+  color: #197afb;
+}
+/* 列头提示锚点 */
+.ad-col-title {
+  border-bottom: 1px dashed transparent;
+  cursor: help;
+}
+.ad-col-title:hover {
+  color: #197afb;
+}
+/* 数据筛选浮层 */
+.ad-data-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ad-data-filter-label {
+  font-size: 13px;
+  color: #333333;
+  width: 34px;
+}
+.ad-data-filter-split {
+  color: #c0c4cc;
+}
+.ad-data-filter-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }
 </style>

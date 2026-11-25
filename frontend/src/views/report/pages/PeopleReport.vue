@@ -32,7 +32,7 @@
           趋势分析
           <el-popover placement="right" :width="250" trigger="click">
             <template #reference><el-icon><QuestionFilled /></el-icon></template>
-            趋势变化只展示Top5的数据 。
+            {{ tipText('趋势变化只展示Top5的数据 。') }}
           </el-popover>
         </div>
         <div class="report-card-actions">
@@ -67,9 +67,12 @@
             <el-option v-for="o in RELATION_DIM_PEOPLE" :key="o" :label="o" :value="o" />
           </el-select>
           <el-button size="small" plain @click="onExport">导出数据</el-button>
+          <!-- 导出数据 ⓘ（线上：按钮右侧问号气泡，200px） -->
           <el-popover placement="bottom" :width="200" trigger="click">
-            <template #reference><el-icon class="card-help-icon"><QuestionFilled /></el-icon></template>
-            导出所有页面的数据
+            <template #reference>
+              <el-icon class="card-help-icon" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('导出所有页面的数据') }}
           </el-popover>
         </div>
       </div>
@@ -91,9 +94,16 @@
             :width="col.width"
             :align="col.align || 'left'"
             :sortable="col.sortable"
-            :render-header="col.tip ? renderTip(col.label, col.tip) : undefined"
             show-overflow-tooltip
-          />
+          >
+            <!-- 线上列头：文字本身即口径说明气泡的锚点（hover 出现提示） -->
+            <template #header>
+              <el-tooltip v-if="col.tip" :content="col.tip" placement="top" :show-after="150">
+                <span class="people-col-title">{{ col.label }}</span>
+              </el-tooltip>
+              <span v-else>{{ col.label }}</span>
+            </template>
+          </el-table-column>
         </el-table>
 
         <div class="report-pager">
@@ -109,17 +119,21 @@
       </div>
     </div>
   </ReportPageShell>
+
+  <!-- 导出数据结果提示（线上：「任务创建成功，请前往工具—下载中心查看详情」+ 确定） -->
+  <ExportResultDialog v-model="exportVisible" mode="default" />
 </template>
 
 <script setup>
-import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
-import { ElMessage, ElTooltip } from 'element-plus';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { BarChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import ReportPageShell from '../components/ReportPageShell.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
+import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   DEPT_OPTIONS,
   MEDIA_OPTIONS,
@@ -165,6 +179,7 @@ const dataDim = ref('人员');
 const trendMetric = ref('新建广告（创意）数');
 const trendCollapsed = ref(false);
 const relationDim = ref([]);
+const exportVisible = ref(false);   // 「导出数据」结果提示
 
 // ---------- 筛选维度（组合盒下拉） ----------
 const selects = reactive([
@@ -181,17 +196,24 @@ const PEOPLE_WIDTH = {
   stat_cost: 121, show_cnt: 121, click_cnt: 121, convert_cnt: 121,
   cpm: 162, cpc: 162, convert_cost: 121,
 };
+/* 问号提示文案：全部取自线上采集结果（mock/reportTips.js） */
+const PEOPLE_TIPS = REPORT_TIPS.people || [];
+/** 按原文取提示文案（命中则原样返回线上文案，未命中也原样返回，避免文案走样） */
+function tipText(s) {
+  const hit = PEOPLE_TIPS.find((t) => t.body === s);
+  return hit ? hit.body : s;
+}
 const PEOPLE_TIP = {
-  new_ad_cnt: '所选时间范围内创建的广告(腾讯广告3.0为创意层级)的数量(包含已删除)。统计对象包含普通广告、巨量广告·智擎项目、巨量广告·全域项目、磁力金牛(全站)计划及小红书计划等不同投放单元。',
-  cost_ad_cnt: '所选时间范围内创建且消耗大于0的广告(腾讯广告3.0为创意层级)的数量(包含已删除)。统计对象包含普通广告、巨量广告·智擎项目、巨量广告·全域项目、磁力金牛(全站)计划及小红书计划等有消耗的不同投放单元。',
-  learned_ad_cnt: '所选时间范围内，通过学习期的广告数量，汇总数据为所选数据范围内排重后的广告总数，不会从分日数据累加；(包含已删除)',
-  stat_cost: '所选时间范围内所有广告的消耗总和。汇总具备有效消费字段的媒体；巨量广告·全域的GMV不计入消费，小红书计划消费纳入统计。',
-  show_cnt: '所选时间范围内所有广告的展示数总和。汇总各媒体有效展现数据，小红书计划展现量纳入统计。',
-  click_cnt: '所选时间范围内所有广告的点击数总和。汇总各媒体有效点击数据，小红书计划点击量纳入统计。',
-  convert_cnt: '所选时间范围内所有广告的转化数总和。巨量广告·全域、磁力金牛(全站)官方接口未提供转化数，不参与转化相关指标计算。',
-  cpm: '广告平均每一千次展现所付出的费用，计算公式是：总花费/展示数*1000',
-  cpc: '总消耗/点击数',
-  convert_cost: '总消耗/转化数。巨量广告·全域、磁力金牛(全站)不参与转化相关指标计算，其消耗与转化数均不计入分子分母。',
+  new_ad_cnt: tipText('所选时间范围内创建的广告(腾讯广告3.0为创意层级)的数量(包含已删除)。统计对象包含普通广告、巨量广告·智擎项目、巨量广告·全域项目、磁力金牛(全站)计划及小红书计划等不同投放单元。'),
+  cost_ad_cnt: tipText('所选时间范围内创建且消耗大于0的广告(腾讯广告3.0为创意层级)的数量(包含已删除)。统计对象包含普通广告、巨量广告·智擎项目、巨量广告·全域项目、磁力金牛(全站)计划及小红书计划等有消耗的不同投放单元。'),
+  learned_ad_cnt: tipText('所选时间范围内，通过学习期的广告数量，汇总数据为所选数据范围内排重后的广告总数，不会从分日数据累加；(包含已删除)'),
+  stat_cost: tipText('所选时间范围内所有广告的消耗总和。汇总具备有效消费字段的媒体；巨量广告·全域的GMV不计入消费，小红书计划消费纳入统计。'),
+  show_cnt: tipText('所选时间范围内所有广告的展示数总和。汇总各媒体有效展现数据，小红书计划展现量纳入统计。'),
+  click_cnt: tipText('所选时间范围内所有广告的点击数总和。汇总各媒体有效点击数据，小红书计划点击量纳入统计。'),
+  convert_cnt: tipText('所选时间范围内所有广告的转化数总和。巨量广告·全域、磁力金牛(全站)官方接口未提供转化数，不参与转化相关指标计算。'),
+  cpm: tipText('广告平均每一千次展现所付出的费用，计算公式是：总花费/展示数*1000'),
+  cpc: tipText('总消耗/点击数'),
+  convert_cost: tipText('总消耗/转化数。巨量广告·全域、磁力金牛(全站)不参与转化相关指标计算，其消耗与转化数均不计入分子分母。'),
 };
 // 第二列随「数据维度 / 关联维度」切换
 const DIM_COLUMN = {
@@ -235,10 +257,6 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function renderTip(label, tip) {
-  return () => h(ElTooltip, { content: tip, placement: 'top' }, { default: () => h('span', label) });
-}
-
 // 时间列：分日 → 20261124；分月 → 202611；汇总 → 20261118-20261124
 const timeLabel = computed(() => {
   const [s, e] = dateRange.value || [];
@@ -402,7 +420,8 @@ function trendOption() {
     xAxis: {
       type: 'category',
       data: items.map((i) => i.name),
-      axisLabel: { color: '#333333', fontSize: 12, interval: 0 },
+      // 线上：分类名直接显示、不换行不重叠（宽度不足时截断）
+      axisLabel: { color: '#333333', fontSize: 12, interval: 0, width: 90, overflow: 'truncate' },
       axisLine: { lineStyle: { color: '#333333' } },
       axisTick: { show: false },
     },
@@ -474,12 +493,13 @@ onBeforeUnmount(() => {
 });
 
 // ---------- 操作 ----------
+// 「查询」：线上无提示，仅按当前筛选条件重算并回到第一页
 function onQuery() {
   page.value = 1;
-  ElMessage.success('查询完成');
 }
+// 「导出数据」：线上弹出「任务创建成功，请前往工具—下载中心查看详情」
 function onExport() {
-  ElMessage.success('导出成功');
+  exportVisible.value = true;
 }
 </script>
 
@@ -490,5 +510,17 @@ function onExport() {
 .people-page :deep(.report-card-body .report-chart) { height: 400px; }
 .trend-metric-select { width: 185px; }
 .relation-select { width: 120px; }
-.card-help-icon { color: #c0c4cc; cursor: pointer; }
+.card-help-icon {
+  color: #c0c4cc;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.card-help-icon:hover { color: #197afb; }
+/* 列头提示锚点（线上：列头文字 hover 出现口径说明） */
+.people-col-title {
+  border-bottom: 1px dashed transparent;
+  cursor: help;
+}
+.people-col-title:hover { color: #197afb; }
 </style>

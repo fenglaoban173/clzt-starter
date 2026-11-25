@@ -28,13 +28,14 @@
       <div class="report-card-head">
         <div class="report-card-title">
           详细数据
+          <!-- 线上：标题右侧 ⓘ 气泡（600px）——页面级数据说明 -->
           <el-popover placement="right" :width="600" trigger="click">
             <template #reference><el-icon><QuestionFilled /></el-icon></template>
-            <div>1.每天更新前一天的数据；若前一天账户停用或授权失败，则当日该账户财务数据为空；</div>
-            <div>2.广告报表因每15分钟同步一次数据，停用或授权失败账户仍会有数据积累；</div>
+            <div v-for="(line, i) in PAGE_TIP_LINES" :key="i">{{ line }}</div>
           </el-popover>
         </div>
         <div class="report-card-actions">
+          <!-- 自定义指标：线上为下拉（选项 = 表格列名，默认全选，收起显示「时间 + 13」） -->
           <el-select
             v-model="customMetrics"
             size="small"
@@ -42,15 +43,18 @@
             multiple
             collapse-tags
             collapse-tags-tooltip
-            :max-collapse-tags="2"
+            :max-collapse-tags="1"
             placeholder="自定义指标"
           >
             <el-option v-for="c in FINANCE_COLUMNS" :key="c.prop" :label="c.label" :value="c.label" />
           </el-select>
           <el-button size="small" plain @click="onExport">导出数据</el-button>
+          <!-- 导出数据 ⓘ（线上：按钮右侧问号气泡，200px） -->
           <el-popover placement="bottom" :width="200" trigger="click">
-            <template #reference><el-icon class="card-help-icon"><QuestionFilled /></el-icon></template>
-            导出所有页面的数据
+            <template #reference>
+              <el-icon class="card-help-icon" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('导出所有页面的数据') }}
           </el-popover>
         </div>
       </div>
@@ -72,9 +76,16 @@
             :width="col.width"
             :align="col.align || 'left'"
             :sortable="col.sortable"
-            :render-header="col.tip ? renderTip(col.label, col.tip) : undefined"
             show-overflow-tooltip
-          />
+          >
+            <!-- 线上列头：文字本身即口径说明气泡的锚点（hover 出现提示） -->
+            <template #header>
+              <el-tooltip v-if="col.tip" :content="col.tip" placement="top" :show-after="150">
+                <span class="finance-col-title">{{ col.label }}</span>
+              </el-tooltip>
+              <span v-else>{{ col.label }}</span>
+            </template>
+          </el-table-column>
         </el-table>
 
         <div class="report-pager">
@@ -90,13 +101,17 @@
       </div>
     </div>
   </ReportPageShell>
+
+  <!-- 导出数据结果提示（线上：「任务创建成功，请前往工具—下载中心查看详情」+ 确定） -->
+  <ExportResultDialog v-model="exportVisible" mode="default" />
 </template>
 
 <script setup>
-import { computed, h, reactive, ref, watch } from 'vue';
-import { ElMessage, ElTooltip } from 'element-plus';
+import { computed, reactive, ref, watch } from 'vue';
 import { QuestionFilled } from '@element-plus/icons-vue';
 import ReportPageShell from '../components/ReportPageShell.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
+import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   ADVERTISER_OPTIONS,
   FINANCE_COLUMNS,
@@ -134,7 +149,9 @@ const subTabs = ['巨量广告', '腾讯广告'];
 const subTab = ref('巨量广告');
 const period = ref('分日');
 const dateRange = ref(singleDay());
-const customMetrics = ref([]);
+// 线上「自定义指标」默认全选（收起显示「时间 + 13」）
+const customMetrics = ref(FINANCE_COLUMNS.map((c) => c.label));
+const exportVisible = ref(false);   // 「导出数据」结果提示
 
 // ---------- 筛选维度（组合盒下拉，本页仅此一行） ----------
 const selects = reactive([
@@ -150,20 +167,35 @@ const FINANCE_WIDTH = {
   shared_wallet_cost: 160, shared_gift_cost: 160, total_cost: 128, cash_cost: 128,
   gift_cost: 150, total_income: 128, total_transfer_in: 120, total_transfer_out: 120, frozen: 120,
 };
+/* 问号提示文案：全部取自线上采集结果（mock/reportTips.js） */
+const FINANCE_TIPS = REPORT_TIPS.finance || [];
+/** 按原文取提示文案（命中则原样返回线上文案，未命中也原样返回，避免文案走样） */
+function tipText(s) {
+  const hit = FINANCE_TIPS.find((t) => t.body === s);
+  return hit ? hit.body : s;
+}
+/* 页面顶部整体说明（线上「详细数据」标题右侧 ⓘ，两行） */
+const PAGE_TIP_LINES = (() => {
+  const body = tipText(
+    '1.每天更新前一天的数据；若前一天账户停用或授权失败，则当日该账户财务数据为空；2.广告报表因每15分钟同步一次数据，停用或授权失败账户仍会有数据积累；'
+  );
+  const i = body.indexOf('2.广告报表');
+  return i > 0 ? [body.slice(0, i), body.slice(i)] : [body];
+})();
+/* 金额列口径说明（线上：共享钱包消耗列无说明，其余 8 列有） */
 const FINANCE_TIP = {
-  shared_wallet_cost: '共享赠款支出，共享赠款支出+账户总支出=账户报表消耗数据',
-  shared_gift_cost: '共享赠款支出，共享赠款支出+账户总支出=账户报表消耗数据',
-  total_cost: '广告计划总消耗，现金支出+赠款支出=总支出',
-  cash_cost: '广告计划消耗中现金部分',
-  gift_cost: '广告计划消耗中赠款部分',
-  total_income: '当日充值减去扣款的汇总',
-  total_transfer_in: '代理商、其他广告账号转入的总金额',
-  total_transfer_out: '转出到代理商、其他广告账号的总金额',
-  frozen: '冻结',
+  shared_gift_cost: tipText('共享赠款支出，共享赠款支出+账户总支出=账户报表消耗数据'),
+  total_cost: tipText('广告计划总消耗，现金支出+赠款支出=总支出'),
+  cash_cost: tipText('广告计划消耗中现金部分'),
+  gift_cost: tipText('广告计划消耗中赠款部分'),
+  total_income: tipText('当日充值减去扣款的汇总'),
+  total_transfer_in: tipText('代理商、其他广告账号转入的总金额'),
+  total_transfer_out: tipText('转出到代理商、其他广告账号的总金额'),
+  frozen: tipText('冻结'),
 };
 const tableColumns = computed(() =>
   FINANCE_COLUMNS
-    .filter((c) => !customMetrics.value.length || customMetrics.value.includes(c.label))
+    .filter((c) => customMetrics.value.length === 0 || customMetrics.value.includes(c.label))
     .map((c) => {
       const col = { ...c, width: FINANCE_WIDTH[c.prop] || c.width };
       if (FINANCE_TIP[c.prop]) col.tip = FINANCE_TIP[c.prop];
@@ -188,10 +220,6 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function renderTip(label, tip) {
-  return () => h(ElTooltip, { content: tip, placement: 'top' }, { default: () => h('span', label) });
-}
-
 // 时间列：分日 → 20261123；分月 → 202611；汇总 → 20261118-20261124
 const timeLabel = computed(() => {
   const [s, e] = dateRange.value || [];
@@ -296,8 +324,9 @@ function summaryMethod({ columns }) {
 }
 
 // ---------- 操作 ----------
+// 「导出数据」：线上弹出「任务创建成功，请前往工具—下载中心查看详情」
 function onExport() {
-  ElMessage.success('导出成功');
+  exportVisible.value = true;
 }
 </script>
 
@@ -305,6 +334,18 @@ function onExport() {
 /* 线上本页没有「+ 添加筛选」「查询」按钮 */
 .finance-page :deep(.report-add-filter) { display: none; }
 .finance-page :deep(.report-query-btn) { display: none; }
-.custom-metric-select { width: 130px; }
-.card-help-icon { color: #c0c4cc; cursor: pointer; }
+.custom-metric-select { width: 120px; }
+.card-help-icon {
+  color: #c0c4cc;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.card-help-icon:hover { color: #197afb; }
+/* 列头提示锚点（线上：列头文字 hover 出现口径说明） */
+.finance-col-title {
+  border-bottom: 1px dashed transparent;
+  cursor: help;
+}
+.finance-col-title:hover { color: #197afb; }
 </style>

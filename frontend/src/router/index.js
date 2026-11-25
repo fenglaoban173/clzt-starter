@@ -11,6 +11,7 @@ const REPORT_ROUTE_DEFS = [
   ['ComponentReport', 'report/component-report', 'report-component', '组件报表'],
   ['MaterialReport', 'report/material-report', 'report-material', '素材报表'],
   ['ReportSubscribe', 'report/custom-report', 'report-subscribe', '报表订阅'],
+  ['ReportSubscribeCreate', 'report/custom-report-create', 'report-custom-create', '新建报表'],
   ['PeopleReport', 'report/people-optimizer', 'report-people', '人效管理'],
   ['FinanceReport', 'report/finance-report', 'report-finance', '财务管理'],
   ['FundsReport', 'report/funds-report', 'report-funds', '资金使用率'],

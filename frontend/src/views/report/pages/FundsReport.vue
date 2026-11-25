@@ -38,8 +38,8 @@
                 <template #reference>
                   <el-icon><QuestionFilled /></el-icon>
                 </template>
-                <div class="el-popover__title">说明</div>
-                昨日资金使用率 = 昨日总消耗/(昨日总结余+昨日总消耗)
+                <div class="el-popover__title">{{ tipEntry('昨日资金使用率 = 昨日总消耗/(昨日总结余+昨日总消耗)').title }}</div>
+                {{ tipText('昨日资金使用率 = 昨日总消耗/(昨日总结余+昨日总消耗)') }}
               </el-popover>
             </div>
           </div>
@@ -59,8 +59,8 @@
                 <template #reference>
                   <el-icon><QuestionFilled /></el-icon>
                 </template>
-                <div class="el-popover__title">说明</div>
-                今日消耗每 15min 更新一次
+                <div class="el-popover__title">{{ tipEntry('今日消耗每 15min 更新一次').title }}</div>
+                {{ tipText('今日消耗每 15min 更新一次') }}
               </el-popover>
             </div>
           </div>
@@ -167,7 +167,14 @@
           >
             <el-option v-for="o in RELATION_OPTIONS" :key="o" :label="o" :value="o" />
           </el-select>
-          <el-button size="small" @click="onExport">导出数据</el-button>
+          <el-button size="small" plain @click="onExport">导出数据</el-button>
+          <!-- 导出数据 ⓘ（线上：按钮右侧问号气泡；本页文案为「导出表格所有的数据」） -->
+          <el-popover placement="bottom" :width="200" trigger="click">
+            <template #reference>
+              <el-icon class="funds-col-tip" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('导出表格所有的数据') }}
+          </el-popover>
         </div>
       </div>
 
@@ -190,11 +197,12 @@
             :sortable="col.sortable"
             show-overflow-tooltip
           >
+            <!-- 线上列头：文字本身即口径说明气泡的锚点（hover 出现提示） -->
             <template #header>
-              <span>{{ col.label }}</span>
-              <el-tooltip v-if="col.tip" :content="col.tip" placement="top">
-                <el-icon class="funds-col-tip"><QuestionFilled /></el-icon>
+              <el-tooltip v-if="col.tip" :content="col.tip" placement="top" :show-after="150">
+                <span class="funds-col-title">{{ col.label }}</span>
               </el-tooltip>
+              <span v-else>{{ col.label }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -212,11 +220,13 @@
       </div>
     </div>
   </ReportPageShell>
+
+  <!-- 导出数据结果提示（线上：「任务创建成功，请前往工具—下载中心查看详情」+ 确定） -->
+  <ExportResultDialog v-model="exportVisible" mode="default" />
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
 import { Close, QuestionFilled, Search } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { BarChart } from 'echarts/charts';
@@ -229,6 +239,8 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import ReportPageShell from '../components/ReportPageShell.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
+import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   buildRows,
   dateRangeLabel,
@@ -290,16 +302,25 @@ const COL_WIDTH = {
   total_cost: 135, cash_cost: 135, gift_cost: 135,
   total_income: 128, total_transfer_in: 120, total_transfer_out: 120, frozen: 120,
 };
-// 线上表头 tooltip 说明
+// 线上表头 tooltip 说明（文案全部取自线上采集结果：mock/reportTips.js）
+const FUNDS_TIPS = REPORT_TIPS.funds || [];
+/** 按原文取提示条目（命中则原样返回线上条目，未命中也原样返回，避免文案走样） */
+function tipEntry(s) {
+  return FUNDS_TIPS.find((t) => t.body === s) || { title: '', body: s };
+}
+/** 按原文取提示文案 */
+function tipText(s) {
+  return tipEntry(s).body;
+}
 const COL_TIP = {
-  shared_gift_cost: '共享赠款支出，共享赠款支出+账户总支出=账户报表消耗数据',
-  total_cost: '广告计划总消耗，现金支出+赠款支出=总支出',
-  cash_cost: '广告计划消耗中现金部分',
-  gift_cost: '广告计划消耗中赠款部分',
-  total_income: '当日充值减去扣款的汇总',
-  total_transfer_in: '代理商、其他广告账号转入的总金额',
-  total_transfer_out: '转出到代理商、其他广告账号的总金额',
-  frozen: '冻结',
+  shared_gift_cost: tipText('共享赠款支出，共享赠款支出+账户总支出=账户报表消耗数据'),
+  total_cost: tipText('广告计划总消耗，现金支出+赠款支出=总支出'),
+  cash_cost: tipText('广告计划消耗中现金部分'),
+  gift_cost: tipText('广告计划消耗中赠款部分'),
+  total_income: tipText('当日充值减去扣款的汇总'),
+  total_transfer_in: tipText('代理商、其他广告账号转入的总金额'),
+  total_transfer_out: tipText('转出到代理商、其他广告账号的总金额'),
+  frozen: tipText('冻结'),
 };
 const NUMERIC_PROPS = [
   'day_balance', 'stat_cost', 'shared_wallet_cost', 'shared_gift_cost',
@@ -336,6 +357,7 @@ const relation = ref([...RELATION_OPTIONS]);
 const chartCollapsed = ref(false);
 const page = ref(1);
 const pageSize = ref(20);
+const exportVisible = ref(false);   // 「导出数据」结果提示
 
 function fmtDate(d) {
   const p = (n) => String(n).padStart(2, '0');
@@ -494,7 +516,7 @@ function summaryMethod({ columns, data }) {
 }
 
 function onExport() {
-  ElMessage.success('导出任务已创建，请稍后在「任务中心」查看');
+  exportVisible.value = true;
 }
 
 // ---------- 图表（广告主账户分析） ----------
@@ -703,12 +725,19 @@ body.report-scope .funds-page .report-select-box > label {
 /* 线上 chart-container 实测 1730 × 550 */
 body.report-scope .funds-page .report-chart { height: 550px; }
 
-/* 详细数据：关联维度下拉 + 表头说明图标 */
+/* 详细数据：关联维度下拉 + 导出数据 ⓘ */
 .funds-page .funds-relation { width: 120px; }
 .funds-page .funds-col-tip {
   color: #c0c4cc;
   cursor: pointer;
-  margin-left: 2px;
+  margin-left: 4px;
   vertical-align: middle;
 }
+.funds-page .funds-col-tip:hover { color: #197afb; }
+/* 列头提示锚点（线上：列头文字 hover 出现口径说明） */
+.funds-page .funds-col-title {
+  border-bottom: 1px dashed transparent;
+  cursor: help;
+}
+.funds-page .funds-col-title:hover { color: #197afb; }
 </style>

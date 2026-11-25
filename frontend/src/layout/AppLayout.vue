@@ -80,6 +80,8 @@
                 <img v-if="c.icon" :src="c.icon" class="side-item-icon" alt="" />
                 <span>{{ c.title }}</span>
                 <el-tag v-if="c.placeholder" size="small" type="info" effect="plain" class="side-tag">待开通</el-tag>
+                <!-- R103：报表订阅标注「待开发」 -->
+                <el-tag v-if="c.dev" size="small" type="info" effect="plain" class="side-tag">待开发</el-tag>
               </el-menu-item>
             </el-sub-menu>
             <el-menu-item v-else :index="g.title" :disabled="g.placeholder">
@@ -174,7 +176,7 @@ const sideMenuConfig = {
         { title: '广告报表', name: 'report-ad' },
         { title: '组件报表', name: 'report-component' },
         { title: '素材报表', name: 'report-material' },
-        { title: '报表订阅', name: 'report-subscribe' },
+        { title: '报表订阅', name: 'report-subscribe', dev: true },
       ],
     },
     {

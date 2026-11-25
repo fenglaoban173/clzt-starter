@@ -103,6 +103,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Pointer, Search } from '@element-plus/icons-vue';
 import ReportPageShell from '../components/ReportPageShell.vue';
@@ -201,8 +202,11 @@ const visibleRows = computed(() => {
 });
 
 /* ---------- 交互 ---------- */
+const router = useRouter();
+
 function onAdd() {
-  ElMessage.info('新增报表');
+  // 线上「新增报表」跳整页新建表单（/report/adsdata/custom/design?type=create&source=custom）
+  router.push({ name: 'report-custom-create' });
 }
 function onGuide(name) {
   ElMessage.info(`新建指引：${name}`);

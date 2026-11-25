@@ -8,12 +8,8 @@
     <!-- ============ 筛选区（.report-filter） ============ -->
     <template #before-filter>
       <div class="report-filter">
-        <!-- 媒体 -->
-        <ReportFilterRow
-          label="媒体："
-          :collapse-text="filterCollapsed ? '展开筛选配置' : '收起筛选配置'"
-          @toggle-collapse="filterCollapsed = !filterCollapsed"
-        >
+        <!-- 媒体（收起时保留） -->
+        <ReportFilterRow label="媒体：">
           <el-radio-group v-model="media" class="report-radio-group" size="small">
             <el-radio-button v-for="m in MEDIA_OPTIONS" :key="m.value" :value="m.value">
               {{ m.label }}
@@ -21,8 +17,12 @@
           </el-radio-group>
         </ReportFilterRow>
 
-        <!-- 数据维度 -->
-        <ReportFilterRow label="数据维度：">
+        <!-- 数据维度（收起时保留；收起态的「展开筛选配置」入口在这一行） -->
+        <ReportFilterRow
+          label="数据维度："
+          :collapse-text="filterCollapsed ? '展开筛选配置' : ''"
+          @toggle-collapse="filterCollapsed = !filterCollapsed"
+        >
           <el-radio-group v-model="dimension" class="report-radio-group" size="small">
             <el-radio-button v-for="d in DIM_ACCOUNT" :key="d" :value="d">
               {{ d }}
@@ -30,8 +30,8 @@
           </el-radio-group>
         </ReportFilterRow>
 
-        <!-- 筛选维度 -->
-        <ReportFilterRow label="筛选维度：">
+        <!-- 筛选维度（线上实测：收起时整行隐藏） -->
+        <ReportFilterRow v-if="!filterCollapsed" label="筛选维度：">
           <div class="filter-selects">
             <div class="report-search-box">
               <el-input
@@ -43,7 +43,7 @@
             </div>
 
             <ReportFilterSelect
-              v-for="s in visibleFilterSelects"
+              v-for="s in filterSelects"
               :key="s.uid"
               v-model="s.model"
               :label="s.label"
@@ -52,9 +52,27 @@
               :wide="s.wide"
             />
 
-            <button class="report-add-filter" type="button" @click="handleAddFilter">
-              + 添加筛选
-            </button>
+            <!-- 「+ 添加筛选」：线上是一个下拉菜单，选中维度后追加到筛选区 -->
+            <el-popover
+              v-model:visible="addFilterVisible"
+              placement="bottom-start"
+              :width="160"
+              trigger="click"
+            >
+              <template #reference>
+                <button class="report-add-filter" type="button">+ 添加筛选</button>
+              </template>
+              <div class="add-filter-menu">
+                <div
+                  v-for="d in ADD_FILTER_OPTIONS"
+                  :key="d"
+                  class="add-filter-item"
+                  @click="onAddFilter(d)"
+                >
+                  {{ d }}
+                </div>
+              </div>
+            </el-popover>
           </div>
 
           <el-button type="primary" class="report-query-btn" size="small" @click="handleQuery">
@@ -62,11 +80,37 @@
           </el-button>
         </ReportFilterRow>
 
-        <!-- 数据筛选 -->
-        <ReportFilterRow label="数据筛选：">
-          <button class="report-filter-btn" type="button" @click="handleDataFilter">
-            <el-icon><Filter /></el-icon>筛选
-          </button>
+        <!-- 数据筛选（线上实测：收起时整行隐藏；「收起筛选配置」入口在这一行） -->
+        <ReportFilterRow
+          v-if="!filterCollapsed"
+          label="数据筛选："
+          collapse-text="收起筛选配置"
+          @toggle-collapse="filterCollapsed = !filterCollapsed"
+        >
+          <el-popover
+            v-model:visible="dataFilterVisible"
+            placement="bottom-start"
+            :width="372"
+            trigger="click"
+          >
+            <template #reference>
+              <button class="report-filter-btn" type="button">
+                <el-icon><Filter /></el-icon>筛选
+              </button>
+            </template>
+            <div class="data-filter">
+              <div class="data-filter-item">
+                <span class="data-filter-label">消耗</span>
+                <el-input v-model="costMin" size="small" placeholder="最小花费" />
+                <span class="data-filter-split">—</span>
+                <el-input v-model="costMax" size="small" placeholder="最大花费" />
+              </div>
+              <div class="data-filter-footer">
+                <el-button size="small" @click="resetDataFilter">重置</el-button>
+                <el-button type="primary" size="small" @click="applyDataFilter">确定</el-button>
+              </div>
+            </div>
+          </el-popover>
         </ReportFilterRow>
       </div>
     </template>
@@ -91,37 +135,156 @@
       </div>
 
       <div v-if="analysisExpanded" class="report-analysis-chart">
-        <div ref="chartRef" class="report-chart"></div>
+        <!-- 线上：指标下拉 + 「对比」复选框 + 对比指标下拉 + 右侧汇总方式下拉 -->
+        <div class="report-analysis-bar">
+          <el-select v-model="analysisMetric" size="small" class="analysis-metric-select" placeholder="请选择">
+            <el-option v-for="m in ANALYSIS_METRICS" :key="m" :label="m" :value="m" />
+          </el-select>
+          <el-checkbox v-model="compareEnabled" class="analysis-compare">对比</el-checkbox>
+          <el-select
+            v-if="compareEnabled"
+            v-model="analysisMetric2"
+            size="small"
+            class="analysis-metric-select"
+            placeholder="请选择"
+          >
+            <el-option v-for="m in ANALYSIS_METRICS" :key="m" :label="m" :value="m" />
+          </el-select>
+          <el-select v-model="analysisTop" size="small" class="analysis-top-select" placeholder="请选择">
+            <el-option v-for="t in analysisTopOptions" :key="t" :label="t" :value="t" />
+          </el-select>
+        </div>
+        <div class="report-analysis-charts">
+          <div ref="chartRef" class="report-chart"></div>
+          <div v-if="compareEnabled" ref="chartRef2" class="report-chart"></div>
+        </div>
       </div>
 
       <!-- 详细数据 -->
-      <ReportDetailTable
-        title="详细数据"
-        :columns="columns"
-        :rows="rows"
-        :total="rows.length"
-        :summary-method="summaryMethod"
-        :collapsed="tableCollapsed"
-        :help="HELP_TEXT"
-        @custom-metric="handleCustomMetric"
-        @export="handleExport"
-        @toggle="tableCollapsed = !tableCollapsed"
-      >
-        <template #actions>
-          <el-select v-model="relation" size="small" placeholder="关联维度" style="width: 120px">
-            <el-option v-for="o in RELATION_DIM_ACCOUNT" :key="o" :label="o" :value="o" />
-          </el-select>
-        </template>
-        <template #col-stat_cost="{ row }">{{ formatCost(row.stat_cost) }}</template>
-      </ReportDetailTable>
+      <div class="report-card">
+        <div class="report-card-head">
+          <div class="report-card-title">
+            详细数据
+            <!-- 线上：标题右侧的 ⓘ 说明（文案取自线上采集） -->
+            <el-popover placement="right" :width="600" trigger="click">
+              <template #reference>
+                <el-icon class="card-help-icon"><QuestionFilled /></el-icon>
+              </template>
+              <div v-for="(line, i) in HELP_LINES" :key="i" class="help-text">{{ line }}</div>
+            </el-popover>
+          </div>
+
+          <div class="report-card-actions">
+            <!-- 关联维度 -->
+            <el-select
+              v-model="relation"
+              size="small"
+              class="relation-select"
+              multiple
+              collapse-tags
+              placeholder="关联维度"
+            >
+              <el-option v-for="o in RELATION_DIM_ACCOUNT" :key="o" :label="o" :value="o" />
+            </el-select>
+
+            <!-- 自定义指标 -->
+            <el-button size="small" @click="handleCustomMetric">
+              <el-icon><Operation /></el-icon>自定义指标
+              <el-popover placement="top" :width="200" trigger="click">
+                <template #reference>
+                  <el-icon class="action-help"><QuestionFilled /></el-icon>
+                </template>
+                {{ TIPS.customMetric }}
+              </el-popover>
+            </el-button>
+
+            <!-- 导出数据 -->
+            <el-button size="small" @click="handleExport">
+              <el-icon><Download /></el-icon>导出数据
+              <el-popover placement="top" :width="200" trigger="click">
+                <template #reference>
+                  <el-icon class="action-help"><QuestionFilled /></el-icon>
+                </template>
+                {{ TIPS.exportAll }}
+              </el-popover>
+            </el-button>
+
+            <a class="report-collapse-link" @click="tableCollapsed = !tableCollapsed">
+              {{ tableCollapsed ? '展开' : '收起' }}
+            </a>
+          </div>
+        </div>
+
+        <div v-show="!tableCollapsed" class="report-table-wrap">
+          <el-table
+            class="report-table"
+            :data="rows"
+            row-key="id"
+            border
+            show-summary
+            :summary-method="summaryMethod"
+          >
+            <!-- 线上勾选列实测宽 60px -->
+            <el-table-column type="selection" width="60" fixed="left" />
+
+            <template v-for="col in columns" :key="col.prop">
+              <el-table-column
+                :prop="col.prop"
+                :label="col.label"
+                :width="col.width"
+                :min-width="col.minWidth"
+                :align="col.align || 'left'"
+                :sortable="col.sortable"
+                show-overflow-tooltip
+              >
+                <!-- 线上：列头文字本身是 ⓘ 气泡的触发点（点击列头弹出口径说明） -->
+                <template #header>
+                  <el-popover v-if="col.tip" placement="bottom" :width="300" trigger="click">
+                    <template #reference>
+                      <span class="col-tip-label">{{ col.label }}</span>
+                    </template>
+                    {{ col.tip }}
+                  </el-popover>
+                  <span v-else>{{ col.label }}</span>
+                </template>
+                <template #default="{ row }">
+                  <span v-if="col.prop === 'stat_cost'">{{ formatCost(row.stat_cost) }}</span>
+                  <span v-else>{{ row[col.prop] }}</span>
+                </template>
+              </el-table-column>
+            </template>
+          </el-table>
+
+          <div class="report-pager">
+            <el-pagination
+              v-model:current-page="page"
+              v-model:page-size="pageSize"
+              :total="rows.length"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              background
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 「自定义指标」弹窗（线上 1:1） -->
+      <CustomMetricDialog
+        v-model="metricVisible"
+        metric-key="account"
+        :default-selected="selectedMetrics"
+        @apply="onMetricApply"
+      />
+
+      <!-- 「导出数据」结果提示（线上 1:1） -->
+      <ExportResultDialog v-model="exportVisible" mode="default" />
     </template>
   </ReportPageShell>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Search, Filter } from '@element-plus/icons-vue';
+import { Search, Filter, QuestionFilled, Operation, Download } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { LineChart, PieChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
@@ -129,7 +292,10 @@ import { CanvasRenderer } from 'echarts/renderers';
 import ReportPageShell from '../components/ReportPageShell.vue';
 import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
-import ReportDetailTable from '../components/ReportDetailTable.vue';
+import CustomMetricDialog from '../components/CustomMetricDialog.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
+import { REPORT_METRICS, REPORT_METRIC_DEFAULT_SELECTED } from '@/mock/reportMetrics';
+import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   MEDIA_OPTIONS,
   OPTIMIZER_OPTIONS,
@@ -138,7 +304,6 @@ import {
   PROJECT_OPTIONS,
   PRODUCT_OPTIONS,
   ADVERTISER_OPTIONS,
-  ACCOUNT_COLUMNS,
   RELATION_DIM_ACCOUNT,
   DIM_ACCOUNT,
   accountRows,
@@ -155,19 +320,37 @@ echarts.use([
   CanvasRenderer,
 ]);
 
-// 「详细数据」右侧问号说明（线上实测文案）
-const HELP_TEXT =
-  '1.每天上午10点可以查看前一天数据，当天数据每15分钟同步一次；' +
-  '2.账户若当日授权失效，次日数据会少于当日数据甚至缺失；您可通过再授权的方式重新获取账户数据。' +
-  '重新授权当天，只会拉取近2天数据，后续会逐步拉取历史30天的数据；';
+// ---------- 线上实测文案（ⓘ 提示 / 口径说明） ----------
+/** 从线上采集的提示列表里取文案 */
+function findTip(key, matcher) {
+  const list = REPORT_TIPS[key] || [];
+  const hit = list.find((t) => matcher(t.body || ''));
+  return hit ? hit.body : '';
+}
+
+const TIPS = {
+  help: findTip('account', (b) => b.indexOf('1.每天上午10点') === 0),
+  customMetric: findTip('account', (b) => b === '自定义指标'),
+  exportAll: findTip('account', (b) => b === '导出所有页面的数据'),
+  time: findTip('account', (b) => b === '时间'),
+  advertiserId: findTip('account', (b) => b === '账户ID'),
+  advertiserName: findTip('account', (b) => b === '账户名称'),
+  cost: findTip('account', (b) => b.indexOf('表示广告在投放期内的预估花费金额') === 0),
+};
+
+// 线上把「详细数据」标题的说明拆成两行展示
+const HELP_LINES = TIPS.help
+  .split(/\s(?=2\.)/)
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 // 线上实测列宽
-const COLUMN_WIDTH = { date: 135, advertiser_name: 471, stat_cost: 471 };
+const COLUMN_WIDTH = { date: 135, advertiser_name: 471 };
 // 默认媒体（账户主媒体，默认不过滤）
 const DEFAULT_MEDIA = 'toutiao_upgrade';
 // 「数据维度」对应的维度列（第二列随数据维度切换）
 const DIM_COLUMN = {
-  账户: { prop: 'advertiser_id', label: '账户ID' },
+  账户: { prop: 'advertiser_id', label: '账户ID', tip: TIPS.advertiserId },
   优化师: { prop: 'optimizer', label: '优化师' },
   媒体: { prop: 'media', label: '媒体' },
   创量项目: { prop: 'project', label: '创量项目' },
@@ -185,6 +368,9 @@ const FILTER_DEFS = [
   { key: 'product', field: 'product', label: '商品', placeholder: '请选择商品', options: PRODUCT_OPTIONS },
 ];
 
+// 线上「+ 添加筛选」下拉里的维度（与筛选维度一致）
+const ADD_FILTER_OPTIONS = FILTER_DEFS.map((d) => d.label);
+
 // ---------- 页面状态 ----------
 const period = ref('汇总');
 const dateRange = ref(todayRange());
@@ -195,29 +381,59 @@ const filterCollapsed = ref(false);
 const tableCollapsed = ref(false);
 const analysisTab = ref('trend');
 const analysisExpanded = ref(false);
-const relation = ref('');
+const relation = ref([]);
 const filterSelects = ref(FILTER_DEFS.map((d, i) => ({ ...d, uid: `f${i}`, model: [] })));
-
-const visibleFilterSelects = computed(() =>
-  filterCollapsed.value ? filterSelects.value.slice(0, 3) : filterSelects.value
-);
+const addFilterVisible = ref(false);
+const dataFilterVisible = ref(false);
+const costMin = ref('');
+const costMax = ref('');
+const metricVisible = ref(false);
+const exportVisible = ref(false);
+const page = ref(1);
+const pageSize = ref(20);
+// 已选自定义指标（线上默认已选「消耗」）
+const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.account || [])]);
 
 // ---------- 表格列 ----------
-// 第二列跟随「数据维度」切换，列宽取线上实测值；
-// 末列「消耗」不设固定宽度，由 el-table 自适应铺满剩余空间（保证右对齐的数值不被裁切）
-const columns = computed(() => {
+// 基础列：时间 + 数据维度列 + 账户名称；其余由「自定义指标」决定
+const baseColumns = computed(() => {
   const dim = DIM_COLUMN[dimension.value] || DIM_COLUMN['账户'];
-  return ACCOUNT_COLUMNS.map((c) => {
-    if (c.prop === 'advertiser_id') {
-      return { prop: dim.prop, label: dim.label, width: 590 };
-    }
-    if (c.prop === 'stat_cost') {
-      return { prop: c.prop, label: c.label, align: c.align, sortable: c.sortable, minWidth: 120 };
-    }
-    const width = COLUMN_WIDTH[c.prop] || 590;
-    return { prop: c.prop, label: c.label, align: c.align, sortable: c.sortable, width };
-  });
+  return [
+    { prop: 'date', label: '时间', width: COLUMN_WIDTH.date, sortable: true, tip: TIPS.time },
+    { prop: dim.prop, label: dim.label, width: 590, tip: dim.tip || '' },
+    {
+      prop: 'advertiser_name',
+      label: '账户名称',
+      width: COLUMN_WIDTH.advertiser_name,
+      tip: TIPS.advertiserName,
+    },
+  ];
 });
+
+// 自定义指标列（线上「消耗」是内置列，其余指标由弹窗勾选后追加）
+const metricColumns = computed(() =>
+  selectedMetrics.value.map((name, i) => ({
+    prop: name === '消耗' ? 'stat_cost' : `metric_${i}`,
+    label: name,
+    minWidth: 140,
+    align: 'right',
+    sortable: name === '消耗',
+    tip: name === '消耗' ? TIPS.cost : metricDesc(name),
+    metric: name,
+  }))
+);
+
+const columns = computed(() => [...baseColumns.value, ...metricColumns.value]);
+
+/** 指标口径说明（取自线上采集的指标集） */
+function metricDesc(name) {
+  const blocks = (REPORT_METRICS.account || {}).blocks || [];
+  for (const b of blocks) {
+    const hit = (b.metrics || []).find((m) => m.name === name);
+    if (hit) return hit.desc || '';
+  }
+  return '';
+}
 
 // ---------- 表格行 ----------
 const mediaLabel = computed(
@@ -225,17 +441,24 @@ const mediaLabel = computed(
 );
 
 const rows = computed(() => {
-  const list = accountRows().map((r, i) => ({
-    ...r,
-    date: dateLabelFor(i),
-    optimizer: OPTIMIZER_OPTIONS[i % OPTIMIZER_OPTIONS.length],
-    partner: PARTNER_OPTIONS[i % PARTNER_OPTIONS.length],
-    dept: DEPT_OPTIONS[i % DEPT_OPTIONS.length],
-    project: PROJECT_OPTIONS[i % PROJECT_OPTIONS.length],
-    product: PRODUCT_OPTIONS[i % PRODUCT_OPTIONS.length],
-    media: MEDIA_OPTIONS[(i % 4) + 1].label,
-    stat_cost: Number(r.stat_cost),
-  }));
+  const list = accountRows().map((r, i) => {
+    const row = {
+      ...r,
+      date: dateLabelFor(i),
+      optimizer: OPTIMIZER_OPTIONS[i % OPTIMIZER_OPTIONS.length],
+      partner: PARTNER_OPTIONS[i % PARTNER_OPTIONS.length],
+      dept: DEPT_OPTIONS[i % DEPT_OPTIONS.length],
+      project: PROJECT_OPTIONS[i % PROJECT_OPTIONS.length],
+      product: PRODUCT_OPTIONS[i % PRODUCT_OPTIONS.length],
+      media: MEDIA_OPTIONS[(i % 4) + 1].label,
+      stat_cost: Number(r.stat_cost),
+    };
+    metricColumns.value.forEach((col) => {
+      if (col.metric === '消耗') return;
+      row[col.prop] = metricValue(row, col.metric);
+    });
+    return row;
+  });
   return list.filter((r) => matchRow(r));
 });
 
@@ -253,10 +476,15 @@ function matchRow(r) {
     if (!sel.length) continue;
     if (!sel.includes(r[s.field])) return false;
   }
+  // 数据筛选：消耗区间
+  const min = Number(costMin.value);
+  const max = Number(costMax.value);
+  if (costMin.value !== '' && Number.isFinite(min) && r.stat_cost < min) return false;
+  if (costMax.value !== '' && Number.isFinite(max) && r.stat_cost > max) return false;
   return true;
 }
 
-// 合计行：首列「合计」，末列累计消耗
+// 合计行：首列「合计」，消耗列累计
 function summaryMethod({ columns: cols, data }) {
   const total = data.reduce((acc, r) => acc + (Number(r.stat_cost) || 0), 0);
   return cols.map((col, i) => {
@@ -271,6 +499,36 @@ function summaryMethod({ columns: cols, data }) {
 // 消耗列：固定两位小数（与线上一致）
 function formatCost(v) {
   return Number(v || 0).toFixed(2);
+}
+
+// ---------- 自定义指标取值（mock 数据按指标名稳定生成演示值） ----------
+function metricValue(row, name) {
+  const cost = Number(row.stat_cost) || 0;
+  const h = hash(`${name}|${row.id}|${row.date}`);
+  switch (name) {
+    case '展示数':
+      return String(Math.round(cost * 22 + (h % 5000)));
+    case '点击数':
+      return String(Math.round(cost * 0.45 + (h % 200)));
+    case '点击率':
+      return '2.05%';
+    case '平均千次展现费用':
+      return (cost / 22).toFixed(2);
+    case '平均点击单价':
+      return (cost / 0.45).toFixed(2);
+    case '转化数':
+      return String(Math.round(cost * 0.02 + (h % 50)));
+    case '转化成本':
+      return (cost / 0.02).toFixed(2);
+    case '转化率':
+      return '4.44%';
+    default:
+      if (/率$/.test(name)) return `${((h % 1000) / 100).toFixed(2)}%`;
+      if (/(成本|费用|单价|花费|消耗|金额|均价)/.test(name)) {
+        return ((h % 100000) / 100).toFixed(2);
+      }
+      return String(h % 100000);
+  }
 }
 
 // ---------- 日期工具 ----------
@@ -320,32 +578,48 @@ function dateLabelFor(index) {
 }
 
 // ---------- 交互 ----------
+// 线上「查询」只是重新拉数据，不弹任何提示
 function handleQuery() {
-  ElMessage.success('查询完成');
+  // 数据由本地 mock 派生，无需额外处理
 }
 
-function handleAddFilter() {
-  // 线上「添加筛选」可重复选择同一维度，这里按顺序追加一个筛选维度
-  const def = FILTER_DEFS[filterSelects.value.length % FILTER_DEFS.length];
+// 「+ 添加筛选」：把选中的维度追加到筛选区（线上可重复选择同一维度）
+function onAddFilter(label) {
+  const def = FILTER_DEFS.find((d) => d.label === label) || FILTER_DEFS[0];
   filterSelects.value.push({ ...def, uid: `f${Date.now()}`, model: [] });
-  ElMessage.success(`已添加「${def.label}」筛选条件`);
+  addFilterVisible.value = false;
 }
 
-function handleDataFilter() {
-  ElMessage.info('数据筛选：暂无可用条件');
+// 数据筛选浮层
+function applyDataFilter() {
+  dataFilterVisible.value = false;
 }
 
+function resetDataFilter() {
+  costMin.value = '';
+  costMax.value = '';
+}
+
+// 「自定义指标」：打开线上 1:1 的弹窗
 function handleCustomMetric() {
-  ElMessage.info('自定义指标功能开发中');
+  metricVisible.value = true;
 }
 
+// 「应 用」：把选中的指标应用到表格（新增对应列）
+function onMetricApply(payload) {
+  selectedMetrics.value = [...(payload && payload.selected ? payload.selected : [])];
+}
+
+// 「导出数据」：弹线上 1:1 的「任务创建成功」提示框
 function handleExport() {
-  ElMessage.success('导出任务已提交，请稍后下载');
+  exportVisible.value = true;
 }
 
 // ---------- 趋势分析 / 占比分析 图表 ----------
 const chartRef = ref(null);
+const chartRef2 = ref(null);
 let chart = null;
+let chart2 = null;
 
 function disposeChart() {
   if (chart) {
@@ -374,8 +648,42 @@ function trendValue(day) {
   return +(2000 + (h % 38000) + (h % 100) / 100).toFixed(2);
 }
 
-function trendOption() {
+// 线上分析面板：指标下拉 11 项（实测）
+const ANALYSIS_METRICS = [
+  '消耗', '展示数', '平均千次展现费用', '点击数', '点击率', '平均点击单价',
+  '转化数', '转化成本', '转化率', '激活数', '注册数',
+];
+const analysisMetric = ref('消耗');
+const analysisMetric2 = ref('展示数');
+const compareEnabled = ref(false);
+// 趋势分析：汇总 / Top5数据 / Top10数据；占比分析：Top5数据 / Top10数据
+const analysisTopOptions = computed(() =>
+  analysisTab.value === 'trend' ? ['汇总', 'Top5数据', 'Top10数据'] : ['Top5数据', 'Top10数据']
+);
+const analysisTop = ref('汇总');
+
+/** 取某个指标在明细行上的数值 */
+function metricNumber(row, metric) {
+  const v = metricValue(row, metric);
+  const n = parseFloat(String(v).replace('%', '').replace(/,/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** 按当前「Top5/Top10/汇总」取参与统计的行 */
+function topRows() {
+  const list = [...rows.value];
+  if (analysisTop.value === 'Top5数据') return list.slice(0, 5);
+  if (analysisTop.value === 'Top10数据') return list.slice(0, 10);
+  return list;
+}
+
+function trendOption(metric) {
   const days = daysOfRange();
+  const m = metric || analysisMetric.value;
+  const byDay = new Map();
+  topRows().forEach((r) => {
+    byDay.set(r.date, (byDay.get(r.date) || 0) + metricNumber(r, m));
+  });
   return {
     animationDuration: 300,
     color: ['#197afb'],
@@ -394,7 +702,7 @@ function trendOption() {
     },
     yAxis: {
       type: 'value',
-      name: '消耗',
+      name: m,
       nameTextStyle: { color: '#909399', fontSize: 12, align: 'right' },
       axisLine: { show: false },
       axisTick: { show: false },
@@ -407,9 +715,9 @@ function trendOption() {
     },
     series: [
       {
-        name: '消耗',
+        name: m,
         type: 'line',
-        data: days.map((d) => trendValue(d)),
+        data: days.map((d) => byDay.get(d) || 0),
         smooth: true,
         symbol: 'circle',
         symbolSize: 5,
@@ -421,11 +729,12 @@ function trendOption() {
   };
 }
 
-function ratioOption() {
+function ratioOption(metric) {
+  const m = metric || analysisMetric.value;
   const map = new Map();
-  rows.value.forEach((r) => {
+  topRows().forEach((r) => {
     const name = r.advertiser_name || '--';
-    map.set(name, (map.get(name) || 0) + (Number(r.stat_cost) || 0));
+    map.set(name, (map.get(name) || 0) + metricNumber(r, m));
   });
   const data = Array.from(map.entries()).map(([name, value]) => ({
     name,
@@ -441,7 +750,7 @@ function ratioOption() {
     legend: { type: 'scroll', bottom: 0, textStyle: { color: '#909399', fontSize: 12 } },
     series: [
       {
-        name: '账户消耗占比',
+        name: m,
         type: 'pie',
         radius: '62%',
         center: ['50%', '45%'],
@@ -456,9 +765,24 @@ function ratioOption() {
 function renderChart() {
   if (!chartRef.value) return;
   if (!chart) chart = echarts.init(chartRef.value);
-  chart.setOption(analysisTab.value === 'trend' ? trendOption() : ratioOption(), true);
+  chart.setOption(analysisTab.value === 'trend' ? trendOption(analysisMetric.value) : ratioOption(analysisMetric.value), true);
   chart.resize();
+  if (compareEnabled.value && chartRef2.value) {
+    if (!chart2) chart2 = echarts.init(chartRef2.value);
+    chart2.setOption(analysisTab.value === 'trend' ? trendOption(analysisMetric2.value) : ratioOption(analysisMetric2.value), true);
+    chart2.resize();
+  } else if (chart2) {
+    chart2.dispose();
+    chart2 = null;
+  }
 }
+
+// 指标 / 对比 / 汇总方式 / 页签变化都重绘
+watch([analysisMetric, analysisMetric2, compareEnabled, analysisTop, analysisTab], async () => {
+  if (!analysisExpanded.value) return;
+  await nextTick();
+  renderChart();
+});
 
 watch(analysisExpanded, async (v) => {
   if (!v) {
@@ -499,4 +823,91 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* 「+ 添加筛选」下拉菜单 */
+.add-filter-menu {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow: auto;
+}
+.add-filter-item {
+  font-size: 13px;
+  color: #333333;
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.add-filter-item:hover {
+  color: #197afb;
+  background: #f7f8fa;
+}
+
+/* 数据筛选浮层 */
+.data-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.data-filter-label {
+  font-size: 13px;
+  color: #333333;
+  width: 34px;
+}
+.data-filter-split {
+  color: #c0c4cc;
+}
+.data-filter-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* 卡片头 */
+.relation-select {
+  width: 130px;
+}
+.card-help-icon,
+.action-help {
+  color: #c0c4cc;
+  cursor: pointer;
+}
+.action-help {
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.card-help-icon:hover,
+.action-help:hover {
+  color: #197afb;
+}
+
+/* 标题 ⓘ 说明 */
+.help-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #666666;
+}
+
+/* 表头列名（线上：列头文字即口径说明的触发点） */
+.col-tip-label {
+  cursor: pointer;
+}
+.col-tip-label:hover {
+  color: #197afb;
+}
+
+/* 分析面板（趋势分析 / 占比分析）—— 线上：指标下拉 + 对比 + 右侧汇总方式 */
+.report-analysis-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 12px;
+}
+.analysis-metric-select { width: 185px; }
+.analysis-top-select { width: 150px; margin-left: auto; }
+.analysis-compare { margin-right: 0; }
+.analysis-compare .el-checkbox__label { font-size: 13px; color: #606266; }
+.report-analysis-charts { display: flex; gap: 16px; }
+.report-analysis-charts .report-chart { flex: 1 1 0; min-width: 0; }
 </style>

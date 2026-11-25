@@ -30,7 +30,7 @@
             </div>
 
             <div
-              v-for="s in selects"
+              v-for="s in visibleSelects"
               :key="s.key"
               :class="{ 'select-account': s.key === 'account' }"
             >
@@ -43,6 +43,7 @@
               />
             </div>
 
+            <!-- + 添加筛选（线上：已选筛选维度的多选清单，勾选即生效） -->
             <el-popover
               v-model:visible="addFilterVisible"
               placement="bottom-start"
@@ -52,16 +53,14 @@
               <template #reference>
                 <button class="report-add-filter" type="button">+ 添加筛选</button>
               </template>
-              <div class="add-filter-menu">
-                <div
+              <el-checkbox-group v-model="activeDims" class="cr-add-filter-group">
+                <el-checkbox
                   v-for="d in ADD_FILTER_OPTIONS"
                   :key="d"
-                  class="add-filter-item"
-                  @click="onAddFilter(d)"
-                >
-                  {{ d }}
-                </div>
-              </div>
+                  :label="d"
+                  :value="d"
+                />
+              </el-checkbox-group>
             </el-popover>
           </div>
 
@@ -91,7 +90,7 @@
                 <el-input v-model="costMax" size="small" placeholder="最大花费" />
               </div>
               <div class="data-filter-footer">
-                <el-button size="small" @click="resetDataFilter">重置</el-button>
+                <el-button size="small" @click="resetDataFilter">清空</el-button>
                 <el-button type="primary" size="small" @click="applyDataFilter">确定</el-button>
               </div>
             </div>
@@ -111,15 +110,23 @@
       <div class="report-card-head">
         <div class="report-card-title">详细数据</div>
         <div class="report-card-actions">
-          <!-- 转化回传口径（上报时间） -->
-          <el-select v-model="caliber" size="small" class="caliber-select">
+          <!-- 转化回传口径（上报时间）：线上每个选项都带一个 ⓘ 口径说明 -->
+          <el-select v-model="caliber" size="small" class="caliber-select" placeholder="指标口径">
             <el-option
               v-for="o in CALIBER_OPTIONS"
               :key="o.value"
               :label="o.label"
               :value="o.value"
             >
-              <span class="caliber-option">{{ o.value }}</span>
+              <span class="caliber-option">
+                {{ o.label }}
+                <el-popover placement="top" :width="220" trigger="hover">
+                  <template #reference>
+                    <el-icon class="caliber-help" @click.stop><QuestionFilled /></el-icon>
+                  </template>
+                  {{ tipText('若需切换口径，请联系创量运营开通相关能力') }}
+                </el-popover>
+              </span>
             </el-option>
           </el-select>
 
@@ -138,16 +145,24 @@
           <el-button size="small" @click="onCustomMetric">
             <el-icon><Operation /></el-icon>自定义指标
           </el-button>
+          <!-- 自定义指标 ⓘ -->
+          <el-popover placement="top" :width="200" trigger="click">
+            <template #reference>
+              <el-icon class="export-help" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('自定义指标') }}
+          </el-popover>
 
           <el-button size="small" @click="onExport">
             导出数据
-            <el-popover placement="top" :width="200" trigger="click">
-              <template #reference>
-                <el-icon class="export-help"><QuestionFilled /></el-icon>
-              </template>
-              导出所有页面的数据
-            </el-popover>
           </el-button>
+          <!-- 导出数据 ⓘ -->
+          <el-popover placement="top" :width="200" trigger="click">
+            <template #reference>
+              <el-icon class="export-help" @click.stop><QuestionFilled /></el-icon>
+            </template>
+            {{ tipText('导出所有页面的数据') }}
+          </el-popover>
 
           <a class="report-collapse-link" @click="tableCollapsed = !tableCollapsed">
             {{ tableCollapsed ? '展开' : '收起' }}
@@ -167,23 +182,25 @@
         >
           <el-table-column type="selection" width="60" fixed="left" />
 
-          <el-table-column prop="date" label="时间" width="135" sortable="custom" show-overflow-tooltip>
+          <el-table-column
+            v-for="col in columns"
+            :key="col.prop"
+            :prop="col.prop"
+            :label="col.label"
+            :width="col.width"
+            :min-width="col.minWidth"
+            :align="col.align || 'left'"
+            :sortable="col.sortable"
+            :show-overflow-tooltip="col.type !== 'preview'"
+          >
+            <!-- 线上列头：文字本身即提示气泡锚点（hover 出现口径说明） -->
             <template #header>
-              <el-tooltip content="时间" placement="top"><span>时间</span></el-tooltip>
+              <el-tooltip :content="col.tip" placement="top" :show-after="150">
+                <span class="cr-col-title">{{ col.label }}</span>
+              </el-tooltip>
             </template>
-          </el-table-column>
 
-          <el-table-column prop="component_id" label="组件ID" min-width="300" show-overflow-tooltip>
-            <template #header>
-              <el-tooltip content="组件ID" placement="top"><span>组件ID</span></el-tooltip>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="preview" label="组件预览" width="130" align="center">
-            <template #header>
-              <el-tooltip content="组件预览" placement="top"><span>组件预览</span></el-tooltip>
-            </template>
-            <template #default="{ row }">
+            <template v-if="col.type === 'preview'" #default="{ row }">
               <div class="component-wrapper clickable" @click="onPreview(row)">
                 <img class="report-preview component-preview" :src="row.preview" alt="组件预览" />
                 <div v-if="row.is_video" class="video-play">
@@ -191,18 +208,10 @@
                 </div>
               </div>
             </template>
-          </el-table-column>
 
-          <el-table-column prop="stat_cost" label="花费" min-width="200" align="right" sortable="custom">
-            <template #header>
-              <el-tooltip
-                content="广告主为广告投放总共付出的费用成本，实际花费请以财务记录为准"
-                placement="top"
-              >
-                <span>花费</span>
-              </el-tooltip>
+            <template v-else-if="col.money" #default="{ row }">
+              {{ money(row[col.prop]) }}
             </template>
-            <template #default="{ row }">{{ row.stat_cost_text }}</template>
           </el-table-column>
         </el-table>
 
@@ -219,17 +228,51 @@
       </div>
     </div>
   </ReportPageShell>
+
+  <!-- 组件预览：点缩略图打开大图预览层（线上点击预览图会放大查看） -->
+  <el-dialog
+    v-model="previewVisible"
+    title="组件预览"
+    width="520px"
+    append-to-body
+    class="component-preview-dialog"
+  >
+    <div class="cr-preview-body">
+      <img
+        v-if="previewRow"
+        class="cr-preview-img"
+        :src="previewRow.preview"
+        :alt="previewRow.component_id"
+      />
+      <div v-if="previewRow" class="cr-preview-meta">
+        组件ID：{{ previewRow.component_id }}
+      </div>
+    </div>
+  </el-dialog>
+
+  <!-- 自定义指标弹窗（线上 1:1：标题「自定义指标」/ 左分类 + 中指标 + 右已选） -->
+  <CustomMetricDialog
+    v-model="metricVisible"
+    metric-key="component"
+    @apply="onMetricApply"
+  />
+
+  <!-- 导出数据结果提示（线上：「任务创建成功，请前往工具—下载中心查看详情」） -->
+  <ExportResultDialog v-model="exportVisible" mode="default" />
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
 import {
   Search, Filter, Operation, QuestionFilled, WarningFilled, VideoPlay,
 } from '@element-plus/icons-vue';
 import ReportPageShell from '../components/ReportPageShell.vue';
 import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
+import CustomMetricDialog from '../components/CustomMetricDialog.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
+import { REPORT_METRICS, REPORT_METRIC_DEFAULT_SELECTED } from '@/mock/reportMetrics';
+import { REPORT_TIPS } from '@/mock/reportTips';
 import {
   ADVERTISER_OPTIONS,
   PROJECT_OPTIONS,
@@ -259,7 +302,7 @@ const STAFF_OPTIONS = [
   '李倩', '田博文', '汪玲丽', '邓艺爽', '倪秀云', '申旭阳', '吕瑶',
   '李杉杉', '杜浩', '魏然', '刘松涵', '杨新宇', '搜索更多(25)...',
 ];
-// 指标口径下拉：线上折叠态显示短名，展开后为「若需切换口径…」长文案
+// 指标口径下拉：线上每个选项右侧带 ⓘ，hover 显示「若需切换口径，请联系创量运营开通相关能力」
 const CALIBER_OPTIONS = [
   { label: '广告播放口径', value: METRIC_CALIBER_OPTIONS[0] },
   { label: '转化回传口径（上报时间）', value: METRIC_CALIBER_OPTIONS[1] },
@@ -317,6 +360,26 @@ const pageSize = ref(20);
 const sortProp = ref('stat_cost');
 const sortOrder = ref('descending');
 
+/* ------------------------------------------------------------------ *
+ * 问号提示文案（全部取自线上采集：mock/reportTips.js）
+ * ------------------------------------------------------------------ */
+const CR_TIPS = REPORT_TIPS.component || [];
+/** 按原文取提示文案（命中则原样返回，未命中也原样返回，避免文案走样） */
+function tipText(s) {
+  const hit = CR_TIPS.find((t) => t.body === s);
+  return hit ? hit.body : s;
+}
+
+/* ------------------------------------------------------------------ *
+ * 自定义指标 / 导出数据 / 组件预览
+ * ------------------------------------------------------------------ */
+const metricVisible = ref(false);    // 「自定义指标」弹窗
+const exportVisible = ref(false);    // 「导出数据」结果提示
+const previewVisible = ref(false);   // 「组件预览」大图预览层
+const previewRow = ref(null);
+/* 已选指标：线上默认「花费」 */
+const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.component || [])]);
+
 const selects = ref([
   { key: 'account', label: '账户', placeholder: '请选择账户', options: ADVERTISER_OPTIONS, model: [], wide: true },
   { key: 'component_type', label: '组件类型', placeholder: '请选择组件类型', options: COMPONENT_TYPE_OPTIONS, model: [] },
@@ -324,6 +387,11 @@ const selects = ref([
   { key: 'director', label: '编导', placeholder: '请选择编导', options: STAFF_OPTIONS, model: [] },
   { key: 'editor', label: '剪辑', placeholder: '请选择剪辑', options: STAFF_OPTIONS, model: [] },
 ]);
+/* 「+ 添加筛选」：已选筛选维度（线上默认 5 个全选，勾选即生效） */
+const activeDims = ref(selects.value.map((s) => s.label));
+const visibleSelects = computed(() =>
+  selects.value.filter((s) => activeDims.value.includes(s.label))
+);
 
 /* ------------------------------------------------------------------ *
  * 预览占位图（data-URI SVG，方形缩略图）
@@ -386,8 +454,67 @@ function hash(str) {
 }
 
 const round2 = (n) => Math.round(n * 100) / 100;
-const money = (n) => n.toFixed(2);
+const money = (n) => (Number(n) || 0).toFixed(2);
 const moneyComma = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/* ------------------------------------------------------------------ *
+ * 表格列 = 固定列（时间 / 组件ID / 组件预览）+ 「自定义指标」选中的指标列
+ * ------------------------------------------------------------------ */
+const FIXED_COLUMNS = [
+  { prop: 'date', label: '时间', width: 135, sortable: 'custom', tip: tipText('时间') },
+  { prop: 'component_id', label: '组件ID', minWidth: 300, tip: tipText('组件ID') },
+  {
+    prop: 'preview',
+    label: '组件预览',
+    width: 130,
+    align: 'center',
+    tip: tipText('组件预览'),
+    type: 'preview',
+  },
+];
+/* 与 mock 行字段绑定的指标列（线上默认只有「花费」） */
+const COMPONENT_METRIC_META = {
+  花费: {
+    prop: 'stat_cost',
+    minWidth: 200,
+    align: 'right',
+    sortable: 'custom',
+    money: true,
+  },
+};
+/* 指标口径说明（列头 ⓘ 文案，取自线上采集的指标集 mock/reportMetrics.js） */
+const METRIC_DESC = (() => {
+  const map = {};
+  ((REPORT_METRICS.component || {}).blocks || []).forEach((b) => {
+    (b.metrics || []).forEach((m) => {
+      map[m.name] = m.desc;
+    });
+  });
+  return map;
+})();
+
+const columns = computed(() => {
+  const list = [...FIXED_COLUMNS];
+  selectedMetrics.value.forEach((name) => {
+    const tip = METRIC_DESC[name] || name;
+    const meta = COMPONENT_METRIC_META[name];
+    if (meta) {
+      list.push({ ...meta, label: name, tip });
+    } else {
+      /* 没有 mock 字段的指标：仍然成列（数值为 0 占位），保证「列增减生效」 */
+      list.push({
+        prop: name,
+        label: name,
+        width: 160,
+        align: 'right',
+        money: true,
+        tip,
+        placeholder: true,
+      });
+    }
+  });
+  return list;
+});
 
 /** 当前筛选条件签名：任何筛选变化都会重新生成一份数据 */
 const signature = computed(() => JSON.stringify([
@@ -395,7 +522,7 @@ const signature = computed(() => JSON.stringify([
   (dateRange.value || []).join('~'),
   media.value,
   keyword.value,
-  selects.value.map((s) => `${s.key}:${(s.model || []).join(',')}`).join('|'),
+  visibleSelects.value.map((s) => `${s.key}:${(s.model || []).join(',')}`).join('|'),
   costMin.value,
   costMax.value,
 ]));
@@ -404,7 +531,7 @@ const DEFAULT_SIGNATURE = computed(() => JSON.stringify([
   `${DEFAULT_START}~${DEFAULT_END}`,
   'gdt_upgrade',
   '',
-  selects.value.map((s) => `${s.key}:`).join('|'),
+  visibleSelects.value.map((s) => `${s.key}:`).join('|'),
   '',
   '',
 ]));
@@ -500,7 +627,17 @@ const total = computed(() => sortedRows.value.length);
 const totalCost = computed(() => round2(filteredRows.value.reduce((a, b) => a + b.stat_cost, 0)));
 const pageRows = computed(() => {
   const start = (page.value - 1) * pageSize.value;
-  return sortedRows.value.slice(start, start + pageSize.value);
+  const list = sortedRows.value.slice(start, start + pageSize.value);
+  /* 自定义指标里新增的、无 mock 字段的指标列：数值 0 占位 */
+  const blanks = columns.value.filter((c) => c.placeholder);
+  if (!blanks.length) return list;
+  return list.map((r) => {
+    const o = { ...r };
+    blanks.forEach((c) => {
+      o[c.prop] = 0;
+    });
+    return o;
+  });
 });
 
 function summaryMethod({ columns }) {
@@ -525,44 +662,46 @@ watch(total, () => {
 /* ------------------------------------------------------------------ *
  * 交互
  * ------------------------------------------------------------------ */
+/* 「查询」：线上不弹任何提示，仅回到第一页 */
 function onQuery() {
   page.value = 1;
-  ElMessage.success('查询完成');
 }
 
-function onAddFilter(dim) {
-  addFilterVisible.value = false;
-  const exists = selects.value.some((s) => s.label === dim);
-  if (exists) {
-    ElMessage.info(`「${dim}」已在筛选条件中`);
-    return;
-  }
-  ElMessage.info(`已添加筛选维度：${dim}`);
-}
-
+/* 数据筛选：清空 / 确定 */
 function resetDataFilter() {
   costMin.value = '';
   costMax.value = '';
   dataFilterVisible.value = false;
-  ElMessage.success('已重置筛选条件');
+  page.value = 1;
 }
 
 function applyDataFilter() {
   dataFilterVisible.value = false;
   page.value = 1;
-  ElMessage.success('筛选条件已应用');
 }
 
+/* 「自定义指标」：打开线上同款弹窗 */
 function onCustomMetric() {
-  ElMessage.info('自定义指标：可勾选需要展示的指标列');
+  metricVisible.value = true;
 }
 
+/* 「应 用」：把弹窗里选中的指标应用到表格（列增减生效） */
+function onMetricApply(payload = {}) {
+  selectedMetrics.value = Array.isArray(payload.selected)
+    ? [...payload.selected]
+    : [...(REPORT_METRIC_DEFAULT_SELECTED.component || [])];
+  page.value = 1;
+}
+
+/* 「导出数据」：线上弹出「任务创建成功，请前往工具—下载中心查看详情」 */
 function onExport() {
-  ElMessage.success('导出任务已创建，请稍后在下载中心查看');
+  exportVisible.value = true;
 }
 
+/* 「组件预览」：打开大图预览层 */
 function onPreview(row) {
-  ElMessage.info(`组件预览：${row.component_id}`);
+  previewRow.value = row;
+  previewVisible.value = true;
 }
 </script>
 
@@ -614,23 +753,15 @@ function onPreview(row) {
   margin-left: auto;
 }
 
-/* 「+ 添加筛选」下拉菜单 */
-.add-filter-menu {
+/* 「+ 添加筛选」弹层里的维度清单 */
+.cr-add-filter-group {
   display: flex;
   flex-direction: column;
   max-height: 240px;
   overflow: auto;
 }
-.add-filter-item {
-  font-size: 13px;
-  color: #333333;
-  padding: 7px 12px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.add-filter-item:hover {
-  color: #197afb;
-  background: #f7f8fa;
+.cr-add-filter-group :deep(.el-checkbox) {
+  margin-right: 0;
 }
 
 /* 数据筛选浮层 */
@@ -672,6 +803,46 @@ function onPreview(row) {
 }
 .export-help:hover {
   color: #197afb;
+}
+/* 指标口径下拉里的 ⓘ */
+.caliber-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.caliber-help {
+  color: #c0c4cc;
+  cursor: pointer;
+}
+.caliber-help:hover {
+  color: #197afb;
+}
+/* 列头提示锚点 */
+.cr-col-title {
+  border-bottom: 1px dashed transparent;
+  cursor: help;
+}
+.cr-col-title:hover {
+  color: #197afb;
+}
+/* 组件预览大图 */
+.cr-preview-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.cr-preview-img {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 3px;
+  background: #f2f3f5;
+}
+.cr-preview-meta {
+  font-size: 13px;
+  color: #606266;
 }
 
 /* 组件预览：线上为竖版广告素材缩略图（80 × 120），列内居中 */

@@ -191,21 +191,22 @@ export const PEOPLE_COLUMNS = [
 ];
 
 // 财务管理
+// 列宽取自创量线上实测（总宽 2004px > 内容区 1728px，线上同样横向滚动）
 export const FINANCE_COLUMNS = [
-  { prop: 'date', label: '时间', width: 110, sortable: true },
-  { prop: 'advertiser_name', label: '广告主账号', width: 190 },
-  { prop: 'advertiser_id', label: '广告主ID', width: 170 },
-  { prop: 'partner', label: '所属合作商', width: 140 },
-  { prop: 'optimizer', label: '优化师', width: 110 },
-  { prop: 'shared_wallet_cost', label: '共享钱包消耗', width: 130, align: 'right', sortable: true },
-  { prop: 'shared_gift_cost', label: '共享赠款支出', width: 130, align: 'right', sortable: true },
-  { prop: 'total_cost', label: '账户总支出', width: 125, align: 'right', sortable: true },
-  { prop: 'cash_cost', label: '账户现金支出', width: 130, align: 'right', sortable: true },
-  { prop: 'gift_cost', label: '账户赠款支出', width: 130, align: 'right', sortable: true },
-  { prop: 'total_income', label: '账户总存入', width: 125, align: 'right', sortable: true },
-  { prop: 'total_transfer_in', label: '账户总转入', width: 125, align: 'right', sortable: true },
-  { prop: 'total_transfer_out', label: '账户总转出', width: 125, align: 'right', sortable: true },
-  { prop: 'frozen', label: '冻结', width: 110, align: 'right', sortable: true },
+  { prop: 'date', label: '时间', width: 160, sortable: true },
+  { prop: 'advertiser_name', label: '广告主账号', width: 160 },
+  { prop: 'advertiser_id', label: '广告主ID', width: 150 },
+  { prop: 'partner', label: '所属合作商', width: 200 },
+  { prop: 'optimizer', label: '优化师', width: 120 },
+  { prop: 'shared_wallet_cost', label: '共享钱包消耗', width: 160, align: 'right', sortable: true },
+  { prop: 'shared_gift_cost', label: '共享赠款支出', width: 160, align: 'right', sortable: true },
+  { prop: 'total_cost', label: '账户总支出', width: 128, align: 'right', sortable: true },
+  { prop: 'cash_cost', label: '账户现金支出', width: 128, align: 'right', sortable: true },
+  { prop: 'gift_cost', label: '账户赠款支出', width: 150, align: 'right', sortable: true },
+  { prop: 'total_income', label: '账户总存入', width: 128, align: 'right', sortable: true },
+  { prop: 'total_transfer_in', label: '账户总转入', width: 120, align: 'right', sortable: true },
+  { prop: 'total_transfer_out', label: '账户总转出', width: 120, align: 'right', sortable: true },
+  { prop: 'frozen', label: '冻结', width: 120, align: 'right', sortable: true },
 ];
 
 // 资金使用率

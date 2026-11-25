@@ -24,7 +24,7 @@
     </ReportFilterRow>
 
     <!-- 筛选维度 -->
-    <ReportFilterRow v-if="selects.length || showSearch" label="筛选维度：">
+    <ReportFilterRow v-if="!collapsed && (selects.length || showSearch)" label="筛选维度：">
       <div v-if="showSearch" class="report-search-box">
         <el-input
           v-model="keyword"
@@ -35,7 +35,7 @@
       </div>
 
       <ReportFilterSelect
-        v-for="s in visibleSelects"
+        v-for="s in selects"
         :key="s.key"
         v-model="s.model"
         :label="s.label"
@@ -58,7 +58,7 @@
     </ReportFilterRow>
 
     <!-- 数据筛选 -->
-    <ReportFilterRow v-if="showDataFilter" label="数据筛选：">
+    <ReportFilterRow v-if="!collapsed && showDataFilter" label="数据筛选：">
       <button class="report-filter-btn" type="button" @click="$emit('open-data-filter')">
         <el-icon><Filter /></el-icon>筛选
       </button>
@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { Search, Filter } from '@element-plus/icons-vue';
 import ReportFilterRow from './ReportFilterRow.vue';
 import ReportFilterSelect from './ReportFilterSelect.vue';
@@ -87,9 +87,4 @@ defineEmits(['query', 'toggle-collapse', 'add-filter', 'open-data-filter']);
 const media = defineModel('media', { default: 'toutiao_upgrade' });
 const dimension = defineModel('dimension', { default: '' });
 const keyword = defineModel('keyword', { default: '' });
-
-// 收起时只保留前 3 个筛选条件（与线上「收起筛选配置」一致）
-const visibleSelects = computed(() =>
-  props.collapsed ? props.selects.slice(0, 3) : props.selects
-);
 </script>

@@ -39,8 +39,8 @@
           </el-radio-group>
         </ReportFilterRow>
 
-        <!-- 数据维度 -->
-        <ReportFilterRow v-if="!collapsed" label="数据维度：">
+        <!-- 数据维度（收起筛选配置后仍保留 —— 线上只收起「筛选维度」「数据筛选」两行） -->
+        <ReportFilterRow label="数据维度：">
           <el-radio-group v-model="dimension" class="report-radio-group" size="small">
             <el-radio-button v-for="d in DIM_MATERIAL" :key="d" :value="d">{{ d }}</el-radio-button>
           </el-radio-group>
@@ -53,11 +53,11 @@
                 <el-icon class="tip-help"><QuestionFilled /></el-icon>
               </span>
             </template>
-            受媒体Marketing_Api接口数据更新时间和稳定性影响，每日数据更新时间可能会有波动，最多可能出现2小时延迟更新，如您对数据更新有疑问，请联系运营同学反馈。
+            {{ TIP_UPDATE_TIME }}
           </el-popover>
         </ReportFilterRow>
 
-        <!-- 筛选维度 -->
+        <!-- 筛选维度（收起筛选配置后整行隐藏 —— 与线上一致） -->
         <ReportFilterRow v-if="!collapsed" label="筛选维度：">
           <div class="filter-fields">
             <!-- 素材名称：类型下拉 + 关键词输入框 -->
@@ -74,19 +74,42 @@
               />
             </div>
 
-            <div
-              v-for="s in selects"
-              :key="s.key"
-              :class="{ 'select-account': s.key === 'account' }"
-            >
-              <ReportFilterSelect
-                v-model="s.model"
-                :label="s.label"
-                :placeholder="s.placeholder"
-                :options="s.options"
-                :wide="s.wide"
-              />
-            </div>
+            <!-- 「素材目录」带「温馨提示」浮层（线上：鼠标移入该下拉即弹出） -->
+            <template v-for="s in selects" :key="s.key">
+              <el-popover
+                v-if="s.key === 'directory'"
+                placement="bottom-start"
+                :width="280"
+                trigger="hover"
+              >
+                <template #reference>
+                  <div :class="{ 'select-account': s.key === 'account' }">
+                    <ReportFilterSelect
+                      v-model="s.model"
+                      :label="s.label"
+                      :placeholder="s.placeholder"
+                      :options="s.options"
+                      :wide="s.wide"
+                    />
+                  </div>
+                </template>
+                <div class="tips-title">{{ TIP_WARM_NOTICE_TITLE }}</div>
+                <p v-for="line in TIP_WARM_NOTICE_LINES" :key="line" class="tips-line">{{ line }}</p>
+              </el-popover>
+
+              <div
+                v-else
+                :class="{ 'select-account': s.key === 'account' }"
+              >
+                <ReportFilterSelect
+                  v-model="s.model"
+                  :label="s.label"
+                  :placeholder="s.placeholder"
+                  :options="s.options"
+                  :wide="s.wide"
+                />
+              </div>
+            </template>
 
             <el-popover
               v-model:visible="addFilterVisible"
@@ -154,16 +177,11 @@
             <template #reference>
               <el-icon><QuestionFilled /></el-icon>
             </template>
-            <div>1.每天上午9点45可查看前一天数据；</div>
-            <div>2.素材报表仅展示本账号权限范围内的数据，如需查看更多，请联系企业管理员调整权限；</div>
+            <div>{{ TIP_TABLE_SCOPE }}</div>
           </el-popover>
         </div>
 
         <div class="report-card-actions">
-          <el-button type="primary" plain size="small" @click="onFission">
-            <el-icon><Share /></el-icon>爆款裂变
-          </el-button>
-
           <el-select
             v-model="relation"
             size="small"
@@ -175,18 +193,28 @@
             <el-option v-for="o in RELATION_DIM" :key="o" :label="o" :value="o" />
           </el-select>
 
-          <el-button size="small" @click="onCustomMetric">
+          <el-button size="small" @click="metricVisible = true">
             <el-icon><Operation /></el-icon>自定义指标
+            <span class="tip-wrap" @click.stop>
+              <el-popover placement="top" :width="140" trigger="click">
+                <template #reference>
+                  <el-icon class="export-help"><QuestionFilled /></el-icon>
+                </template>
+                {{ TIP_CUSTOM_METRIC }}
+              </el-popover>
+            </span>
           </el-button>
 
-          <el-button size="small" @click="onExport">
+          <el-button size="small" @click="exportVisible = true">
             导出数据
-            <el-popover placement="top" :width="200" trigger="click">
-              <template #reference>
-                <el-icon class="export-help"><QuestionFilled /></el-icon>
-              </template>
-              导出所有页面的数据
-            </el-popover>
+            <span class="tip-wrap" @click.stop>
+              <el-popover placement="top" :width="200" trigger="click">
+                <template #reference>
+                  <el-icon class="export-help"><QuestionFilled /></el-icon>
+                </template>
+                {{ TIP_EXPORT }}
+              </el-popover>
+            </span>
           </el-button>
 
           <a class="report-collapse-link" @click="tableCollapsed = !tableCollapsed">
@@ -209,13 +237,13 @@
 
           <el-table-column prop="date" label="时间" width="135" sortable="custom" show-overflow-tooltip>
             <template #header>
-              <el-tooltip content="时间" placement="top"><span>时间</span></el-tooltip>
+              <el-tooltip :content="TIP_TIME" placement="top"><span>时间</span></el-tooltip>
             </template>
           </el-table-column>
 
           <el-table-column prop="preview" label="素材预览" width="106" align="center">
             <template #header>
-              <el-tooltip content="素材预览" placement="top"><span>素材预览</span></el-tooltip>
+              <el-tooltip :content="TIP_PREVIEW" placement="top"><span>素材预览</span></el-tooltip>
             </template>
             <template #default="{ row }">
               <div class="material-preview-wrapper clickable" @click="onPreview(row)">
@@ -229,7 +257,7 @@
 
           <el-table-column prop="title" label="素材" min-width="300">
             <template #header>
-              <el-tooltip content="素材" placement="top"><span>素材</span></el-tooltip>
+              <el-tooltip :content="TIP_MATERIAL" placement="top"><span>素材</span></el-tooltip>
             </template>
             <template #default="{ row }">
               <div class="material-name">
@@ -249,23 +277,44 @@
 
           <el-table-column prop="trend" label="近7日趋势" width="140" align="center">
             <template #header>
-              <el-tooltip content="近7日趋势" placement="top"><span>近7日趋势</span></el-tooltip>
+              <el-tooltip :content="TIP_TREND" placement="top"><span>近7日趋势</span></el-tooltip>
             </template>
             <template #default="{ row }">
               <div class="chart-parent" :ref="(el) => setChartEl(row.id, el)" />
             </template>
           </el-table-column>
 
-          <el-table-column prop="stat_cost" label="消耗" width="423" align="right" sortable="custom">
+          <el-table-column
+            v-if="selectedMetrics.includes('消耗')"
+            prop="stat_cost"
+            label="消耗"
+            width="423"
+            align="right"
+            sortable="custom"
+          >
             <template #header>
-              <el-tooltip
-                content="表示广告在投放期内的预估花费金额。当天数据可能会有波动，次日稳定消耗"
-                placement="top"
-              >
+              <el-tooltip :content="TIP_COST" placement="top">
                 <span>消耗</span>
               </el-tooltip>
             </template>
             <template #default="{ row }">{{ row.stat_cost_text }}</template>
+          </el-table-column>
+
+          <!-- 「自定义指标」弹窗里勾选的其它指标列 -->
+          <el-table-column
+            v-for="(m, mi) in extraMetrics"
+            :key="m.name"
+            :prop="`metric_${mi}`"
+            :label="m.name"
+            width="140"
+            align="right"
+          >
+            <template #header>
+              <el-tooltip :content="m.desc" placement="top">
+                <span>{{ m.name }}</span>
+              </el-tooltip>
+            </template>
+            <template #default="{ row }">{{ metricValue(row, m.name) }}</template>
           </el-table-column>
         </el-table>
 
@@ -281,6 +330,75 @@
         </div>
       </div>
     </div>
+
+    <!-- ============ 弹层（与创量线上 1:1） ============ -->
+    <!-- 自定义指标 -->
+    <CustomMetricDialog
+      v-model="metricVisible"
+      metric-key="material"
+      @apply="onMetricApply"
+    />
+
+    <!-- 导出数据：先选「素材预览地址的来源」，再提示任务创建成功 -->
+    <ExportResultDialog
+      v-model="exportVisible"
+      mode="material"
+      @confirm="onExportConfirm"
+    />
+    <ExportResultDialog v-model="exportTaskVisible" mode="default" />
+
+    <!-- 素材预览层 -->
+    <el-image-viewer
+      v-if="previewUrl"
+      :url-list="[previewUrl]"
+      teleported
+      @close="previewUrl = ''"
+    />
+
+    <!-- AI复刻 -->
+    <el-dialog
+      v-model="aiCopyVisible"
+      title="AI复刻"
+      width="560px"
+      append-to-body
+      class="material-ai-copy-dialog"
+    >
+      <div class="ai-copy-body">
+        <div class="ai-copy-preview">
+          <img :src="aiCopyRow ? aiCopyRow.preview : ''" alt="素材预览" />
+        </div>
+        <div class="ai-copy-form">
+          <div class="ai-copy-line">
+            <span class="ai-copy-label">素材名称：</span>
+            <span class="ai-copy-value">{{ aiCopyRow ? aiCopyRow.title : '' }}</span>
+          </div>
+          <div class="ai-copy-line">
+            <span class="ai-copy-label">素材ID：</span>
+            <span class="ai-copy-value">{{ aiCopyRow ? aiCopyRow.material_id : '' }}</span>
+          </div>
+          <div class="ai-copy-field">
+            <span class="ai-copy-label">复刻后名称：</span>
+            <el-input v-model="aiCopyName" size="small" />
+          </div>
+          <div class="ai-copy-field">
+            <span class="ai-copy-label">投放媒体：</span>
+            <el-select v-model="aiCopyMedia" size="small" class="ai-copy-select">
+              <el-option
+                v-for="m in MEDIA_OPTIONS"
+                :key="m.value"
+                :label="m.label"
+                :value="m.value"
+              />
+            </el-select>
+          </div>
+          <div class="ai-copy-tip">确定后将生成一条复刻素材（消耗为 0），并按复刻名称检索该素材。</div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="aiCopyVisible = false">取 消</el-button>
+        <el-button type="primary" @click="confirmAiCopy">确 定</el-button>
+      </template>
+    </el-dialog>
   </ReportPageShell>
 </template>
 
@@ -288,9 +406,8 @@
 import {
   computed, nextTick, onBeforeUnmount, onMounted, ref, watch,
 } from 'vue';
-import { ElMessage } from 'element-plus';
 import {
-  Search, Filter, Operation, QuestionFilled, Share, VideoPlay,
+  Search, Filter, Operation, QuestionFilled, VideoPlay,
 } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
@@ -299,6 +416,8 @@ import { CanvasRenderer } from 'echarts/renderers';
 import ReportPageShell from '../components/ReportPageShell.vue';
 import ReportFilterRow from '../components/ReportFilterRow.vue';
 import ReportFilterSelect from '../components/ReportFilterSelect.vue';
+import CustomMetricDialog from '../components/CustomMetricDialog.vue';
+import ExportResultDialog from '../components/ExportResultDialog.vue';
 import {
   MEDIA_OPTIONS,
   OPTIMIZER_OPTIONS,
@@ -309,9 +428,64 @@ import {
   DIM_MATERIAL,
   RELATION_DIM_MATERIAL,
   ADVERTISER_OPTIONS,
+  PRODUCT_OPTIONS,
+  CONVERT_GOAL_OPTIONS,
+  OUYAN_PRODUCT_OPTIONS,
+  ANDROID_APP_OPTIONS,
+  MINI_APP_OPTIONS,
+  DOUYIN_NO_OPTIONS,
+  DRAMA_ALBUM_OPTIONS,
 } from '@/mock/reportData';
+import { REPORT_METRICS, REPORT_METRIC_DEFAULT_SELECTED } from '@/mock/reportMetrics';
+import { REPORT_TIPS } from '@/mock/reportTips';
 
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
+
+/* ------------------------------------------------------------------ *
+ * 线上实测问号（ⓘ）提示文案 —— 逐条取自 REPORT_TIPS.material
+ * ------------------------------------------------------------------ */
+const TIP_TEXT = (text) => {
+  const hit = (REPORT_TIPS.material || []).find((t) => t.body === text);
+  return hit ? hit.body : text;
+};
+// 「预计每日更新时间9:45」ⓘ
+const TIP_UPDATE_TIME = TIP_TEXT(
+  '受媒体Marketing_Api接口数据更新时间和稳定性影响，每日数据更新时间可能会有波动，最多可能出现2小时延迟更新，如您对数据更新有疑问，请联系运营同学反馈。',
+);
+// 「详细数据」标题 ⓘ
+const TIP_TABLE_SCOPE = TIP_TEXT(
+  '1.每天上午9点45可查看前一天数据；2.素材报表仅展示本账号权限范围内的数据，如需查看更多，请联系企业管理员调整权限；',
+);
+// 「素材目录」下拉上的「温馨提示」ⓘ
+const TIP_WARM_NOTICE = TIP_TEXT(
+  '温馨提示： 1.找不到专辑，请先检查项目筛选2.若需查看专辑内所有素材，直接选中专辑即可',
+);
+const TIP_WARM_NOTICE_TITLE = TIP_WARM_NOTICE.replace(/^\s*/, '').split('1.找不到专辑')[0];
+const TIP_WARM_NOTICE_LINES = TIP_WARM_NOTICE
+  .replace(TIP_WARM_NOTICE_TITLE, '')
+  .split(/(?=\d\.)/)
+  .map((s) => s.trim())
+  .filter(Boolean);
+// 卡片头按钮 ⓘ
+const TIP_CUSTOM_METRIC = TIP_TEXT('自定义指标');
+const TIP_EXPORT = TIP_TEXT('导出所有页面的数据');
+// 列头 ⓘ
+const TIP_TIME = TIP_TEXT('时间');
+const TIP_PREVIEW = TIP_TEXT('素材预览');
+const TIP_MATERIAL = TIP_TEXT('素材');
+const TIP_TREND = TIP_TEXT('近7日趋势');
+const TIP_COST = TIP_TEXT('表示广告在投放期内的预估花费金额。当天数据可能会有波动，次日稳定');
+
+/* ------------------------------------------------------------------ *
+ * 指标集（线上实测：16 类 184 个指标）
+ * ------------------------------------------------------------------ */
+const METRIC_MAP = (() => {
+  const map = new Map();
+  ((REPORT_METRICS.material || {}).blocks || []).forEach((b) => {
+    (b.metrics || []).forEach((m) => map.set(m.name, m));
+  });
+  return map;
+})();
 
 /* ------------------------------------------------------------------ *
  * 线上实测常量（采集自 cl.mobgi.com/report/material-report）
@@ -340,6 +514,34 @@ const STAFF_OPTIONS = [
 const SOURCE_OPTIONS = ['自制', '客户上传', 'AI生成', '剪辑', '外采'];
 const NUMBER_OPTIONS = ['20261101', '20261102', '20261103', '20261110', '20261116'];
 const DIRECTORY_OPTIONS = ['全部', '短剧', '漫剧', '商品', '图文'];
+// 「+ 添加筛选」里各维度对应的下拉选项（线上实测：点击后直接在筛选维度行出现该下拉）
+const ADD_FILTER_OPTION_MAP = {
+  创量项目: { options: PROJECT_OPTIONS, placeholder: '请选择创量项目' },
+  素材目录: { options: DIRECTORY_OPTIONS, placeholder: '全选' },
+  账户: { options: ADVERTISER_OPTIONS, placeholder: '请选择账户', wide: true },
+  商品: { options: PRODUCT_OPTIONS, placeholder: '请选择商品' },
+  优化师: { options: OPTIMIZER_OPTIONS, placeholder: '请选择优化师' },
+  账户主体: { options: SUBJECT_OPTIONS, placeholder: '请选择账户主体' },
+  上传时间: { options: [], placeholder: '请选择上传时间' },
+  素材类型: { options: MATERIAL_TYPE_OPTIONS, placeholder: '请选择素材类型' },
+  素材标签: { options: MATERIAL_TAG_OPTIONS, placeholder: '请选择素材标签' },
+  素材来源: { options: SOURCE_OPTIONS, placeholder: '全选' },
+  优化目标: { options: CONVERT_GOAL_OPTIONS, placeholder: '请选择优化目标' },
+  上传人: { options: STAFF_OPTIONS, placeholder: '请选择上传人' },
+  编导: { options: STAFF_OPTIONS, placeholder: '请选择编导' },
+  剪辑: { options: STAFF_OPTIONS, placeholder: '请选择剪辑' },
+  摄像: { options: STAFF_OPTIONS, placeholder: '请选择摄像' },
+  演员: { options: STAFF_OPTIONS, placeholder: '请选择演员' },
+  配音: { options: STAFF_OPTIONS, placeholder: '请选择配音' },
+  录屏: { options: STAFF_OPTIONS, placeholder: '请选择录屏' },
+  制作: { options: STAFF_OPTIONS, placeholder: '请选择制作' },
+  脚本: { options: STAFF_OPTIONS, placeholder: '请选择脚本' },
+  巨量商品: { options: OUYAN_PRODUCT_OPTIONS, placeholder: '请选择巨量商品' },
+  巨量应用: { options: ANDROID_APP_OPTIONS, placeholder: '请选择巨量应用' },
+  '小程序/小游戏': { options: MINI_APP_OPTIONS, placeholder: '请选择小程序/小游戏' },
+  抖音号: { options: DOUYIN_NO_OPTIONS, placeholder: '请选择抖音号' },
+  '剧目/专辑ID': { options: DRAMA_ALBUM_OPTIONS, placeholder: '请选择剧目/专辑ID' },
+};
 
 /* ------------------------------------------------------------------ *
  * 日期工具
@@ -388,6 +590,19 @@ const pageSize = ref(20);
 // 线上默认按消耗倒序
 const sortProp = ref('stat_cost');
 const sortOrder = ref('descending');
+/* 弹层状态 */
+const metricVisible = ref(false);        // 自定义指标弹窗
+const exportVisible = ref(false);        // 导出数据：素材预览地址来源
+const exportTaskVisible = ref(false);    // 导出数据：任务创建成功
+const previewUrl = ref('');              // 素材预览层
+const aiCopyVisible = ref(false);        // AI复刻弹窗
+const aiCopyRow = ref(null);
+const aiCopyName = ref('');
+const aiCopyMedia = ref('toutiao_upgrade');
+/* 已选指标（默认「消耗」，与线上一致） */
+const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.material || ['消耗'])]);
+/* AI复刻生成的素材 */
+const copiedRows = ref([]);
 
 const selects = ref([
   { key: 'project', label: '创量项目', placeholder: '请选择创量项目', options: PROJECT_OPTIONS, model: [] },
@@ -552,6 +767,19 @@ const allRows = computed(() => {
     const last = rows[rows.length - 1];
     last.stat_cost = round2(last.stat_cost + (targetTotal - cur));
   }
+
+  // AI复刻生成的素材（新增行，消耗为 0）
+  copiedRows.value.forEach((c, i) => {
+    rows.push({
+      id: TOTAL_COUNT + 1 + i,
+      title: c.title,
+      material_id: '0',
+      preview: c.preview || PREVIEWS[i % PREVIEWS.length],
+      is_video: false,
+      trend: Array.from({ length: 7 }, () => Math.round(r() * 100) / 100),
+      stat_cost: 0,
+    });
+  });
 
   // 时间列随粒度 / 日期区间变化
   const days = daysInRange(dateRange.value);
@@ -761,51 +989,101 @@ function onSubTab(tab) {
 }
 
 function onQuery() {
+  // 线上「查询」不弹任何提示，只重新取数
   page.value = 1;
-  ElMessage.success('查询完成');
 }
 
+/** 「+ 添加筛选」：把该维度直接加进「筛选维度」行（线上行为） */
 function onAddFilter(dim) {
   addFilterVisible.value = false;
-  const exists = selects.value.some((s) => s.label === dim);
-  if (exists) {
-    ElMessage.info(`「${dim}」已在筛选条件中`);
-    return;
-  }
-  ElMessage.info(`已添加筛选维度：${dim}`);
+  if (selects.value.some((s) => s.label === dim)) return;
+  const conf = ADD_FILTER_OPTION_MAP[dim] || { options: [], placeholder: `请选择${dim}` };
+  selects.value = [
+    ...selects.value,
+    {
+      key: dim,
+      label: dim,
+      placeholder: conf.placeholder,
+      options: conf.options,
+      model: [],
+      wide: !!conf.wide,
+    },
+  ];
+  page.value = 1;
 }
 
+/** 数据筛选浮层：重置 */
 function resetDataFilter() {
   costMin.value = '';
   costMax.value = '';
   dataFilterVisible.value = false;
-  ElMessage.success('已重置筛选条件');
+  page.value = 1;
 }
 
+/** 数据筛选浮层：确定 */
 function applyDataFilter() {
   dataFilterVisible.value = false;
   page.value = 1;
-  ElMessage.success('筛选条件已应用');
 }
 
-function onFission() {
-  ElMessage.info('爆款裂变：可将当前素材一键裂变生成新素材');
+/** 「自定义指标」弹窗点「应 用」：把所选指标应用到表格（列增减生效） */
+function onMetricApply({ selected }) {
+  const list = (selected || []).filter((n) => METRIC_MAP.has(n));
+  selectedMetrics.value = list.length ? list : ['消耗'];
+  page.value = 1;
 }
 
-function onCustomMetric() {
-  ElMessage.info('自定义指标：可勾选需要展示的指标列');
+/** 「导出数据」：选好素材预览地址来源后创建导出任务 */
+function onExportConfirm() {
+  exportTaskVisible.value = true;
 }
 
-function onExport() {
-  ElMessage.success('导出任务已创建，请稍后在下载中心查看');
-}
-
-function onAiCopy(row) {
-  ElMessage.info(`AI复刻：${row.title}`);
-}
-
+/** 素材预览：打开大图预览层 */
 function onPreview(row) {
-  ElMessage.info(`素材预览：${row.title}`);
+  previewUrl.value = row.preview;
+}
+
+/** AI复刻：打开复刻弹窗 */
+function onAiCopy(row) {
+  aiCopyRow.value = row;
+  aiCopyName.value = `${row.title}-复刻`;
+  aiCopyMedia.value = media.value;
+  aiCopyVisible.value = true;
+}
+
+/** AI复刻确定：生成一条复刻素材并按复刻名称检索出来 */
+function confirmAiCopy() {
+  const src = aiCopyRow.value;
+  if (!src) return;
+  const name = (aiCopyName.value || '').trim() || `${src.title}-复刻`;
+  copiedRows.value = [
+    ...copiedRows.value,
+    { title: name, media: aiCopyMedia.value, preview: src.preview },
+  ];
+  materialType.value = 'name';
+  keyword.value = name;
+  aiCopyVisible.value = false;
+  page.value = 1;
+}
+
+/* ------------------------------------------------------------------ *
+ * 自定义指标列：除「消耗」外的其它指标列
+ * ------------------------------------------------------------------ */
+const extraMetrics = computed(() =>
+  selectedMetrics.value
+    .filter((n) => n !== '消耗')
+    .map((n) => ({ name: n, desc: (METRIC_MAP.get(n) || {}).desc || '' }))
+);
+
+/** 指标列的取值（本地 mock，按行 id + 指标名确定性生成） */
+function metricValue(row, name) {
+  const r = rng(hash(`${row.id}::${name}`));
+  const v = r();
+  if (name.includes('率')) return `${(v * 100).toFixed(2)}%`;
+  if (name.includes('成本') || name.includes('单价') || name.includes('费用')) {
+    return (v * 40).toFixed(2);
+  }
+  return Math.round(v * 200000).toLocaleString('en-US');
 }
 </script>
 
@@ -961,6 +1239,24 @@ function onPreview(row) {
 .export-help:hover {
   color: #197afb;
 }
+/* 按钮内的 ⓘ 包裹层：阻止冒泡，避免点问号时触发按钮本身 */
+.tip-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 「素材目录」下拉上的「温馨提示」浮层 */
+.tips-title {
+  font-size: 13px;
+  color: #333333;
+  margin-bottom: 4px;
+}
+.tips-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #606266;
+}
 
 /* 素材预览：线上为横向素材封面（80 × 45） */
 .material-preview-wrapper {
@@ -1020,4 +1316,32 @@ function onPreview(row) {
   height: 48px;
   margin: 0 auto;
 }
+</style>
+
+<!-- AI复刻弹窗：el-dialog 会 teleport 到 body，样式不能 scoped -->
+<style>
+.material-ai-copy-dialog .el-dialog { border-radius: 4px; }
+.material-ai-copy-dialog .el-dialog__title { font-size: 16px; font-weight: 500; color: #333333; }
+.material-ai-copy-dialog .el-dialog__body { padding: 20px 24px; }
+.material-ai-copy-dialog .el-dialog__footer { padding: 12px 24px 20px; }
+.ai-copy-body { display: flex; gap: 16px; }
+.ai-copy-preview {
+  flex: 0 0 180px;
+  width: 180px;
+  height: 101px;
+  border: 1px solid #e8eaec;
+  border-radius: 3px;
+  background: #fafafa;
+  overflow: hidden;
+}
+.ai-copy-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ai-copy-form { flex: 1 1 auto; min-width: 0; }
+.ai-copy-line { font-size: 13px; color: #333333; line-height: 1.9; }
+.ai-copy-label { color: #909399; }
+.ai-copy-value { color: #333333; }
+.ai-copy-field { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.ai-copy-field .ai-copy-label { flex: 0 0 76px; text-align: right; }
+.ai-copy-field .el-input, .ai-copy-field .el-select { flex: 1 1 auto; min-width: 0; }
+.ai-copy-select { width: 100%; }
+.ai-copy-tip { margin-top: 12px; font-size: 12px; color: #909399; line-height: 1.7; }
 </style>
