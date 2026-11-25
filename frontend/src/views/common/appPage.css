@@ -1,0 +1,239 @@
+/* 通用业务页样式 —— 对齐创量标准版「任务 / 工具 / 管理」三个模块
+ * 采集依据：线上 cl.mobgi.com 的 DOM + computed style（见 C:/tmp/nw/*.json）
+ *   - 主色 #197afb（el-button--primary 实测 rgb(25,122,251)）
+ *   - 筛选下拉 169×28（el-select--small），前置 label 13px #333
+ *   - 关键词输入 188×29（el-input--small + 后缀放大镜）
+ *   - 日期区间 345×28
+ *   - 表格边框 #ebeef5，表头 #fafafa / #909399 / 12px
+ *   - 表格内按钮（详情/复制/删除…）el-button--text 12px #197afb
+ * 作用域：body.app-scope —— 由 AppLayout 在进入 task-*/tool-*/admin-* 路由时挂载，
+ * 用 body 承载是为了让 teleport 到 body 的下拉/弹窗也能继承令牌。
+ */
+
+body.app-scope {
+  --el-color-primary: #197afb;
+  --el-color-primary-rgb: 25, 122, 251;
+  --el-color-primary-light-3: #5ea2fc;
+  --el-color-primary-light-5: #8cbdfd;
+  --el-color-primary-light-7: #bad7fe;
+  --el-color-primary-light-8: #d1e4fe;
+  --el-color-primary-light-9: #e8f1ff;
+  --el-color-primary-dark-2: #1462c9;
+
+  --el-border-radius-base: 3px;
+  --el-border-radius-small: 2px;
+
+  --el-button-text-color: #666666;
+  --el-button-border-color: #d0d0d0;
+  --el-button-hover-text-color: #197afb;
+  --el-button-hover-border-color: #197afb;
+  --el-button-hover-bg-color: #fff;
+  --el-button-disabled-text-color: #c0c4cc;
+  --el-button-disabled-border-color: #ebeef5;
+  --el-disabled-text-color: #c0c4cc;
+  --el-disabled-bg-color: #fff;
+  --el-disabled-border-color: #ebeef5;
+
+  --el-table-border-color: #e8eaec;
+  --el-table-header-text-color: #909399;
+  --el-table-text-color: #333333;
+  --el-table-header-bg-color: #fafafa;
+  --el-border-color-light: #ebeef5;
+  --el-text-color-regular: #333333;
+  --el-text-color-secondary: #909399;
+}
+
+body.app-scope .el-button { border-radius: 3px !important; }
+body.app-scope .el-button--primary {
+  --el-button-text-color: #fff;
+  --el-button-bg-color: #197afb;
+  --el-button-border-color: #197afb;
+  --el-button-hover-text-color: #fff;
+  --el-button-hover-bg-color: #1462c9;
+  --el-button-hover-border-color: #1462c9;
+}
+body.app-scope .el-table .el-table__cell { color: #333; }
+body.app-scope .el-table th.el-table__cell { font-size: 12px; font-weight: 700; }
+
+/* ============================================================
+ * 页面骨架
+ * ============================================================ */
+body.app-scope .app-content > div.app-page { padding: 0; }
+
+body.app-scope .app-page {
+  display: flex;
+  flex-direction: column;
+  background: #f5f6f8;
+  min-height: 100%;
+}
+
+/* 顶部二级页签（巨量广告 / 项目管理 …） */
+body.app-scope .app-tabs {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  height: 56px;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 1px solid #e8eaec;
+  flex: none;
+}
+body.app-scope .app-tab {
+  position: relative;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 56px;
+  line-height: 56px;
+}
+body.app-scope .app-tab.active { color: #197afb; font-weight: 600; }
+body.app-scope .app-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: #197afb;
+}
+
+/* 筛选区（白底） */
+body.app-scope .app-filter {
+  background: #fff;
+  padding: 12px 16px;
+  flex: none;
+}
+body.app-scope .app-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-height: 28px;
+}
+body.app-scope .app-filter-row + .app-filter-row { margin-top: 12px; }
+body.app-scope .app-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+body.app-scope .app-filter-label {
+  font-size: 13px;
+  color: #333;
+  white-space: nowrap;
+}
+/* 下拉：线上实测 169×28 */
+body.app-scope .app-filter-item .el-select { width: 169px; flex: none; }
+body.app-scope .app-filter-item .el-select__wrapper { min-height: 28px; height: 28px; font-size: 13px; }
+body.app-scope .app-filter-item .el-select__placeholder,
+body.app-scope .app-filter-item .el-select__selected-item { font-size: 13px; }
+/* 关键词输入：线上实测 188×29 + 后缀放大镜 */
+body.app-scope .app-search { width: 188px; flex: none; }
+body.app-scope .app-search .el-input__wrapper { min-height: 29px; height: 29px; font-size: 13px; }
+/* 日期区间：线上实测 345×28 */
+body.app-scope .app-date { width: 345px !important; flex: 0 0 345px !important; box-sizing: border-box !important; min-width: 0 !important; }
+body.app-scope .app-date .el-input__wrapper { min-height: 28px; height: 28px; font-size: 12px; }
+/* 清空 / 刷新列表（线上是文字链接） */
+body.app-scope .app-link {
+  font-size: 12px;
+  color: #197afb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+body.app-scope .app-link:hover { text-decoration: underline; }
+
+/* 告警条 */
+body.app-scope .app-alert-wrap { padding: 0 16px; flex: none; }
+body.app-scope .app-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 16px;
+  background: #fff6ee;
+  color: #ffb674;
+  font-size: 13px;
+  border-radius: 2px;
+}
+body.app-scope .app-alert .el-icon { color: #ff9b48; font-size: 16px; }
+body.app-scope .app-alert__close { margin-left: auto; color: #c0c4cc; cursor: pointer; font-size: 12px; }
+
+/* 主内容区 */
+body.app-scope .app-body { flex: 1; padding: 0 16px; min-height: 0; }
+body.app-scope .app-card {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+}
+body.app-scope .app-card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* 表格内的文字按钮（详情 / 复制 / 删除 / 下载 …） */
+body.app-scope .app-table .el-button--text {
+  padding: 9px 0;
+  height: auto;
+  font-size: 12px;
+  color: #197afb;
+}
+body.app-scope .app-table .el-button--text + .el-button--text { margin-left: 12px; }
+body.app-scope .app-table .el-button.is-disabled { color: #c0c4cc; }
+
+/* 表格任务名：蓝色链接 + 省略号 + hover 提示 */
+body.app-scope .app-cell-link {
+  color: #197afb;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+body.app-scope .app-cell-id { color: #909399; font-size: 12px; }
+
+/* 分页：线上为 total / sizes / prev / pager / next / jumper */
+body.app-scope .app-pager {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+}
+body.app-scope .app-pager .el-pagination { font-size: 13px; }
+
+/* 消息中心 banner */
+body.app-scope .app-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: #f5f7fa;
+  border: 1px solid #e8eaec;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #e6a23c;
+}
+body.app-scope .app-banner .el-icon { color: #1677ff; font-size: 14px; }
+body.app-scope .app-banner a { color: #197afb; text-decoration: none; cursor: pointer; }
+body.app-scope .app-banner__right { margin-left: auto; display: flex; align-items: center; gap: 12px; color: #8c8c8c; }
+
+/* 消息中心表格 */
+body.app-scope .app-msg-type-text {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid #197afb;
+  border-radius: 3px;
+  color: #197afb;
+  font-size: 12px;
+  cursor: pointer;
+}
+/* 线上实测：has-red 的标题是**浅灰** rgb(153,153,153)，unhas-red 才是**深色** rgb(51,51,51)
+   （与类名字面意思相反，以线上 computed style 为准） */
+body.app-scope .app-msg-has-red { color: #999999; }
+body.app-scope .app-msg-unhas-red { color: #333333; }
+
+/* 表格固定列背景（横向滚动时避免透出） */
+body.app-scope .app-table .el-table__fixed-right,
+body.app-scope .app-table .el-table__fixed-left,
+body.app-scope .app-table .el-table-fixed-column--left,
+body.app-scope .app-table .el-table-fixed-column--right { background: #fff; }

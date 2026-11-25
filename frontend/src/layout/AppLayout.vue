@@ -39,7 +39,8 @@
       </nav>
 
       <div class="header-right">
-        <el-badge :value="0" class="header-icon"><el-icon><Bell /></el-icon></el-badge>
+        <!-- R108：顶栏消息铃铛（hover 展开站内信/任务通知下拉） -->
+        <MessageBell />
         <el-dropdown @command="onUserMenu">
           <div class="user-wrap">
             <el-avatar :size="28" class="user-avatar">
@@ -74,7 +75,7 @@
                 v-for="c in g.children"
                 :key="c.title"
                 :index="c.title"
-                :disabled="c.placeholder"
+                :disabled="c.placeholder || c.pending"
               >
                 <!-- R80：媒体图标（左侧菜单「巨量广告·标准」等） -->
                 <img v-if="c.icon" :src="c.icon" class="side-item-icon" alt="" />
@@ -82,11 +83,15 @@
                 <el-tag v-if="c.placeholder" size="small" type="info" effect="plain" class="side-tag">待开通</el-tag>
                 <!-- R103：报表订阅标注「待开发」 -->
                 <el-tag v-if="c.dev" size="small" type="info" effect="plain" class="side-tag">待开发</el-tag>
+                <!-- R108：线上有、本地尚未复刻的菜单项标注「待开发」并置灰 -->
+                <el-tag v-if="c.pending" size="small" type="info" effect="plain" class="side-tag">待开发</el-tag>
               </el-menu-item>
             </el-sub-menu>
-            <el-menu-item v-else :index="g.title" :disabled="g.placeholder">
-              <el-icon><Tickets /></el-icon>
+            <el-menu-item v-else :index="g.title" :disabled="g.placeholder || g.pending">
+              <el-icon v-if="!g.noIcon"><Tickets /></el-icon>
               <span>{{ g.title }}</span>
+              <!-- R108：线上有、本地尚未复刻的菜单项标注「待开发」 -->
+              <el-tag v-if="g.pending" size="small" type="info" effect="plain" class="side-tag">待开发</el-tag>
             </el-menu-item>
           </template>
         </el-menu>
@@ -121,6 +126,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/store/auth';
 import PromoActionBar from './components/PromoActionBar.vue';
+import MessageBell from './components/MessageBell.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -133,6 +139,8 @@ const moduleOf = {
   'auto-plans': 'promo', 'play-assistant': 'promo', 'build-create': 'promo',
   reports: 'report', assets: 'material', 'asset-list': 'asset',
   tasks: 'task', 'accounts-manage': 'admin', users: 'admin',
+  // R108：任务 · 巨量新建任务(新版) / 工具 · 下载中心·消息中心 / 管理 · 智投项目
+  'task-adtask': 'task', 'tool-download': 'tool', 'tool-message': 'tool', 'admin-projects': 'admin',
   // R89：报表 9 个页面（效果分析 6 + 经营分析 3）
   'report-account': 'report', 'report-project': 'report', 'report-ad': 'report',
   'report-component': 'report', 'report-material': 'report', 'report-subscribe': 'report',
@@ -148,7 +156,7 @@ const topMenus = [
   { key: 'material', title: '素材', mod: 'material' },
   { key: 'asset', title: '资产', mod: 'asset', mega: true },
   { key: 'task', title: '任务', mod: 'task' },
-  { key: 'tool', title: '工具', mod: 'tool', placeholder: true },
+  { key: 'tool', title: '工具', mod: 'tool' },
   { key: 'admin', title: '管理', mod: 'admin', admin: true },
 ];
 
@@ -206,10 +214,49 @@ const sideMenuConfig = {
       ],
     },
   ],
-  task: [{ title: '任务中心', name: 'tasks' }],
+  task: [
+    // R108：对齐创量线上「任务」左侧 6 项（线上 /task/* ，线上是平铺列表、无图标）
+    { title: '新建广告任务', pending: true, noIcon: true },
+    { title: '巨量新建任务(新版)', name: 'task-adtask', noIcon: true },
+    { title: '批量操作任务', name: 'tasks', noIcon: true },
+    { title: '巨量拒审素材修复', pending: true, noIcon: true },
+    { title: '巨量全域新建任务', pending: true, noIcon: true },
+    { title: '巨量智擎新建任务', pending: true, noIcon: true },
+  ],
+  tool: [
+    // R108：对齐创量线上「工具 → 系统工具」8 项
+    {
+      title: '系统工具', children: [
+        { title: 'AI托管2.0', pending: true },
+        { title: '巨量爆款裂变', pending: true },
+        { title: '巨量一键过审', pending: true },
+        { title: '创意清理', pending: true },
+        { title: '账户清理', pending: true },
+        { title: '下载中心', name: 'tool-download' },
+        { title: '操作日志', pending: true },
+        { title: '消息中心', name: 'tool-message' },
+      ],
+    },
+  ],
   admin: [
-    { title: '账户管理', name: 'accounts-manage' },
-    { title: '用户管理', name: 'users' },
+    // R108：对齐创量线上「管理 → 管理中心」6 项（本地把「创量项目管理」改名为「智投项目」）
+    {
+      title: '管理中心', children: [
+        { title: '人员管理', pending: true },
+        { title: '智投项目', name: 'admin-projects' },
+        { title: '合作商管理', pending: true },
+        { title: '权限管理', pending: true },
+        { title: '系统设置', pending: true },
+        { title: '第三方账户绑定', pending: true },
+      ],
+    },
+    {
+      // 本地自有的账户 / 权限页（线上无对应项，单独成组，不打乱「管理中心」的线上排布）
+      title: '账户与权限', children: [
+        { title: '账户管理', name: 'accounts-manage' },
+        { title: '用户管理', name: 'users' },
+      ],
+    },
   ],
 };
 
@@ -358,20 +405,29 @@ function onTopSelect(key) {
   if (!m) return;
   openPanel.value = '';
   if (m.placeholder) { ElMessage.info('原型暂未开放该功能'); return; }
-  const first = (sideMenuConfig[m.mod] || [])[0];
-  const target = first?.children?.[0]?.name || first?.name;
-  if (target) router.push({ name: target, query: first.children?.[0]?.query || {} });
+  // R108：取该模块下**第一个可跳转**的菜单项（跳过标注「待开发」/置灰的项）
+  const groups = sideMenuConfig[m.mod] || [];
+  let target = null;
+  let query = {};
+  for (const g of groups) {
+    const kids = g.children || [g];
+    const hit = kids.find((c) => c.name && !c.pending && !c.placeholder);
+    if (hit) { target = hit.name; query = hit.query || {}; break; }
+  }
+  if (target) router.push({ name: target, query });
   else router.push({ name: 'dashboard' });
 }
 
 function onSideSelect(title) {
   let target = null;
   let query = {};
+  let pending = false;
   sideMenus.value.forEach((g) => {
     const kids = g.children || [g];
     const hit = kids.find((c) => c.title === title);
-    if (hit) { target = hit.name; query = hit.query || {}; }
+    if (hit) { target = hit.name; query = hit.query || {}; pending = !!hit.pending; }
   });
+  if (pending) { ElMessage.info('该功能待开发'); return; }
   if (!target) { ElMessage.info('原型暂未开放该功能（待开通媒体）'); return; }
   router.push({ name: target, query });
 }
@@ -385,6 +441,10 @@ const REPORT_ROUTES = new Set([
   'report-account', 'report-project', 'report-ad', 'report-component',
   'report-material', 'report-subscribe', 'report-people', 'report-finance', 'report-funds',
 ]);
+// R108：任务 / 工具 / 管理 三个模块的新页面共用 app-scope 设计令牌
+const APP_ROUTES = new Set([
+  'task-adtask', 'tool-download', 'tool-message', 'admin-projects',
+]);
 function syncAssetScope(name) {
   const on = ASSET_ROUTES.has(name);
   if (on) document.body.classList.add('asset-scope');
@@ -392,6 +452,9 @@ function syncAssetScope(name) {
   const ron = REPORT_ROUTES.has(name);
   if (ron) document.body.classList.add('report-scope');
   else document.body.classList.remove('report-scope');
+  const anon = APP_ROUTES.has(name);
+  if (anon) document.body.classList.add('app-scope');
+  else document.body.classList.remove('app-scope');
 }
 onMounted(() => syncAssetScope(route.name));
 watch(() => route.name, syncAssetScope);

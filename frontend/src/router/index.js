@@ -110,6 +110,27 @@ const routes = [
         component: () => import('@/views/build/Tasks.vue'),
         meta: { title: '任务中心', group: '任务' },
       },
+      {
+        // 任务 · 巨量新建任务(新版)（线上 /task/adtask）
+        path: 'task/adtask',
+        name: 'task-adtask',
+        component: () => import('@/views/task/AdTaskNew.vue'),
+        meta: { title: '巨量新建任务(新版)', group: '任务' },
+      },
+
+      // 工具 · 系统工具
+      {
+        path: 'tool/download',
+        name: 'tool-download',
+        component: () => import('@/views/tool/DownloadCenter.vue'),
+        meta: { title: '下载中心', group: '工具' },
+      },
+      {
+        path: 'tool/message',
+        name: 'tool-message',
+        component: () => import('@/views/tool/MessageCenter.vue'),
+        meta: { title: '消息中心', group: '工具' },
+      },
 
       // 报表
       {
@@ -128,6 +149,13 @@ const routes = [
         name: 'accounts-manage',
         component: () => import('@/views/admin/AccountsManage.vue'),
         meta: { title: '账户管理', group: '管理', roles: ['admin'] },
+      },
+      {
+        // 管理 · 智投项目（线上「创量项目管理」，本地按产品术语改为「智投项目」）
+        path: 'admin/projects',
+        name: 'admin-projects',
+        component: () => import('@/views/admin/ProjectsManage.vue'),
+        meta: { title: '智投项目', group: '管理' },
       },
       {
         path: 'users',
