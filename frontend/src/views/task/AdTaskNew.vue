@@ -88,10 +88,16 @@
 
         <div class="at-item">
           <span class="at-label">提交规则：</span>
-          <el-popover content="立即提交：实时返回广告新建结果；定时提交：按设定时间提交；分批提交：分批返回结果；匀速提交：匀速返回结果" trigger="hover" placement="top">
+          <!-- R109：提示文案逐字对齐线上（线上是 3 行独立 <p>，宽度自适应，实测 404px） -->
+          <el-popover placement="top" trigger="hover" popper-class="at-submit-rule-tip">
             <template #reference>
               <i class="at-question" title="提交规则说明"><el-icon><QuestionFilled /></el-icon></i>
             </template>
+            <div>
+              <p>立即提交：实时返回广告新建结果</p>
+              <p>定时提交：在您设置的时间点开始提交广告新建任务</p>
+              <p>分批提交：根据您设置的时间段和广告数目分批次提交广告。</p>
+            </div>
           </el-popover>
           <el-select v-model="filters.submitRule" class="at-select" placeholder="请选择提交规则">
             <el-option v-for="o in SUBMIT_RULE_OPTIONS" :key="o" :label="o" :value="o" />
@@ -527,8 +533,10 @@ const accountOptions = ref([]);
 const remoteLoading = ref(false);
 const creatorOptions = CREATOR_OPTIONS;
 
-/* 媒体账户下拉：线上远程搜索返回 20 个账户；本地再补上表格数据里出现的账户，
-   这样「媒体账户」筛选能真正过滤出行（线上选账户是换一批任务） */
+/* 媒体账户下拉：线上是**远程搜索**（class filter-select-remote）——
+   展开时接口默认返回 20 个账户；输入关键字后才返回匹配项。
+   R109：默认列表严格用线上那 20 个（与线上一致），
+   表格数据里出现的那些账户只在「输入关键字搜索」时才出现，这样筛选依然能生效。 */
 const ROW_ACCOUNT_NAMES = (() => {
   const out = [];
   rows.value.forEach((r) => {
@@ -542,12 +550,14 @@ const ROW_ACCOUNT_NAMES = (() => {
   return out;
 })();
 const ALL_ACCOUNT_OPTIONS = [...ACCOUNT_OPTIONS, ...ROW_ACCOUNT_NAMES];
-accountOptions.value = ALL_ACCOUNT_OPTIONS;
+accountOptions.value = ACCOUNT_OPTIONS.slice();
 
 function onRemoteSearch(q) {
   remoteLoading.value = true;
   setTimeout(() => {
-    accountOptions.value = q ? ALL_ACCOUNT_OPTIONS.filter((o) => o.includes(q)) : ALL_ACCOUNT_OPTIONS;
+    accountOptions.value = q
+      ? ALL_ACCOUNT_OPTIONS.filter((o) => o.includes(q))
+      : ACCOUNT_OPTIONS.slice();
     remoteLoading.value = false;
   }, 120);
 }
@@ -1153,5 +1163,26 @@ body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
 }
 .at-dialog-number {
   width: 160px;
+}
+</style>
+
+<!-- R109：「提交规则」说明气泡（teleport 到 body，用非 scoped 样式块单独约束）
+     线上实测：宽 404 / 高 85 / padding 12px / 14px / #606266 / 边框 1px #ebeef5 / 圆角 4px / 行高 1.4 -->
+<style>
+.at-submit-rule-tip {
+  padding: 12px !important;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #606266;
+  border-radius: 4px;
+  /* 线上是无固定宽的自适应气泡（实测 404px，单行不折行） */
+  width: fit-content !important;
+  max-width: 404px !important;
+}
+.at-submit-rule-tip p {
+  margin: 0 !important;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 </style>

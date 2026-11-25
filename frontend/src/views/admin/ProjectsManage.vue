@@ -49,21 +49,29 @@
             class="app-table proj-table"
             @selection-change="onSelectionChange"
           >
+            <!-- 选择列 / 创建时间 / 关联账户数 / 操作 固定 width；
+                 项目名称 : 备注 : 项目负责人 : 创建人 = 2:1:1:1，用 min-width 让 EP fit 按比例伸缩 -->
             <el-table-column type="selection" width="60" />
-            <el-table-column label="项目名称" width="476">
+            <el-table-column label="项目名称" min-width="220">
               <template #default="{ row }">
                 <div class="proj-name">
                   <span class="proj-name__text">{{ row.name }}</span>
-                  <span class="proj-badge">
-                    <span class="proj-badge__icon" aria-hidden="true"></span>
-                    <span class="proj-badge__text">防出错</span>
-                  </span>
+                  <el-tooltip
+                    content="未设置防出错，存在跑飞风险。点击立即设置"
+                    placement="top"
+                    :show-after="200"
+                  >
+                    <span class="proj-badge">
+                      <span class="proj-badge__icon" aria-hidden="true"></span>
+                      <span class="proj-badge__text">防出错</span>
+                    </span>
+                  </el-tooltip>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="备注" width="237" prop="remark" />
-            <el-table-column label="项目负责人" width="237" prop="owner" />
-            <el-table-column label="创建人" width="237" prop="creator" />
+            <el-table-column label="备注" min-width="110" prop="remark" />
+            <el-table-column label="项目负责人" min-width="110" prop="owner" />
+            <el-table-column label="创建人" min-width="110" prop="creator" />
             <el-table-column label="创建时间" width="160" prop="createTime" />
             <el-table-column label="关联账户数" width="160" prop="accountCount" align="right" />
             <el-table-column label="操作" width="160" align="center">
@@ -106,7 +114,7 @@
         <el-tooltip content="强制绑定智投项目有什么好处？" placement="top">
           <span class="proj-qmark">?</span>
         </el-tooltip>
-        <el-switch v-model="forceBind" class="pj-switch" />
+        <el-switch v-model="forceBind" class="pj-switch-sm" />
       </div>
 
       <div class="proj-settings__panel">
@@ -143,7 +151,9 @@
  *     选中 #197afb + 2px 下划线，未选中 #666）
  *   - 搜索框 .el-input--small：240×32、placeholder「请输入关键字」、后缀放大镜（x=176 y=128）
  *   - 「新增项目」按钮 el-button--primary--small：120×33、底色 #197afb、圆角 3px（x=193 y=201）
- *   - 表格 el-table--fit--border：8 列固定宽 60/476/237/237/237/160/160/160（合计 1727），
+ *   - 表格 el-table--fit--border：8 列（选择 60 / 项目名称 / 备注 / 项目负责人 / 创建人 /
+ *     创建时间 160 / 关联账户数 160 / 操作 160），后 4 列固定、后 4 列 min-width 按 2:1:1:1 伸缩，
+ *     1920 下实测 60/476/237/237/237/160/160/160（合计 1727 = 表格 clientWidth），
  *     「关联账户数」右对齐、「操作」居中，表体 12px
  *   - 本页无分页
  *   - 「项目设置」：强制绑定创量项目 + ⓘ + 开关（32×16）+ 灰底面板（说明 + 示意图）
@@ -159,10 +169,10 @@ const tab = ref('manage');
 /* ------------------------------ mock 数据 ------------------------------ */
 /** 线上 4 条，逐字照抄（项目名称 + 「防出错」角标） */
 const rows = ref([
-  { id: 1, name: '知乎小说', remark: '知乎小说时报', owner: '刘松涵', creator: '杨浩蒙', createTime: '2026-09-15 11:27:27', accountCount: 71, visibility: 'all', deepRequired: false },
-  { id: 2, name: '漫剧端原生', remark: '', owner: '申旭阳', creator: '北京央广时代文化传播有限公司', createTime: '2026-09-07 20:34:59', accountCount: 0, visibility: 'all', deepRequired: false },
-  { id: 3, name: 'soul', remark: '', owner: '', creator: '北京央广时代文化传播有限公司', createTime: '2026-06-09 09:26:13', accountCount: 12, visibility: 'all', deepRequired: false },
-  { id: 4, name: '百度文库', remark: '1', owner: '', creator: '北京央广时代文化传播有限公司', createTime: '2026-06-09 09:09:59', accountCount: 3, visibility: 'all', deepRequired: false },
+  { id: 1, name: '知乎小说', remark: '知乎小说时报', owner: '刘松涵', creator: '杨浩蒙', createTime: '2026-09-15 11:27:27', accountCount: 71, visibility: 'all', members: [], deepRequired: false, prevent: null },
+  { id: 2, name: '漫剧端原生', remark: '', owner: '申旭阳', creator: '北京央广时代文化传播有限公司', createTime: '2026-09-07 20:34:59', accountCount: 0, visibility: 'all', members: [], deepRequired: false, prevent: null },
+  { id: 3, name: 'soul', remark: '', owner: '', creator: '北京央广时代文化传播有限公司', createTime: '2026-06-09 09:26:13', accountCount: 12, visibility: 'all', members: [], deepRequired: false, prevent: null },
+  { id: 4, name: '百度文库', remark: '1', owner: '', creator: '北京央广时代文化传播有限公司', createTime: '2026-06-09 09:09:59', accountCount: 3, visibility: 'all', members: [], deepRequired: false, prevent: null },
 ]);
 
 /* ------------------------------ 交互状态 ------------------------------ */
@@ -236,7 +246,10 @@ function onSubmit(payload) {
     createTime: formatNow(),
     accountCount: 0,
     visibility: payload.visibility,
+    members: payload.members,
     deepRequired: payload.deepRequired,
+    forbidOutside: payload.forbidOutside,
+    prevent: payload.prevent,
   });
   dialogVisible.value = false;
   ElMessage.success('新增项目成功');
@@ -319,12 +332,16 @@ body.app-scope .app-page { background: #f5f6f7; }
 }
 .proj-add-btn__icon { margin-right: 4px; font-size: 14px; vertical-align: -1px; }
 
-/* ---------- 表格（线上 8 列固定宽，合计 1727） ---------- */
+/* ---------- 表格（线上：4 列固定 + 4 列 min-width 按 2:1:1:1 伸缩） ---------- */
 .proj-table {
-  /* 表格整体 1727px（= 列宽合计），左右各让出 1px 与卡片描边重合 */
+  /* 表格整体 = 内容区宽（1728px@1920），左右各让出 1px 与卡片描边重合 */
   width: calc(100% + 2px);
   max-width: none;
   margin: 0 -1px;
+  /* 线上 .el-table 根节点实测：border-top 1px / border-left 1px，
+     使表体起点 x=177、可用宽 1727（EP fit 以 clientWidth 为基准分配） */
+  border-top: 1px solid #e8eaec;
+  border-left: 1px solid #e8eaec;
   font-size: 12px;
   --el-table-header-text-color: #333;
   --el-table-border-color: #e8eaec;
@@ -359,6 +376,7 @@ body.app-scope .app-page { background: #f5f6f7; }
   gap: 8px;
 }
 .proj-name__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 「防出错」只是标记，hover 弹说明（线上 .el-tooltip.error-prevent-error-info） */
 .proj-badge {
   flex: none;
   display: inline-flex;
@@ -372,14 +390,16 @@ body.app-scope .app-page { background: #f5f6f7; }
   color: #909399;
   font-size: 12px;
   line-height: 1;
+  cursor: default;
 }
-/* 线上是一个灰色实心圆 + 白色感叹号（图标字体，非文本） */
+/* 线上是一个灰色实心圆 + 白色感叹号（图标字体，非文本），整体宽 70px */
 .proj-badge__icon {
   position: relative;
   display: inline-block;
   width: 18px;
   height: 18px;
   margin-left: -1px;
+  margin-right: 6px;
   border-radius: 50%;
   background: #909399;
 }
@@ -458,4 +478,12 @@ body.app-scope .app-page { background: #f5f6f7; }
   flex: none;
   cursor: default;
 }
+
+/* 「项目设置」开关：线上实测 32×16（EP 默认 40×20，缩到 32×16） */
+.pj-switch-sm.el-switch { height: 16px; }
+.pj-switch-sm .el-switch__core { min-width: 32px; width: 32px; height: 16px; border-radius: 8px; }
+.pj-switch-sm .el-switch__core .el-switch__inner { height: 12px; padding: 0 2px 0 14px; }
+.pj-switch-sm .el-switch__core .el-switch__action { width: 12px; height: 12px; }
+.pj-switch-sm.el-switch.is-checked .el-switch__core .el-switch__action { left: calc(100% - 13px); }
+.pj-switch-sm.el-switch.is-checked .el-switch__core .el-switch__inner { padding: 0 14px 0 2px; }
 </style>

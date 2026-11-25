@@ -215,46 +215,24 @@ const sideMenuConfig = {
     },
   ],
   task: [
-    // R108：对齐创量线上「任务」左侧 6 项（线上 /task/* ，线上是平铺列表、无图标）
-    { title: '新建广告任务', pending: true, noIcon: true },
+    // R109：按用户要求，左侧只保留已复刻的 2 项（线上是平铺列表、无图标）
     { title: '巨量新建任务(新版)', name: 'task-adtask', noIcon: true },
     { title: '批量操作任务', name: 'tasks', noIcon: true },
-    { title: '巨量拒审素材修复', pending: true, noIcon: true },
-    { title: '巨量全域新建任务', pending: true, noIcon: true },
-    { title: '巨量智擎新建任务', pending: true, noIcon: true },
   ],
   tool: [
-    // R108：对齐创量线上「工具 → 系统工具」8 项
+    // R109：按用户要求，左侧只保留已复刻的 2 项
     {
       title: '系统工具', children: [
-        { title: 'AI托管2.0', pending: true },
-        { title: '巨量爆款裂变', pending: true },
-        { title: '巨量一键过审', pending: true },
-        { title: '创意清理', pending: true },
-        { title: '账户清理', pending: true },
         { title: '下载中心', name: 'tool-download' },
-        { title: '操作日志', pending: true },
         { title: '消息中心', name: 'tool-message' },
       ],
     },
   ],
   admin: [
-    // R108：对齐创量线上「管理 → 管理中心」6 项（本地把「创量项目管理」改名为「智投项目」）
+    // R109：按用户要求，左侧只保留「智投项目」
     {
       title: '管理中心', children: [
-        { title: '人员管理', pending: true },
         { title: '智投项目', name: 'admin-projects' },
-        { title: '合作商管理', pending: true },
-        { title: '权限管理', pending: true },
-        { title: '系统设置', pending: true },
-        { title: '第三方账户绑定', pending: true },
-      ],
-    },
-    {
-      // 本地自有的账户 / 权限页（线上无对应项，单独成组，不打乱「管理中心」的线上排布）
-      title: '账户与权限', children: [
-        { title: '账户管理', name: 'accounts-manage' },
-        { title: '用户管理', name: 'users' },
       ],
     },
   ],
