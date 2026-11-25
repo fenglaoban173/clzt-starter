@@ -331,7 +331,7 @@
       </div>
     </div>
 
-    <!-- ============ 弹层（与创量线上 1:1） ============ -->
+    <!-- ============ 弹层（与线上 1:1） ============ -->
     <!-- 自定义指标 -->
     <CustomMetricDialog
       v-model="metricVisible"
@@ -493,7 +493,7 @@ const METRIC_MAP = (() => {
 const PERIODS = ['分日', '日汇总', '分月', '月汇总'];
 // 「+ 添加筛选」下拉（线上实测维度清单）
 const ADD_FILTER_OPTIONS = [
-  '创量项目', '素材目录', '账户', '商品', '优化师', '账户主体', '上传时间',
+  '智投项目', '素材目录', '账户', '商品', '优化师', '账户主体', '上传时间',
   '素材类型', '素材标签', '素材来源', '优化目标', '上传人', '编导', '剪辑',
   '摄像', '演员', '配音', '录屏', '制作', '脚本', '巨量商品', '巨量应用',
   '小程序/小游戏', '抖音号', '剧目/专辑ID',
@@ -516,7 +516,7 @@ const NUMBER_OPTIONS = ['20261101', '20261102', '20261103', '20261110', '2026111
 const DIRECTORY_OPTIONS = ['全部', '短剧', '漫剧', '商品', '图文'];
 // 「+ 添加筛选」里各维度对应的下拉选项（线上实测：点击后直接在筛选维度行出现该下拉）
 const ADD_FILTER_OPTION_MAP = {
-  创量项目: { options: PROJECT_OPTIONS, placeholder: '请选择创量项目' },
+  智投项目: { options: PROJECT_OPTIONS, placeholder: '请选择智投项目' },
   素材目录: { options: DIRECTORY_OPTIONS, placeholder: '全选' },
   账户: { options: ADVERTISER_OPTIONS, placeholder: '请选择账户', wide: true },
   商品: { options: PRODUCT_OPTIONS, placeholder: '请选择商品' },
@@ -605,7 +605,7 @@ const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.material || ['�
 const copiedRows = ref([]);
 
 const selects = ref([
-  { key: 'project', label: '创量项目', placeholder: '请选择创量项目', options: PROJECT_OPTIONS, model: [] },
+  { key: 'project', label: '智投项目', placeholder: '请选择智投项目', options: PROJECT_OPTIONS, model: [] },
   { key: 'directory', label: '素材目录', placeholder: '全选', options: DIRECTORY_OPTIONS, model: [] },
   { key: 'account', label: '账户', placeholder: '请选择账户', options: ADVERTISER_OPTIONS, model: [], wide: true },
   { key: 'optimizer', label: '优化师', placeholder: '请选择优化师', options: OPTIMIZER_OPTIONS, model: [] },

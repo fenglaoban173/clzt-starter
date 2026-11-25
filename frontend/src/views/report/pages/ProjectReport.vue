@@ -8,14 +8,14 @@
     <!-- ============ 筛选区（.report-filter） ============ -->
     <template #before-filter>
       <div class="report-filter">
-        <!-- 数据维度（线上只有一个「创量项目」选项；收起时保留这一行） -->
+        <!-- 数据维度（线上只有一个「智投项目」选项；收起时保留这一行） -->
         <ReportFilterRow
           label="数据维度："
           :collapse-text="filterCollapsed ? '展开筛选配置' : ''"
           @toggle-collapse="filterCollapsed = !filterCollapsed"
         >
           <el-radio-group v-model="dimension" class="report-radio-group" size="small">
-            <el-radio-button value="创量项目">创量项目</el-radio-button>
+            <el-radio-button value="智投项目">智投项目</el-radio-button>
           </el-radio-group>
         </ReportFilterRow>
 
@@ -258,7 +258,7 @@ const TIPS = {
   customMetric: findTip('project', (b) => b === '自定义指标'),
   exportAll: findTip('project', (b) => b === '导出所有页面的数据'),
   time: findTip('project', (b) => b === '时间'),
-  projectName: findTip('project', (b) => b === '创量项目'),
+  projectName: findTip('project', (b) => b === '智投项目'),
   cost: findTip('project', (b) => b.indexOf('表示广告在投放期内的预估花费金额') === 0),
 };
 
@@ -271,13 +271,13 @@ const ATTRIBUTION_OPTIONS = [
 // 线上实测列宽
 const COLUMN_WIDTH = { date: 135, project_name: 766 };
 
-// 筛选维度下拉（线上顺序：创量项目 / 账户 / 媒体 / 部门 / 人员 / 合作商）
+// 筛选维度下拉（线上顺序：智投项目 / 账户 / 媒体 / 部门 / 人员 / 合作商）
 const FILTER_DEFS = [
   {
     key: 'project',
     field: 'project',
-    label: '创量项目',
-    placeholder: '请选择创量项目',
+    label: '智投项目',
+    placeholder: '请选择智投项目',
     options: PROJECT_OPTIONS,
   },
   {
@@ -324,7 +324,7 @@ const ADD_FILTER_OPTIONS = FILTER_DEFS.map((d) => d.label);
 // ---------- 页面状态 ----------
 const period = ref('汇总');
 const dateRange = ref(todayRange());
-const dimension = ref('创量项目');
+const dimension = ref('智投项目');
 const filterCollapsed = ref(false);
 const tableCollapsed = ref(false);
 const relation = ref([]);
@@ -340,12 +340,12 @@ const exportVisible = ref(false);
 const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.project || [])]);
 
 // ---------- 表格列 ----------
-// 基础列：时间 + 创量项目；其余由「自定义指标」决定
+// 基础列：时间 + 智投项目；其余由「自定义指标」决定
 const baseColumns = computed(() => [
   { prop: 'date', label: '时间', width: COLUMN_WIDTH.date, sortable: true, tip: TIPS.time },
   {
     prop: 'project_name',
-    label: '创量项目',
+    label: '智投项目',
     width: COLUMN_WIDTH.project_name,
     tip: TIPS.projectName,
   },

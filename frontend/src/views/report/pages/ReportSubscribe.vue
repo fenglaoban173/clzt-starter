@@ -1,5 +1,5 @@
 <template>
-  <!-- 报表订阅 —— 1:1 对齐创量线上 cl.mobgi.com/report/adsdata/custom/customreport
+  <!-- 报表订阅 —— 1:1 对齐线上 cl.mobgi.com/report/adsdata/custom/customreport
    * 线上结构（与其它报表页不同）：
    *   ① 页签：我的报表 / 分组配置 / 分组合计配置（无粒度 radio、无日期区间）
    *   ② 工具条：全部媒体下拉 + 报表名称/ID 搜索 + 新建指引 + 新增报表

@@ -1,5 +1,5 @@
 <template>
-  <!-- 广告报表 —— 创量线上 cl.mobgi.com/report/ad-report 1:1 复刻
+  <!-- 广告报表 —— 线上 cl.mobgi.com/report/ad-report 1:1 复刻
    * 页头：广告报表 + 分日/分月/汇总（默认汇总）+ 日期区间
    * 筛选：媒体 / 数据维度 / 筛选维度（11 个组合盒）/ 数据筛选
    * 卡片：详细数据（关联维度 / 自定义指标 / 导出数据 / 收起）+ 明细表 + 合计行 + 分页
@@ -52,7 +52,7 @@
             />
           </div>
 
-          <!-- 纯文本 label 组合盒：优化师 / 合作商 / 部门 / 创量项目 / 产品 -->
+          <!-- 纯文本 label 组合盒：优化师 / 合作商 / 部门 / 智投项目 / 产品 -->
           <ReportFilterSelect
             v-for="s in shownPlainSelects"
             :key="s.key"
@@ -320,7 +320,7 @@ const costMin = ref('');
 const costMax = ref('');
 
 /* ---------------- 筛选维度：11 个组合盒 ---------------- */
-/* 5 个纯文本 label 组合盒（优化师 / 合作商 / 部门 / 创量项目 / 产品） */
+/* 5 个纯文本 label 组合盒（优化师 / 合作商 / 部门 / 智投项目 / 产品） */
 const plainSelects = reactive([
   {
     key: 'optimizer', dim: '优化师', label: '优化师', placeholder: '请选择优化师',
@@ -335,7 +335,7 @@ const plainSelects = reactive([
     options: DEPT_OPTIONS, model: [],
   },
   {
-    key: 'project', dim: '创量项目', label: '创量项目', placeholder: '请选择创量项目',
+    key: 'project', dim: '智投项目', label: '智投项目', placeholder: '请选择智投项目',
     options: PROJECT_OPTIONS, model: [],
   },
   {
@@ -391,7 +391,7 @@ function valueOptions(g) {
 
 /* 「+ 添加筛选」可选的维度清单（线上 add-filter 下拉选项） */
 const ADD_FILTER_DIMS = [
-  '优化师', '合作商', '部门', '创量项目', '产品', '优化目标',
+  '优化师', '合作商', '部门', '智投项目', '产品', '优化目标',
   '巨量商品', '巨量应用', '小程序/小游戏', '抖音号', '剧目/专辑ID',
 ];
 const activeDims = ref([...ADD_FILTER_DIMS]);
@@ -410,7 +410,7 @@ const shownGroupedSelects = computed(() => visibleGroupedSelects.value);
 
 /* 关联维度下拉（线上广告报表 14 项） */
 const RELATION_DIM_AD_OPTIONS = [
-  '媒体', '优化师', '合作商', '部门', '产品', '创量项目', '账户主体', '账户备注',
+  '媒体', '优化师', '合作商', '部门', '产品', '智投项目', '账户主体', '账户备注',
   '剧目/专辑ID', '巨量商品', '巨量应用', '优化目标', '小程序/小游戏', '抖音号',
 ];
 
@@ -446,7 +446,7 @@ const DIM_ENTITY = {
   广告: (r) => `${r.advertiser_name}-广告${r.id}`,
   优化师: (r) => r.optimizer,
   产品: (r) => r.product,
-  创量项目: (r) => r.project,
+  智投项目: (r) => r.project,
   媒体: (r) => MEDIA_LABELS[r.media] || r.media,
   合作商: (r) => r.partner,
   部门: (r) => r.dept,

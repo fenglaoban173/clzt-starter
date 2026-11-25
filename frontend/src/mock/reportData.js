@@ -1,4 +1,4 @@
-/* 报表模块 mock 数据 —— 选项与字段严格对齐创量线上采集结果
+/* 报表模块 mock 数据 —— 选项与字段严格对齐线上采集结果
  * 来源：cl.mobgi.com/report/* 逐页 DOM 采集（C:/tmp/rpt/*_detail.json）
  */
 
@@ -70,15 +70,15 @@ export const COMPONENT_TYPE_OPTIONS = ['图片', '视频', '落地页', '表单'
 export const STAFF_OPTIONS = ['黄莹曦', '马学泰', '张浩', '王研', '张瑞凯', '裴心怡', '李玉玲', '冯逸'];
 
 // 账户报表「关联维度」下拉
-export const RELATION_DIM_ACCOUNT = ['媒体', '优化师', '合作商', '部门', '创量项目', '商品', '账户主体', '账户备注'];
+export const RELATION_DIM_ACCOUNT = ['媒体', '优化师', '合作商', '部门', '智投项目', '商品', '账户主体', '账户备注'];
 // 项目报表「关联维度」下拉
 export const RELATION_DIM_PROJECT = ['部门', '媒体', '人员', '账户', '合作商', '账户备注'];
 // 广告报表「关联维度」下拉
-export const RELATION_DIM_AD = ['媒体', '优化师', '合作商', '部门', '产品', '创量项目', '账户主体', '账户备注'];
+export const RELATION_DIM_AD = ['媒体', '优化师', '合作商', '部门', '产品', '智投项目', '账户主体', '账户备注'];
 // 组件报表「关联维度」下拉
 export const RELATION_DIM_COMPONENT = ['账户', '广告ID', '创意ID', '组件类型', '账户主体', '账户备注', '编导', '剪辑'];
 // 素材报表「关联维度」下拉
-export const RELATION_DIM_MATERIAL = ['广告ID', '项目ID', '账户', '账户主体', '账户备注', '商品', '创量项目', '专辑'];
+export const RELATION_DIM_MATERIAL = ['广告ID', '项目ID', '账户', '账户主体', '账户备注', '商品', '智投项目', '专辑'];
 // 人效管理「关联维度」下拉
 export const RELATION_DIM_PEOPLE = ['部门', '项目', '产品'];
 
@@ -86,9 +86,9 @@ export const PAGE_SIZE_OPTIONS = ['10条/页', '20条/页', '50条/页', '100条
 
 // 指标口径 / 归因时间类型（线上是「若需切换…请联系运营」的说明型下拉）
 export const METRIC_CALIBER_OPTIONS = [
-  '若需切换口径，请联系创量运营开通相关能力广告播放口径',
-  '若需切换口径，请联系创量运营开通相关能力转化回传口径（上报时间）',
-  '若需切换口径，请联系创量运营开通相关能力转化回传口径（激活时间）',
+  '若需切换口径，请联系智投运营开通相关能力广告播放口径',
+  '若需切换口径，请联系智投运营开通相关能力转化回传口径（上报时间）',
+  '若需切换口径，请联系智投运营开通相关能力转化回传口径（激活时间）',
 ];
 
 export const ATTRIBUTION_TIME_OPTIONS = [
@@ -97,9 +97,9 @@ export const ATTRIBUTION_TIME_OPTIONS = [
 ];
 
 // ---------- 数据维度（各页线上实测） ----------
-export const DIM_ACCOUNT = ['账户', '优化师', '媒体', '创量项目', '合作商', '部门'];
-export const DIM_AD = ['账户', '广告', '优化师', '产品', '创量项目', '媒体', '合作商', '部门', '投放载体'];
-export const DIM_MATERIAL = ['素材', '媒体素材', '专辑', '剪辑', '编导', '创量项目', '素材标签', '商品', '投放载体'];
+export const DIM_ACCOUNT = ['账户', '优化师', '媒体', '智投项目', '合作商', '部门'];
+export const DIM_AD = ['账户', '广告', '优化师', '产品', '智投项目', '媒体', '合作商', '部门', '投放载体'];
+export const DIM_MATERIAL = ['素材', '媒体素材', '专辑', '剪辑', '编导', '智投项目', '素材标签', '商品', '投放载体'];
 export const DIM_PEOPLE = ['人员', '部门', '账户主体'];
 export const DIM_FUNDS = ['账户', '合作商', '项目'];
 
@@ -115,10 +115,10 @@ export const ACCOUNT_COLUMNS = [
   { prop: 'stat_cost', label: '消耗', width: 140, align: 'right', sortable: true },
 ];
 
-// 项目报表：时间 / 创量项目 / 消耗
+// 项目报表：时间 / 智投项目 / 消耗
 export const PROJECT_COLUMNS = [
   { prop: 'date', label: '时间', width: 150, sortable: true },
-  { prop: 'project_name', label: '创量项目', minWidth: 260 },
+  { prop: 'project_name', label: '智投项目', minWidth: 260 },
   { prop: 'stat_cost', label: '消耗', width: 140, align: 'right', sortable: true },
 ];
 
@@ -191,7 +191,7 @@ export const PEOPLE_COLUMNS = [
 ];
 
 // 财务管理
-// 列宽取自创量线上实测（总宽 2004px > 内容区 1728px，线上同样横向滚动）
+// 列宽取自线上实测（总宽 2004px > 内容区 1728px，线上同样横向滚动）
 export const FINANCE_COLUMNS = [
   { prop: 'date', label: '时间', width: 160, sortable: true },
   { prop: 'advertiser_name', label: '广告主账号', width: 160 },

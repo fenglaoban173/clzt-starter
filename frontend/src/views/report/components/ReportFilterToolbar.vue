@@ -1,6 +1,6 @@
 <template>
   <!-- 报表页顶部筛选区（.report-filter）
-   * 结构与创量线上一致：媒体 / 数据维度 / 筛选维度 / 数据筛选 若干行 -->
+   * 结构与线上一致：媒体 / 数据维度 / 筛选维度 / 数据筛选 若干行 -->
   <div class="report-filter">
     <!-- 媒体 -->
     <ReportFilterRow

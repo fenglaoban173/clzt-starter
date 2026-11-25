@@ -1,6 +1,6 @@
 <template>
   <!-- 组合式下拉：左侧固定 label（如「优化师」）+ 右侧多选下拉
-   * 与创量线上 .select-area > .el-form-item(label + el-select) 结构 1:1 -->
+   * 与线上 .select-area > .el-form-item(label + el-select) 结构 1:1 -->
   <div class="report-select-box" :class="{ 'report-select-box--wide': wide }">
     <label :title="label">{{ label }}</label>
     <el-select

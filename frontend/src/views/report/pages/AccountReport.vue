@@ -135,12 +135,19 @@
       </div>
 
       <div v-if="analysisExpanded" class="report-analysis-chart">
-        <!-- 线上：指标下拉 + 「对比」复选框 + 对比指标下拉 + 右侧汇总方式下拉 -->
+        <!-- 线上：指标下拉 + 「对比」复选框 + 对比指标下拉 + 右侧汇总方式下拉
+             趋势分析：只有「汇总」才能对比（Top5/Top10 时线上不显示「对比」）
+             占比分析：Top5/Top10 下仍可对比
+             两个 tab 的「对比」是各自独立的数据表，状态互不影响 -->
         <div class="report-analysis-bar">
           <el-select v-model="analysisMetric" size="small" class="analysis-metric-select" placeholder="请选择">
             <el-option v-for="m in ANALYSIS_METRICS" :key="m" :label="m" :value="m" />
           </el-select>
-          <el-checkbox v-model="compareEnabled" class="analysis-compare">对比</el-checkbox>
+          <el-checkbox
+            v-if="compareAvailable"
+            v-model="compareEnabled"
+            class="analysis-compare"
+          >对比</el-checkbox>
           <el-select
             v-if="compareEnabled"
             v-model="analysisMetric2"
@@ -154,9 +161,9 @@
             <el-option v-for="t in analysisTopOptions" :key="t" :label="t" :value="t" />
           </el-select>
         </div>
+        <!-- 线上：趋势分析/占比分析都是「一张图」，对比时是在同一张图上多一个指标 -->
         <div class="report-analysis-charts">
           <div ref="chartRef" class="report-chart"></div>
-          <div v-if="compareEnabled" ref="chartRef2" class="report-chart"></div>
         </div>
       </div>
 
@@ -283,7 +290,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { Search, Filter, QuestionFilled, Operation, Download } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { LineChart, PieChart } from 'echarts/charts';
@@ -353,17 +360,17 @@ const DIM_COLUMN = {
   账户: { prop: 'advertiser_id', label: '账户ID', tip: TIPS.advertiserId },
   优化师: { prop: 'optimizer', label: '优化师' },
   媒体: { prop: 'media', label: '媒体' },
-  创量项目: { prop: 'project', label: '创量项目' },
+  智投项目: { prop: 'project', label: '智投项目' },
   合作商: { prop: 'partner', label: '合作商' },
   部门: { prop: 'dept', label: '部门' },
 };
 
-// 筛选维度下拉（线上顺序：优化师 / 合作商 / 部门 / 创量项目 / 账户 / 商品）
+// 筛选维度下拉（线上顺序：优化师 / 合作商 / 部门 / 智投项目 / 账户 / 商品）
 const FILTER_DEFS = [
   { key: 'optimizer', field: 'optimizer', label: '优化师', placeholder: '请选择优化师', options: OPTIMIZER_OPTIONS },
   { key: 'partner', field: 'partner', label: '合作商', placeholder: '请选择合作商', options: PARTNER_OPTIONS },
   { key: 'dept', field: 'dept', label: '部门', placeholder: '请选择部门', options: DEPT_OPTIONS },
-  { key: 'project', field: 'project', label: '创量项目', placeholder: '请选择创量项目', options: PROJECT_OPTIONS },
+  { key: 'project', field: 'project', label: '智投项目', placeholder: '请选择智投项目', options: PROJECT_OPTIONS },
   { key: 'account', field: 'advertiser_name', label: '账户', placeholder: '请选择账户', options: ADVERTISER_OPTIONS, wide: true },
   { key: 'product', field: 'product', label: '商品', placeholder: '请选择商品', options: PRODUCT_OPTIONS },
 ];
@@ -445,6 +452,7 @@ const rows = computed(() => {
     const row = {
       ...r,
       date: dateLabelFor(i),
+      trendKey: trendKeyFor(i),
       optimizer: OPTIMIZER_OPTIONS[i % OPTIMIZER_OPTIONS.length],
       partner: PARTNER_OPTIONS[i % PARTNER_OPTIONS.length],
       dept: DEPT_OPTIONS[i % DEPT_OPTIONS.length],
@@ -560,6 +568,22 @@ function monthsOfRange() {
   return seen;
 }
 
+// 趋势图 x 轴分类：汇总=整个区间(一个分类)，分日=每天，分月=每月
+function trendKeys() {
+  const [s, e] = dateRange.value || [];
+  if (!s || !e) return [];
+  if (period.value === '分日') return daysOfRange();
+  if (period.value === '分月') return monthsOfRange();
+  return [dateRangeLabel(s, e)];
+}
+
+// 行与趋势图的关联键（与时间列文案格式不同，故单独一份）
+function trendKeyFor(index) {
+  const keys = trendKeys();
+  if (!keys.length) return '';
+  return keys[index % keys.length];
+}
+
 // 时间列文案：汇总=区间，分日=单日，分月=年月
 function dateLabelFor(index) {
   const [s, e] = dateRange.value || [];
@@ -617,9 +641,7 @@ function handleExport() {
 
 // ---------- 趋势分析 / 占比分析 图表 ----------
 const chartRef = ref(null);
-const chartRef2 = ref(null);
 let chart = null;
-let chart2 = null;
 
 function disposeChart() {
   if (chart) {
@@ -653,14 +675,42 @@ const ANALYSIS_METRICS = [
   '消耗', '展示数', '平均千次展现费用', '点击数', '点击率', '平均点击单价',
   '转化数', '转化成本', '转化率', '激活数', '注册数',
 ];
-const analysisMetric = ref('消耗');
-const analysisMetric2 = ref('展示数');
-const compareEnabled = ref(false);
+// 线上：趋势分析 / 占比分析是两个独立的数据表，各自维护「对比」状态
+const trendState = reactive({
+  metric: '消耗', metric2: '展示数', compare: false, top: '汇总',
+});
+const ratioState = reactive({
+  metric: '消耗', metric2: '展示数', compare: false, top: 'Top5数据',
+});
+const analysisState = computed(() => (analysisTab.value === 'trend' ? trendState : ratioState));
+const analysisMetric = computed({
+  get: () => analysisState.value.metric,
+  set: (v) => { analysisState.value.metric = v; },
+});
+const analysisMetric2 = computed({
+  get: () => analysisState.value.metric2,
+  set: (v) => { analysisState.value.metric2 = v; },
+});
+const compareEnabled = computed({
+  get: () => analysisState.value.compare,
+  set: (v) => { analysisState.value.compare = v; },
+});
+const analysisTop = computed({
+  get: () => analysisState.value.top,
+  set: (v) => {
+    analysisState.value.top = v;
+    // 趋势分析切到 Top5/Top10 时线上不提供「对比」→ 自动取消
+    if (analysisTab.value === 'trend' && v !== '汇总') analysisState.value.compare = false;
+  },
+});
+// 趋势分析：只有「汇总」才能对比（Top5/Top10 时线上不显示「对比」）
+const compareAvailable = computed(() =>
+  analysisTab.value === 'trend' ? analysisTop.value === '汇总' : true
+);
 // 趋势分析：汇总 / Top5数据 / Top10数据；占比分析：Top5数据 / Top10数据
 const analysisTopOptions = computed(() =>
   analysisTab.value === 'trend' ? ['汇总', 'Top5数据', 'Top10数据'] : ['Top5数据', 'Top10数据']
 );
-const analysisTop = ref('汇总');
 
 /** 取某个指标在明细行上的数值 */
 function metricNumber(row, metric) {
@@ -677,17 +727,74 @@ function topRows() {
   return list;
 }
 
-function trendOption(metric) {
-  const days = daysOfRange();
-  const m = metric || analysisMetric.value;
-  const byDay = new Map();
-  topRows().forEach((r) => {
-    byDay.set(r.date, (byDay.get(r.date) || 0) + metricNumber(r, m));
+function trendOption() {
+  const days = trendKeys();
+  const cmp = compareEnabled.value;
+  const m1 = analysisMetric.value;
+  const m2 = analysisMetric2.value;
+  const agg = (metric) => {
+    const byDay = new Map();
+    topRows().forEach((r) => {
+      const k = r.trendKey;
+      byDay.set(k, (byDay.get(k) || 0) + metricNumber(r, metric));
+    });
+    return days.map((d) => byDay.get(d) || 0);
+  };
+  const mkSeries = (name, metric, color, yAxisIndex) => ({
+    name,
+    type: 'line',
+    yAxisIndex,
+    data: agg(metric),
+    smooth: true,
+    symbol: 'circle',
+    symbolSize: 5,
+    lineStyle: { width: 2, color },
+    itemStyle: { color },
+    areaStyle: { color: `${color}14` },
   });
+  // 线上：对比时是一张图两条线，左轴=指标A、右轴=指标B，图例在右上
+  const series = cmp
+    ? [mkSeries(m1, m1, '#409eff', 0), mkSeries(m2, m2, '#52c41a', 1)]
+    : [mkSeries(m1, m1, '#409eff', 0)];
+  const yAxis = cmp
+    ? [
+        {
+          type: 'value',
+          name: m1,
+          nameTextStyle: { color: '#909399', fontSize: 12, align: 'left' },
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#909399', fontSize: 12, formatter: (v) => Number(v).toLocaleString('zh-CN') },
+          splitLine: { lineStyle: { color: '#f2f3f5' } },
+        },
+        {
+          type: 'value',
+          name: m2,
+          nameTextStyle: { color: '#909399', fontSize: 12, align: 'right' },
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#909399', fontSize: 12, formatter: (v) => Number(v).toLocaleString('zh-CN') },
+          splitLine: { show: false },
+        },
+      ]
+    : [
+        {
+          type: 'value',
+          name: m1,
+          nameTextStyle: { color: '#909399', fontSize: 12, align: 'left' },
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#909399', fontSize: 12, formatter: (v) => Number(v).toLocaleString('zh-CN') },
+          splitLine: { lineStyle: { color: '#f2f3f5' } },
+        },
+      ];
   return {
     animationDuration: 300,
-    color: ['#197afb'],
-    grid: { left: 76, right: 30, top: 40, bottom: 40 },
+    color: ['#409eff', '#52c41a'],
+    grid: { left: 76, right: cmp ? 76 : 30, top: 40, bottom: 40 },
+    legend: cmp
+      ? { orient: 'vertical', right: 8, top: 10, itemGap: 10, textStyle: { color: '#909399', fontSize: 12 } }
+      : { show: false },
     tooltip: {
       trigger: 'axis',
       valueFormatter: (v) => Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -700,46 +807,33 @@ function trendOption(metric) {
       axisTick: { show: false },
       axisLabel: { color: '#909399', fontSize: 12 },
     },
-    yAxis: {
-      type: 'value',
-      name: m,
-      nameTextStyle: { color: '#909399', fontSize: 12, align: 'right' },
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: {
-        color: '#909399',
-        fontSize: 12,
-        formatter: (v) => Number(v).toLocaleString('zh-CN'),
-      },
-      splitLine: { lineStyle: { color: '#f2f3f5' } },
-    },
-    series: [
-      {
-        name: m,
-        type: 'line',
-        data: days.map((d) => byDay.get(d) || 0),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 5,
-        lineStyle: { width: 2, color: '#197afb' },
-        itemStyle: { color: '#197afb' },
-        areaStyle: { color: 'rgba(25,122,251,0.08)' },
-      },
-    ],
+    yAxis,
+    series,
   };
 }
 
-function ratioOption(metric) {
-  const m = metric || analysisMetric.value;
-  const map = new Map();
-  topRows().forEach((r) => {
-    const name = r.advertiser_name || '--';
-    map.set(name, (map.get(name) || 0) + metricNumber(r, m));
-  });
-  const data = Array.from(map.entries()).map(([name, value]) => ({
+function ratioOption() {
+  const cmp = compareEnabled.value;
+  const build = (metric) => {
+    const map = new Map();
+    topRows().forEach((r) => {
+      const name = r.advertiser_name || '--';
+      map.set(name, (map.get(name) || 0) + metricNumber(r, metric));
+    });
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  };
+  const d1 = build(analysisMetric.value);
+  const d2 = cmp ? build(analysisMetric2.value) : [];
+  const mkPie = (name, data, center) => ({
     name,
-    value: +value.toFixed(2),
-  }));
+    type: 'pie',
+    radius: '58%',
+    center,
+    label: { color: '#333333', fontSize: 12, formatter: '{b}\n{d}%' },
+    labelLine: { lineStyle: { color: '#e5e6eb' } },
+    data,
+  });
+  // 线上：对比时是「一张图里两个环形图」，左右分列；图例在右上
   return {
     animationDuration: 300,
     tooltip: {
@@ -747,34 +841,25 @@ function ratioOption(metric) {
       formatter: (p) =>
         `${p.name}<br/>${Number(p.value).toLocaleString('zh-CN')} (${p.percent}%)`,
     },
-    legend: { type: 'scroll', bottom: 0, textStyle: { color: '#909399', fontSize: 12 } },
-    series: [
-      {
-        name: m,
-        type: 'pie',
-        radius: '62%',
-        center: ['50%', '45%'],
-        label: { color: '#333333', fontSize: 12, formatter: '{b}\n{d}%' },
-        labelLine: { lineStyle: { color: '#e5e6eb' } },
-        data,
-      },
-    ],
+    legend: {
+      orient: 'vertical',
+      right: 8,
+      top: 10,
+      itemGap: 10,
+      textStyle: { color: '#909399', fontSize: 12 },
+      data: d1.map((x) => x.name),
+    },
+    series: cmp
+      ? [mkPie(analysisMetric.value, d1, ['25%', '52%']), mkPie(analysisMetric2.value, d2, ['75%', '52%'])]
+      : [mkPie(analysisMetric.value, d1, ['50%', '52%'])],
   };
 }
 
 function renderChart() {
   if (!chartRef.value) return;
   if (!chart) chart = echarts.init(chartRef.value);
-  chart.setOption(analysisTab.value === 'trend' ? trendOption(analysisMetric.value) : ratioOption(analysisMetric.value), true);
+  chart.setOption(analysisTab.value === 'trend' ? trendOption() : ratioOption(), true);
   chart.resize();
-  if (compareEnabled.value && chartRef2.value) {
-    if (!chart2) chart2 = echarts.init(chartRef2.value);
-    chart2.setOption(analysisTab.value === 'trend' ? trendOption(analysisMetric2.value) : ratioOption(analysisMetric2.value), true);
-    chart2.resize();
-  } else if (chart2) {
-    chart2.dispose();
-    chart2 = null;
-  }
 }
 
 // 指标 / 对比 / 汇总方式 / 页签变化都重绘

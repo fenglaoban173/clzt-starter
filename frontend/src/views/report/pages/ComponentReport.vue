@@ -124,7 +124,7 @@
                   <template #reference>
                     <el-icon class="caliber-help" @click.stop><QuestionFilled /></el-icon>
                   </template>
-                  {{ tipText('若需切换口径，请联系创量运营开通相关能力') }}
+                  {{ tipText('若需切换口径，请联系智投运营开通相关能力') }}
                 </el-popover>
               </span>
             </el-option>
@@ -287,7 +287,7 @@ const PERIODS = ['分日', '分月', '汇总'];
 // 组件报表线上媒体只有一个：腾讯广告3.0
 const MEDIA_OPTIONS = [{ value: 'gdt_upgrade', label: '腾讯广告3.0' }];
 // 线上「+ 添加筛选」下拉
-const ADD_FILTER_OPTIONS = ['账户', '组件类型', '创量项目', '编导', '剪辑'];
+const ADD_FILTER_OPTIONS = ['账户', '组件类型', '智投项目', '编导', '剪辑'];
 // 线上「组件类型」下拉实测选项
 const COMPONENT_TYPE_OPTIONS = [
   '未知', '图片组件', '图片列表组件', '视频组件', '卖点图组件', '轮播组件',
@@ -302,7 +302,7 @@ const STAFF_OPTIONS = [
   '李倩', '田博文', '汪玲丽', '邓艺爽', '倪秀云', '申旭阳', '吕瑶',
   '李杉杉', '杜浩', '魏然', '刘松涵', '杨新宇', '搜索更多(25)...',
 ];
-// 指标口径下拉：线上每个选项右侧带 ⓘ，hover 显示「若需切换口径，请联系创量运营开通相关能力」
+// 指标口径下拉：线上每个选项右侧带 ⓘ，hover 显示「若需切换口径，请联系智投运营开通相关能力」
 const CALIBER_OPTIONS = [
   { label: '广告播放口径', value: METRIC_CALIBER_OPTIONS[0] },
   { label: '转化回传口径（上报时间）', value: METRIC_CALIBER_OPTIONS[1] },
@@ -383,7 +383,7 @@ const selectedMetrics = ref([...(REPORT_METRIC_DEFAULT_SELECTED.component || [])
 const selects = ref([
   { key: 'account', label: '账户', placeholder: '请选择账户', options: ADVERTISER_OPTIONS, model: [], wide: true },
   { key: 'component_type', label: '组件类型', placeholder: '请选择组件类型', options: COMPONENT_TYPE_OPTIONS, model: [] },
-  { key: 'project', label: '创量项目', placeholder: '请选择创量项目', options: PROJECT_OPTIONS, model: [] },
+  { key: 'project', label: '智投项目', placeholder: '请选择智投项目', options: PROJECT_OPTIONS, model: [] },
   { key: 'director', label: '编导', placeholder: '请选择编导', options: STAFF_OPTIONS, model: [] },
   { key: 'editor', label: '剪辑', placeholder: '请选择剪辑', options: STAFF_OPTIONS, model: [] },
 ]);

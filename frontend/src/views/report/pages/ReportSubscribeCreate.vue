@@ -1,5 +1,5 @@
 <template>
-  <!-- 新建报表 —— 1:1 对齐创量线上 cl.mobgi.com/report/adsdata/custom/design?type=create&source=custom
+  <!-- 新建报表 —— 1:1 对齐线上 cl.mobgi.com/report/adsdata/custom/design?type=create&source=custom
    * 线上结构：左侧仍是报表侧栏，右侧是整页表单（顶部返回箭头 + 标题「新建报表」）。
    * 说明：AppLayout 的左侧侧栏按 route.name 渲染（moduleOf 里只有 9 个报表页），
    *      而本任务不允许改 AppLayout，所以侧栏在本页本地复刻一份（线上同名同序）。
@@ -276,7 +276,7 @@ const MEDIA_OPTIONS = [
   '腾讯广告2.0',
   '全部',
 ];
-const DIMENSION_OPTIONS = ['媒体账户', '媒体汇总', '财务流水', '创量项目', '项目分组', '人员'];
+const DIMENSION_OPTIONS = ['媒体账户', '媒体汇总', '财务流水', '智投项目', '项目分组', '人员'];
 const REPORT_TYPES = ['时报', '日报', '周报', '月报'];
 const REPORT_STYLES = ['默认', '自定义'];
 const SWITCH_OPTIONS = ['关闭', '开启'];

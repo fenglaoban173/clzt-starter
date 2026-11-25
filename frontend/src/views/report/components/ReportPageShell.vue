@@ -1,6 +1,6 @@
 <template>
   <!-- 报表页外壳：页头（标题 + 粒度/日期）+ 筛选区 + 内容区
-   * 所有报表页共用，保证页头/筛选/表格的排版与创量线上一致 -->
+   * 所有报表页共用，保证页头/筛选/表格的排版与线上一致 -->
   <div class="report-page">
     <div class="report-head">
       <div class="report-head-left">
