@@ -293,7 +293,10 @@ function confirm() {
 /* 弹窗外壳（teleport 到 body，需全局样式） */
 /* R110：线上选择策略弹窗实测 990×728 垂直居中；无标题栏，页签即顶部；
  * 弹窗自身 padding=0，表格左沿 481（=弹窗左沿+16），页签左沿 489（=+24）。 */
-.sg-dialog.el-dialog { height: 728px; padding: 0; display: flex; flex-direction: column; margin-bottom: 0; }
+/* 注意：不要覆写 margin —— Element Plus 的 align-center 依赖 `.el-overlay-dialog.is-align-center
+ * .el-dialog { margin: auto }` 做垂直居中；一旦把 margin-bottom 改成 0，margin-top:auto 会
+ * 吃掉全部剩余空间，弹窗反而贴到视口底部。 */
+.sg-dialog.el-dialog { height: 728px; padding: 0; display: flex; flex-direction: column; }
 .sg-dialog .el-dialog__header { padding: 7px 24px 0; margin-right: 0; border-bottom: none; }
 .sg-dialog .el-dialog__body { flex: 1; min-height: 0; overflow: hidden; padding: 12px 16px 0; }
 .sg-dialog .el-dialog__footer { padding: 12px 24px 16px; }
