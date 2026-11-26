@@ -1,62 +1,76 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="策略组"
     width="990px"
     class="sg-dialog"
+    align-center
     :close-on-click-modal="false"
     destroy-on-close
     @update:model-value="(v) => emit('update:modelValue', v)"
     @open="init"
   >
-    <div class="sg-body">
-      <!-- 页签（线上：策略组 / 铺剧策略） -->
+    <!-- R110：线上无标题栏，页签（策略组 / 铺剧策略）直接置于弹窗顶部 -->
+    <template #header>
       <el-tabs v-model="tab" class="sg-tabs">
         <el-tab-pane label="策略组" name="group" />
         <el-tab-pane label="铺剧策略" name="drama" />
       </el-tabs>
-      <!-- 查询条件（对齐线上：每行 3 列，第 2 行第 3 列放名称检索 + 清空 + 自定义列） -->
+    </template>
+    <div class="sg-body">
+      <!-- 查询条件（R110 对齐线上：标签在外、下拉 169px，每组 252px，一行 3 组；
+           第 2 行第 3 组放「名称/ID + 关键词 + 放大镜」，右侧「清空 / 自定义列」） -->
       <div class="sg-filter">
-        <el-select v-model="filters.objective" class="sg-f" placeholder="全部">
-          <template #prefix><span class="sg-label">推广目的：</span></template>
-          <el-option v-for="o in OBJECTIVES" :key="o" :label="o" :value="o" />
-        </el-select>
-        <el-select v-model="filters.delivery_mode" class="sg-f" placeholder="全部">
-          <template #prefix><span class="sg-label">投放模式：</span></template>
-          <el-option v-for="o in DELIVERY_MODES" :key="o" :label="o" :value="o" />
-        </el-select>
-        <el-select v-model="filters.marketing_goal" class="sg-f" placeholder="全部">
-          <template #prefix><span class="sg-label">营销场景：</span></template>
-          <el-option v-for="o in MARKETING_GOALS" :key="o" :label="o" :value="o" />
-        </el-select>
-        <el-select v-model="filters.ad_type" class="sg-f" placeholder="全部">
-          <template #prefix><span class="sg-label">广告类型：</span></template>
-          <el-option v-for="o in AD_TYPES" :key="o" :label="o" :value="o" />
-        </el-select>
-        <el-select v-model="filters.delivery_type" class="sg-f" placeholder="全部">
-          <template #prefix><span class="sg-label">投放类型：</span></template>
-          <el-option v-for="o in DELIVERY_TYPES" :key="o" :label="o" :value="o" />
-        </el-select>
+        <div class="sg-field">
+          <span class="sg-label">推广目的：</span>
+          <el-select v-model="filters.objective" class="sg-f" size="small" placeholder="全部">
+            <el-option v-for="o in OBJECTIVES" :key="o" :label="o" :value="o" />
+          </el-select>
+        </div>
+        <div class="sg-field">
+          <span class="sg-label">投放模式：</span>
+          <el-select v-model="filters.delivery_mode" class="sg-f" size="small" placeholder="全部">
+            <el-option v-for="o in DELIVERY_MODES" :key="o" :label="o" :value="o" />
+          </el-select>
+        </div>
+        <div class="sg-field">
+          <span class="sg-label">营销场景：</span>
+          <el-select v-model="filters.marketing_goal" class="sg-f" size="small" placeholder="全部">
+            <el-option v-for="o in MARKETING_GOALS" :key="o" :label="o" :value="o" />
+          </el-select>
+        </div>
+        <div class="sg-field">
+          <span class="sg-label">广告类型：</span>
+          <el-select v-model="filters.ad_type" class="sg-f" size="small" placeholder="全部">
+            <el-option v-for="o in AD_TYPES" :key="o" :label="o" :value="o" />
+          </el-select>
+        </div>
+        <div class="sg-field">
+          <span class="sg-label">投放类型：</span>
+          <el-select v-model="filters.delivery_type" class="sg-f" size="small" placeholder="全部">
+            <el-option v-for="o in DELIVERY_TYPES" :key="o" :label="o" :value="o" />
+          </el-select>
+        </div>
         <div class="sg-search-group">
-          <el-select v-model="filters.nameType" class="sg-name-type">
+          <el-select v-model="filters.nameType" class="sg-name-type" size="small">
             <el-option label="名称" value="name" />
             <el-option label="ID" value="id" />
           </el-select>
-          <el-input v-model="filters.name" class="sg-search" placeholder="请输入关键词" clearable @keyup.enter="onSearch">
+          <el-input v-model="filters.name" class="sg-search" size="small" placeholder="请输入关键词" clearable @keyup.enter="onSearch">
             <template #suffix><el-icon class="sg-search-icon"><Search /></el-icon></template>
           </el-input>
-          <el-button class="sg-search-btn" circle @click="onSearch"><el-icon><Search /></el-icon></el-button>
+          <el-button class="sg-search-btn" @click="onSearch"><el-icon><Search /></el-icon></el-button>
         </div>
         <el-button link type="primary" class="sg-clear" @click="resetFilters">清空</el-button>
         <el-button class="sg-col-btn" @click="colVisible = true"><el-icon><Operation /></el-icon>自定义列</el-button>
       </div>
 
-      <!-- 策略组列表 -->
+      <!-- 策略组列表（R110：线上表格总高 452px；列 = 策略组ID/策略组名称/搭建模式/推广目的/投放模式/
+           营销场景/广告类型/投放类型/描述/操作） -->
       <el-table
         :data="pageRows"
         border
         size="small"
-        height="352"
+        height="452"
         highlight-current-row
         @row-click="onRowClick"
       >
@@ -67,13 +81,6 @@
         </el-table-column>
         <el-table-column label="策略组ID" prop="id" width="90" show-overflow-tooltip />
         <el-table-column label="策略组名称" prop="name" width="150" show-overflow-tooltip />
-        <el-table-column
-          v-if="tab === 'drama'"
-          label="描述"
-          prop="description"
-          width="180"
-          show-overflow-tooltip
-        />
         <el-table-column
           v-for="c in shownColumns"
           :key="c.key"
@@ -165,12 +172,12 @@ const filters = reactive({
 });
 
 // 自定义指标（列表列显示设置）
-// 注：线上「描述」列属于铺剧策略表（该页签本轮不实现），故策略组表不渲染该列，
-// 但仍保留在「自定义指标」的勾选清单里，与线上一致。
+// R110：线上「策略组」表含「描述」列（列序：搭建模式/推广目的/投放模式/营销场景/广告类型/投放类型/描述），
+// 「操作」列固定在最右并可单独勾选。
 const colVisible = ref(false);
 const colVisibleKeys = ref(COLUMNS.map((c) => c.key));
 const shownColumns = computed(() => COLUMNS.filter((c) => (
-  c.key !== 'action' && c.key !== 'description' && colVisibleKeys.value.includes(c.key)
+  c.key !== 'action' && colVisibleKeys.value.includes(c.key)
 )));
 
 const filtered = computed(() => list.value.filter((s) => {
@@ -256,19 +263,25 @@ function confirm() {
   font-size: 14px;
   color: #1d2129;
 }
-/* 查询条件：每行 3 列，宽度对齐线上（242px + 10px 间距） */
-.sg-filter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-.sg-f { width: 242px !important; flex: 0 0 242px; }
-.sg-label { font-size: 14px; color: #4e5969; white-space: nowrap; }
+/* R110：线上页签贴在弹窗顶部（距顶 ~7px，页签高 40px） */
+.sg-tabs :deep(.el-tabs__header) { margin: 0; }
+.sg-tabs :deep(.el-tabs__nav-wrap) { height: 40px; }
+.sg-tabs :deep(.el-tabs__nav-wrap::after) { display: none; }
+.sg-tabs :deep(.el-tabs__item) { height: 40px; line-height: 40px; padding: 0 14px; font-size: 14px; }
+/* 查询条件（R110 对齐线上：标签 70px 在外 + 下拉 169px，每组 252px，行距 8px，下边距 28px） */
+.sg-filter { display: flex; align-items: center; gap: 8px 0; flex-wrap: wrap; margin-bottom: 28px; }
+.sg-field { display: flex; align-items: center; flex: 0 0 252px; width: 252px; }
+.sg-f { width: 169px !important; flex: 0 0 169px; }
+.sg-label { width: 70px; flex: 0 0 70px; font-size: 14px; color: #4e5969; white-space: nowrap; }
 .sg-name-label { font-size: 14px; color: #4e5969; white-space: nowrap; }
-/* 名称检索组：维度下拉 + 关键词输入 + 放大镜按钮 */
-.sg-search-group { display: flex; align-items: center; flex: 0 0 288px; }
-.sg-name-type { width: 84px !important; flex: 0 0 84px; }
-.sg-search { width: 140px !important; flex: 1 1 auto; min-width: 0; }
+/* 名称检索组：维度下拉(60) + 关键词输入 + 放大镜按钮(40) —— 线上整组 244px */
+.sg-search-group { display: flex; align-items: center; flex: 0 0 244px; }
+.sg-name-type { width: 60px !important; flex: 0 0 60px; }
+.sg-search { flex: 1 1 auto; min-width: 0; }
 .sg-search-icon { cursor: pointer; }
-.sg-search-btn { width: 32px; height: 32px; margin-left: 6px; padding: 0; flex: 0 0 32px; }
-.sg-clear { padding: 0 4px; }
-.sg-col-btn { margin-left: auto; }
+.sg-search-btn { width: 40px; height: 26px; margin-left: 6px; padding: 0; flex: 0 0 40px; border-radius: 4px; }
+.sg-clear { padding: 0 4px; margin-left: 10px; }
+.sg-col-btn { margin-left: auto; margin-right: 16px; width: 98px; height: 34px; }
 /* 分页 */
 .sg-pager { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .sg-total { font-size: 14px; color: #4e5969; }
@@ -278,6 +291,12 @@ function confirm() {
 
 <style>
 /* 弹窗外壳（teleport 到 body，需全局样式） */
-.sg-dialog .el-dialog__title { color: #1d2129; font-size: 16px; font-weight: 600; }
-.sg-dialog .el-dialog__body { padding-top: 12px; }
+/* R110：线上选择策略弹窗实测 990×728 垂直居中；无标题栏，页签即顶部；
+ * 弹窗自身 padding=0，表格左沿 481（=弹窗左沿+16），页签左沿 489（=+24）。 */
+.sg-dialog.el-dialog { height: 728px; padding: 0; display: flex; flex-direction: column; margin-bottom: 0; }
+.sg-dialog .el-dialog__header { padding: 7px 24px 0; margin-right: 0; border-bottom: none; }
+.sg-dialog .el-dialog__body { flex: 1; min-height: 0; overflow: hidden; padding: 12px 16px 0; }
+.sg-dialog .el-dialog__footer { padding: 12px 24px 16px; }
+.sg-dialog .el-dialog__footer .el-button { width: 80px; height: 32px; }
+.sg-dialog .el-dialog__headerbtn { top: 8px; right: 8px; }
 </style>

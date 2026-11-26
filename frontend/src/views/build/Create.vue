@@ -2,7 +2,7 @@
   <div v-loading="submitting" class="batch-page">
     <!-- 顶部标题栏 -->
     <div class="top-bar">
-      <div class="page-title">{{ isUpgrade ? '转化优化版' : '程序化批量' }} / 巨量广告</div>
+      <div class="page-title">{{ pageTitle }}</div>
       <div class="top-right">
         <el-tag v-if="strategyGroup" type="primary" effect="light">
           已套用策略组：{{ strategyGroup.name }}
@@ -15,8 +15,8 @@
       <!-- 顶部操作区：选择策略 / 选择任务 + 预估生成（可展开分账户明细） -->
       <div class="seg-row">
         <div class="seg">
-          <el-button type="primary" @click="strategyVisible = true">选择策略</el-button>
-          <el-button type="primary" @click="taskVisible = true">选择任务</el-button>
+          <el-button type="primary" class="seg__btn" @click="strategyVisible = true">选择策略</el-button>
+          <el-button type="primary" class="seg__btn" @click="taskVisible = true">选择任务</el-button>
           <span v-if="taskSelected" class="picked-task">
             已选「任务」：{{ taskSelected.name }}
             <el-icon class="picked-task__x" title="重新选择" @click="taskVisible = true"><Close /></el-icon>
@@ -55,6 +55,11 @@
           </el-tooltip>
           <span v-if="form.account_ids.length" class="rule-box__count">已选 {{ form.account_ids.length }} 个</span>
           <el-button link type="primary" class="rule-box__act" @click="acctVisible = true">更改</el-button>
+        </div>
+        <!-- R110：线上「创量项目」只读回显（选中任务后出现，位于 媒体账户 与 规则配置 之间；线上无「更改」按钮） -->
+        <div class="rule-box rule-box--proj" v-if="isUpgrade && taskProjectName">
+          <span class="rule-box__label">创量项目</span>
+          <span class="rule-box__value">{{ taskProjectName }}</span>
         </div>
         <div class="rule-box" v-if="isUpgrade">
           <span class="rule-box__label">规则配置</span>
@@ -104,16 +109,33 @@
               <div class="proj-block">
                 <div class="proj-block__head">
                   <span class="proj-block__title">基本信息</span>
-                  <el-button link type="primary" class="proj-block__act" @click="projInfoFolded = !projInfoFolded">
-                    {{ projInfoFolded ? '收起' : '展开' }}
-                  </el-button>
                 </div>
                 <div class="proj-block__body">
-                  <div class="proj-line">项目名称：{{ form.project.name || '—' }}</div>
-                  <div class="proj-line">项目预算：{{ projectBudgetText }}</div>
-                  <div class="proj-line">项目出价：{{ projectBidText }}</div>
-                  <div class="proj-line">项目深度出价：{{ projectDeepBidText }}</div>
-                  <div class="proj-line">推广目的：{{ objectiveLabel }}</div>
+                  <div class="proj-line">项目名称：{{ projectInfo.name }}</div>
+                  <div class="proj-line">项目预算：{{ projectInfo.budget }}</div>
+                  <div class="proj-line">项目出价：{{ projectInfo.bid }}</div>
+                  <div class="proj-line">项目深度出价：{{ projectInfo.deep_bid }}</div>
+                  <div class="proj-line">推广目的：{{ projectInfo.objective }}</div>
+                  <!-- 线上：展开后补齐子目标 / 营销场景 / 投放模式 … 等摘要字段 -->
+                  <template v-if="!projInfoFolded">
+                    <div class="proj-line">子目标：{{ projectInfo.sub_objective }}</div>
+                    <div class="proj-line">营销场景：{{ projectInfo.marketing_goal }}</div>
+                    <div class="proj-line">投放模式：{{ projectInfo.delivery_mode }}</div>
+                    <div class="proj-line">广告类型：{{ projectInfo.ad_type }}</div>
+                    <div class="proj-line">投放类型：{{ projectInfo.delivery_type }}</div>
+                    <div class="proj-line">优化目标：{{ projectInfo.optimize_goal }}</div>
+                    <div class="proj-line">深度优化目标：{{ projectInfo.deep_optimize_goal }}</div>
+                    <div class="proj-line">广告位置：{{ projectInfo.ad_position }}</div>
+                    <div class="proj-line">下载方式：{{ projectInfo.download_type }}</div>
+                    <div class="proj-line">事件回传方式：{{ projectInfo.callback_type }}</div>
+                    <div class="proj-line">投放时间：{{ projectInfo.schedule_time }}</div>
+                    <div class="proj-line">投放时段：{{ projectInfo.schedule_period }}</div>
+                    <div class="proj-line">竞价策略：{{ projectInfo.bid_strategy }}</div>
+                  </template>
+                  <span class="show-more" @click="projInfoFolded = !projInfoFolded">
+                    {{ projInfoFolded ? '展开' : '收起' }}
+                    <el-icon class="show-more__icon"><ArrowUp v-if="!projInfoFolded" /><ArrowDown v-else /></el-icon>
+                  </span>
                 </div>
               </div>
               <div class="proj-block">
@@ -124,8 +146,21 @@
                 </div>
                 <div class="proj-block__body">
                   <div v-for="a in selectedAccounts" :key="a.id" class="proj-line">
-                    {{ a.name }}
-                    <div class="proj-line__sub">{{ (selectedTargetings[0] || {}).name || '定向包' }}</div>
+                    <div class="proj-line__account">{{ a.name }}</div>
+                    <el-tooltip placement="top" :show-after="200">
+                      <template #content>
+                        <div class="audience-info">
+                          <div class="audience-info-category"><span class="estimate-label">区域:</span><span>不限</span></div>
+                          <div class="audience-info-category"><span class="estimate-label">定向人群包:</span><span>不限</span></div>
+                          <div class="audience-info-category"><span class="estimate-label">排除人群包:</span><span>不限</span></div>
+                          <div class="audience-info-category"><span class="estimate-label">性别:</span><span>不限</span></div>
+                          <div class="audience-info-category"><span class="estimate-label">年龄:</span><span>不限</span></div>
+                          <div class="audience-info-category"><span class="estimate-label">行为天数:</span><span>30天</span></div>
+                          <div class="audience-info-category"><span class="estimate-label">媒体定向:</span><span>不限</span></div>
+                        </div>
+                      </template>
+                      <div class="proj-line__sub">{{ (selectedTargetings[0] || {}).name || '定向包' }}</div>
+                    </el-tooltip>
                   </div>
                   <div v-if="targetingLoading" class="proj-line__loading">定向详情加载中</div>
                 </div>
@@ -239,15 +274,18 @@
         </div>
       </div>
 
-      <!-- 线上转化优化版（线上实测 6 个：关联产品 / 分包与监测活动 / 定向包 / 项目预算与出价 / 产品信息 / 广告设置） -->
+      <!-- R110：线上标准版实测 8 个能力按钮（关联产品 / 分包与监测活动 / 定向包 / 项目预算与出价 /
+           直达链接 / 产品信息 / 广告设置 / 广告预算与出价），每个前面带绿色 ✓ 图标 -->
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
           <el-button @click="relatedVisible = true"><i class="tip-icon">✓</i>关联产品</el-button>
           <el-button @click="openMonitorGroup('选择巨量后台监测连接组')"><i class="tip-icon">✓</i>分包与监测活动</el-button>
           <el-button @click="targetingVisible = true"><i class="tip-icon">✓</i>定向包</el-button>
           <el-button @click="projVisible = true"><i class="tip-icon">✓</i>项目预算与出价</el-button>
+          <el-button @click="deeplinkVisible = true"><i class="tip-icon">✓</i>直达链接</el-button>
           <el-button @click="openAdPanel('ad-products')"><i class="tip-icon">✓</i>产品信息</el-button>
           <el-button @click="openAdPanel('ad-settings')"><i class="tip-icon">✓</i>广告设置</el-button>
+          <el-button @click="openSection('adBudget')"><i class="tip-icon">✓</i>广告预算与出价</el-button>
         </template>
         <template v-else>
           <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -290,7 +328,7 @@
             @click="previewAccountIdx = i"
           >{{ a.name }}({{ a.id }})</div>
         </div>
-        <div class="preview-head__right">
+        <div class="preview-head__right" v-if="preview">
           <div class="est" @click="estOpen = !estOpen">
             预估生成 <b>{{ est.total }}</b> 个{{ isOc ? '项目' : '广告' }}
             <el-icon class="est__caret"><ArrowUp v-if="estOpen" /><ArrowDown v-else /></el-icon>
@@ -619,20 +657,7 @@
     </el-dialog>
 
     <!-- 新建标题包（线上：标题包抽屉内「新建标题包」） -->
-    <el-dialog v-model="newTitlePackVisible" title="新建标题包" width="560px" append-to-body>
-      <el-form label-position="left" label-width="90px">
-        <el-form-item label="标题包名称">
-          <el-input v-model="newTitlePackForm.name" placeholder="请输入标题包名称" maxlength="30" />
-        </el-form-item>
-        <el-form-item label="标题文案">
-          <el-input v-model="newTitlePackForm.titles" type="textarea" :rows="4" placeholder="多个标题用换行分隔" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="newTitlePackVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmNewTitlePack">确 定</el-button>
-      </template>
-    </el-dialog>
+    <BatchTitleDrawer v-model="titleVisible" />
 
     <!-- 插入更多通配符（线上：项目名称段的「插入更多」） -->
     <el-dialog v-model="wildcardMoreVisible" title="插入更多" width="560px" append-to-body>
@@ -852,1215 +877,13 @@
     </el-drawer>
 
     <!-- 账户选择弹窗（对齐线上：一行筛选 + 左侧账户表 + 右侧「已选」面板 + 分页） -->
-    <el-dialog
-      v-model="acctVisible"
-      title="选择媒体账户"
-      width="1136px"
-      class="acct-dialog"
-      :close-on-click-modal="false"
-      @open="onAcctOpen"
-    >
-      <div class="acct-filter">
-        <el-select v-model="acctFilter.project" class="acct-f acct-f--project" clearable placeholder="智投项目">
-          <template #prefix><span class="acct-f__label">智投项目:</span></template>
-          <el-option v-for="p in projectOptions" :key="p" :value="p">{{ p }}</el-option>
-        </el-select>
-        <el-select v-model="acctFilter.subject" class="acct-f acct-f--subject" clearable placeholder="账户主体">
-          <template #prefix><span class="acct-f__label">账户主体:</span></template>
-          <el-option :value="subject">{{ subject }}</el-option>
-        </el-select>
-        <el-select v-model="acctFilter.developer" class="acct-f acct-f--developer" clearable placeholder="开发者">
-          <template #prefix><span class="acct-f__label">开发者:</span></template>
-          <el-option v-for="d in developerOptions" :key="d" :value="d">{{ d }}</el-option>
-        </el-select>
-        <!-- 搜索组（对齐线上 图2：[账户ID ∨] | [搜索媒体账户 + 批量搜索] | [搜索按钮]） -->
-        <div class="acct-sg">
-          <el-select v-model="acctFilter.id_type" class="acct-sg__type">
-            <el-option label="账户ID" value="id" />
-            <el-option label="账户名称" value="name" />
-          </el-select>
-          <el-input
-            v-model="acctFilter.keyword"
-            class="acct-sg__input"
-            placeholder="搜索媒体账户"
-            clearable
-            @keyup.enter="onAcctSearch"
-          >
-            <template #suffix>
-              <!-- 批量搜索：输入多个账户ID / 账户名称，一行一个 -->
-              <el-popover
-                v-model:visible="batchVisible"
-                placement="bottom"
-                trigger="click"
-                :width="610"
-                :offset="8"
-                popper-class="acct-batch-pop"
-              >
-                <template #reference>
-                  <el-icon class="acct-search__batch" title="批量搜索">
-                    <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
-                      <path d="M2.6 4.2h8.2M2.6 7.6h8.2M2.6 11h5.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                      <circle cx="12.8" cy="12.8" r="4.4" fill="none" stroke="currentColor" stroke-width="1.5" />
-                      <path d="M16.1 16.1 19.2 19.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                    </svg>
-                  </el-icon>
-                </template>
-                <div class="acct-batch">
-                  <div class="acct-batch__head">
-                    <span class="acct-batch__title">请输入{{ batchTypeLabel }} ({{ batchCount }}/1000)</span>
-                    <el-button link type="primary" class="acct-batch__clear" @click="clearBatch">清空</el-button>
-                  </div>
-                  <div class="acct-batch__hint">
-                    每一行为一个关键词，批量搜索将执行<span class="acct-batch__link" title="批量搜索按整行内容做精确匹配">精确匹配</span>。
-                  </div>
-                  <div class="acct-batch__editor">
-                    <div ref="batchGutterRef" class="acct-batch__gutter">
-                      <div v-for="n in batchLineCount" :key="n" class="acct-batch__ln">{{ n }}</div>
-                    </div>
-                    <el-input
-                      v-model="batchText"
-                      type="textarea"
-                      class="acct-batch__input"
-                      :rows="9"
-                      resize="none"
-                      :placeholder="`请粘贴或输入${batchTypeLabel}，回车可换行`"
-                      @scroll="onBatchScroll"
-                    />
-                  </div>
-                  <div class="acct-batch__foot">
-                    <el-button @click="clearBatch">清空</el-button>
-                    <el-button type="primary" @click="applyBatchSearch">搜索</el-button>
-                  </div>
-                </div>
-              </el-popover>
-            </template>
-          </el-input>
-          <button type="button" class="acct-sg__btn" title="搜索" @click="onAcctSearch">
-            <el-icon><Search /></el-icon>
-          </button>
-        </div>
-        <el-button link type="primary" class="acct-clear" @click="clearAcctFilter">清空</el-button>
-      </div>
-      <div class="acct-tip"><el-icon class="acct-tip__icon"><Warning /></el-icon> 仅支持同个主体账户，当前主体为：{{ subject }}</div>
-
-      <div class="acct-body">
-        <el-table
-          ref="acctTableRef"
-          :data="acctPageRows"
-          row-key="id"
-          border
-          size="small"
-          height="398"
-          @selection-change="onAcctSelection"
-        >
-          <el-table-column type="selection" width="44" reserve-selection />
-          <el-table-column label="账户名称" prop="name" min-width="230" sortable show-overflow-tooltip>
-            <template #default="{ row }">
-              <div class="acct-name">{{ row.name }}</div>
-              <div class="acct-id">ID: {{ row.advertiser_id }}</div>
-            </template>
-          </el-table-column>
-          <el-table-column label="账户主体" prop="subject" min-width="130" sortable show-overflow-tooltip>
-            <template #default="{ row }">{{ row.subject || subject }}</template>
-          </el-table-column>
-          <el-table-column label="账户备注(创量)" prop="remark_cy" min-width="150" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.remark_cy || '--' }}</template>
-          </el-table-column>
-          <el-table-column label="账户备注(巨量)" prop="remark_jl" min-width="135" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.remark_jl || '--' }}</template>
-          </el-table-column>
-          <el-table-column label="智投项目" prop="project" min-width="120" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.project || '--' }}</template>
-          </el-table-column>
-          <el-table-column label="账户余额" prop="balance" min-width="110" sortable>
-            <template #default="{ row }">{{ formatBalance(row.balance) }}</template>
-          </el-table-column>
-          <el-table-column label="账户所属开发者" prop="developer_name" min-width="130" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.developer_name || '--' }}</template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 右侧已选面板 -->
-        <div class="acct-picked">
-          <div class="acct-picked__head">
-            <span class="acct-picked__title">已选({{ acctTemp.length }}/50)</span>
-            <el-button link type="primary" class="acct-picked__clear" @click="clearAcctSelection">清空</el-button>
-          </div>
-          <div class="acct-picked__body">
-            <div v-for="a in acctTemp" :key="a.id" class="acct-picked__item">
-              <span class="acct-picked__name" :title="a.name">{{ a.name }}</span>
-              <el-icon class="acct-picked__del" title="移除" @click="removeAccount(a)"><Close /></el-icon>
-            </div>
-            <el-empty v-if="!acctTemp.length" description="暂无" :image-size="48" />
-          </div>
-        </div>
-      </div>
-
-      <div class="acct-pager">
-        <span class="acct-total">共 {{ filteredAccounts.length }} 条</span>
-        <el-select v-model="acctPageSize" class="acct-size" size="small">
-          <el-option v-for="s in [10, 20, 50, 100]" :key="s" :label="`${s}条/页`" :value="s" />
-        </el-select>
-        <el-pagination
-          v-model:current-page="acctPage"
-          :page-size="acctPageSize"
-          :total="filteredAccounts.length"
-          layout="prev, pager, next"
-          size="small"
-        />
-        <span class="acct-jump">前往</span>
-        <el-input v-model="acctJumpPage" class="acct-jump__input" size="small" />
-        <span class="acct-jump">页</span>
-      </div>
-
-      <template #footer>
-        <el-button @click="acctVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmAccounts">确定</el-button>
-      </template>
-    </el-dialog>
+    <BatchAccountDialog v-model="acctVisible" />
 
     <!-- 规则配置弹窗（卡片式，对齐线上：新建项目 / 已有项目 两套内容） -->
-    <el-dialog v-model="ruleVisible" title="规则配置" width="1140px" class="rule-dialog">
-      <el-form label-position="left" label-width="160px" class="rule-form">
-        <el-form-item label="创建方式">
-          <el-radio-group v-model="form.create_mode">
-            <el-radio-button value="NEW">新建项目</el-radio-button>
-            <el-radio-button value="EXIST">已有项目</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <!-- 新建项目：项目生成规则（5 张卡片，按资产组恒置灰） -->
-        <template v-if="form.create_mode === 'NEW'">
-          <el-form-item label="项目生成规则">
-            <div class="rule-cards">
-              <div
-                v-for="r in PROJECT_RULES" :key="r.value"
-                class="rule-card" :class="{ active: form.project_rule === r.value, disabled: r.disabled }"
-                @click="pickRule('project_rule', r)"
-              >
-                <div class="rule-card__title">{{ r.label }}</div>
-                <div class="rule-card__desc">{{ r.desc }}</div>
-              </div>
-            </div>
-          </el-form-item>
-          <!-- 项目生成规则=指定数量：每个账户指定项目数 -->
-          <el-form-item v-if="form.project_rule === 'BY_COUNT'" label="每个账户指定项目数" class="rule-inline-item">
-            <el-input-number v-model="form.projects_per_account" :min="1" :max="500" controls-position="right" />
-          </el-form-item>
-        </template>
-        <!-- 广告生成规则（两种创建方式都有；卡片可用性随创建方式 / 项目生成规则联动） -->
-        <el-form-item label="广告生成规则">
-          <div class="rule-cards">
-            <div
-              v-for="r in AD_RULES" :key="r.value"
-              class="rule-card" :class="{ active: form.ad_rule === r.value, disabled: isAdRuleDisabled(r) }"
-              @click="pickRule('ad_rule', r)"
-            >
-              <div class="rule-card__title">{{ r.label }}</div>
-              <div class="rule-card__desc">{{ adRuleDesc(r) }}</div>
-            </div>
-          </div>
-        </el-form-item>
-        <!-- 项目生成规则=按总广告数/每项目广告数：每个项目广告数上限（单行展示，不换行） -->
-        <el-form-item
-          v-if="form.create_mode === 'NEW' && form.project_rule === 'BY_TOTAL'"
-          label="每个项目广告数上限" class="rule-inline-item"
-        >
-          <el-tooltip content="已生成的广告数，超过项目内广告数上限时，自动填充到新的项目内；广告数未达上限时则不生成新项目" placement="top">
-            <span class="rule-qa">ⓘ</span>
-          </el-tooltip>
-          <el-input-number v-model="form.ads_limit_per_project" :min="1" :max="500" :step="10" controls-position="right" />
-        </el-form-item>
-        <!-- 广告生成规则=指定数量：每个项目指定广告数（单行展示，不换行） -->
-        <el-form-item v-if="form.ad_rule === 'BY_COUNT'" label="每个项目指定广告数" class="rule-inline-item">
-          <el-tooltip content="指定每个项目内包含的广告数量，广告数量不足时重复使用广告" placement="top">
-            <span class="rule-qa">ⓘ</span>
-          </el-tooltip>
-          <el-input-number v-model="form.ads_per_project" :min="1" :max="500" :step="10" controls-position="right" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="ruleVisible = false">取消</el-button>
-        <el-button type="primary" @click="ruleVisible = false">确定</el-button>
-      </template>
-    </el-dialog>
+    <BatchRuleDialog v-model="ruleVisible" />
 
     <!-- 项目配置弹窗 -->
-    <el-drawer v-model="projVisible" :title="cardTitle.proj" size="1016px" direction="rtl">
-      <el-form :model="form.project" class="drawer-form" label-position="left" label-width="144px">
-        <!-- 资产组（线上首个分区，独立成段） -->
-        <div class="form-section">
-          <div class="form-section__title">资产组</div>
-          <el-form-item label="资产组">
-            <el-radio-group v-model="form.project.asset_group" @change="onAssetGroupChange" size="small">
-              <el-radio-button value="OFF">不启用</el-radio-button>
-              <el-radio-button value="ON">启用</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <!-- 线上：启用后露出 分配方式 / 选择资产组 / 已选 n/1000 -->
-          <template v-if="form.project.asset_group === 'ON'">
-            <el-form-item label="分配方式">
-              <el-radio-group v-model="form.project.asset_group_assign" size="small">
-                <el-radio-button value="ALL">所有账户相同</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">分账户选择</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="选择资产组">
-              <el-button type="primary" size="small" @click="pickAssetGroup">选择资产组</el-button>
-              <span class="sel-picked">选择资产组已选 {{ (form.project.asset_group_ids || []).length }}/1000</span>
-            </el-form-item>
-          </template>
-        </div>
-
-        <!-- 推广目的 -->
-        <div class="form-section">
-          <div class="form-section__title">推广目的</div>
-        <el-radio-group v-model="form.project.objective" @change="onObjectiveChange" class="obj-grid" size="small">
-          <el-radio v-for="o in OBJECTIVES" :key="o.value" :value="o.value" class="obj-card">
-            <img v-if="o.img" class="obj-img" :src="o.img" :alt="o.label" />
-            <span class="obj-label">{{ o.label }}</span>
-            <span class="obj-desc">{{ o.desc }}</span>
-          </el-radio>
-        </el-radio-group>
-        <el-row v-if="form.project.objective === 'APP'" :gutter="12" style="margin-top: 12px">
-          <el-col :span="12">
-            <!-- 线上：应用推广 卡片下方是一排「应用下载 / 应用调起 / 预约下载」按钮 + 说明 -->
-            <div class="sub-obj">
-              <el-radio-group v-model="form.project.app_promotion_type" @change="onAppPromoChange" size="small">
-                <el-radio-button v-for="o in APP_PROMOTION_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-              <div class="sub-obj__hint">{{ objCfg.subHint }}</div>
-            </div>
-          </el-col>
-        </el-row>
-
-        <!-- 广告类型 / 投放类型 / 投放模式 / 营销场景 / 内广项目（线上同属「推广目的」段，且都是按钮式单选） -->
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="广告类型" required>
-              <el-radio-group v-model="form.project.ad_type" size="small" @change="onAdTypeChange">
-                <el-radio-button v-for="o in AD_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="投放类型">
-              <el-radio-group v-model="form.project.delivery_type" size="small">
-                <el-radio-button v-for="o in deliveryTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="投放模式">
-              <el-radio-group v-model="form.project.delivery_mode" size="small">
-                <el-radio-button v-for="o in DELIVERY_MODE_EXTRA" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="isSearchAd" :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="蓝海关键词">
-              <el-switch v-model="form.project.blue_ocean" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="选择关键词包">
-              <el-select v-model="form.project.keyword_pack" multiple filterable placeholder="请选择关键词包" style="width: 100%">
-                <el-option v-for="k in keywordPackOptions" :key="k.id" :label="k.name" :value="k.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="智能拓流">
-              <el-switch v-model="form.project.smart_expand" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="isSearchAd && form.project.budget_mode !== 'DAY'" :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="出价方式">
-              <el-radio-group v-model="form.project.bid_mode" size="small">
-                <el-radio-button value="LADDER">阶梯出价</el-radio-button>
-                <el-radio-button value="RANDOM">随机出价</el-radio-button>
-              </el-radio-group>
-              <div class="ad-warn-hint">阶梯出价是指根据您的出价范围，在生成的项目中做等差分配出价；随机出价是指会在出价范围内随机分配出价</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="营销场景" required>
-              <el-radio-group v-model="form.project.marketing_goal" size="small" @change="onMarketingGoalChange">
-                <el-radio-button v-for="o in MARKETING_GOALS" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="内广项目">
-              <el-radio-group v-model="form.project.inner_promotion" size="small">
-                <el-radio-button value="OFF">不开启</el-radio-button>
-                <el-radio-button value="ON">开启</el-radio-button>
-              </el-radio-group>
-              <el-button link type="primary" class="sel-row__link" @click="openGuide('media')">加白指引</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <!-- 关联产品投放（线上按推广目的切换：不启用/启用、无产品/单产品投放/多产品投放、无产品/抖音号/商品；「商品」目的无此模块） -->
-        </div>
-        <div class="form-section" v-if="objCfg.related !== 'NONE'">
-          <div class="form-section__title">关联产品投放</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item :label="objCfg.related === 'CONTENT' ? '推广产品' : '关联产品'">
-              <el-radio-group v-model="form.project.related_product" size="small">
-                <el-radio-button v-for="o in relatedProductOptions" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <template v-if="relatedProductOn">
-          <el-row :gutter="12">
-            <el-col :span="8">
-              <el-form-item label="每个项目配置产品数">
-                <el-input-number v-model="form.project.product_count" :min="1" :max="20" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="产品版本">
-                <el-radio-group v-model="form.project.product_version" size="small">
-                <el-radio-button value="UPGRADE">升级版</el-radio-button>
-                <el-radio-button value="GENERAL">通用版</el-radio-button>
-              </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="产品来源">
-                <el-radio-group v-model="form.project.product_source" size="small">
-                <el-radio-button value="EXISTING">选择已有</el-radio-button>
-                <el-radio-button value="MANUAL">手动填写</el-radio-button>
-              </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="12">
-            <el-col :span="8">
-              <el-form-item label="工作台版本">
-                <el-radio-group v-model="form.project.workbench_version" size="small">
-                <el-radio-button value="OLD">旧版工作台</el-radio-button>
-                <el-radio-button value="NEW">新版工作台</el-radio-button>
-              </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="16">
-              <el-form-item label="匹配方式">
-                <el-radio-group v-model="form.project.product_match_mode" size="small">
-                <el-radio-button value="ALL_SAME">所有项目选择同一组产品</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">每个账户选择一组产品</el-radio-button>
-                <el-radio-button value="PER_SUBJECT">每个主体选择一组产品</el-radio-button>
-                <el-radio-button value="PER_PROJECT">每个项目选择一组产品</el-radio-button>
-              </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="12">
-            <el-col :span="24">
-              <el-form-item label="选择产品">
-                <el-button type="primary" size="small" @click="relatedVisible = true">选择产品</el-button>
-                <span v-if="form.project.product_ids.length" class="sel-picked">
-                  已选 {{ form.project.product_ids.length }} 个产品
-                </span>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-table :data="projProductRows" size="small" border class="proj-inline-table">
-            <el-table-column label="账户" min-width="220">
-              <template #default="{ row }">
-                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
-              </template>
-            </el-table-column>
-            <el-table-column label="产品" min-width="220">
-              <template #default="{ row }">
-                <el-tag v-for="p in row.products" :key="p" closable class="ad-link-tag" @close="row.products = row.products.filter(x => x !== p)">{{ p }}</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </template>
-
-        <!-- AIGC 动态创意（线上：内容营销目的下无此模块） -->
-        </div>
-        <div class="form-section" v-if="objCfg.aigc">
-          <div class="form-section__title">AIGC动态创意</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="AIGC动态创意">
-              <el-radio-group v-model="form.project.aigc_creative" size="small">
-                <el-radio-button value="OFF">不启用</el-radio-button>
-                <el-radio-button value="ON">启用</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <div class="dlg-tip">白名单功能。开启 AIGC 动态创意，请确保产品所有者在行业产品中心已申请获取短副原片的使用授权，如未完成，可能影响素材生成效果。</div>
-
-        <!-- 商品目录 / 商品定向（线上：仅「商品」推广目的出现，取代关联产品投放） -->
-        </div>
-        <div class="form-section" v-if="form.project.objective === 'DPA'">
-          <div class="form-section__title">商品目录</div>
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="商品目录">
-                <el-button type="primary" size="small" @click="pickGoodsCatalog">选择已有</el-button>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
-        <div class="form-section" v-if="form.project.objective === 'DPA'">
-          <div class="form-section__title">商品定向</div>
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="RTA重定向">
-                <el-radio-group v-model="form.project.rta_redirect" size="small">
-                  <el-radio-button value="OFF">不启用</el-radio-button>
-                  <el-radio-button value="ON">启用</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <template v-if="form.project.rta_redirect === 'ON'">
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="RTA策略">
-                  <el-button type="primary" size="small" @click="pickRtaStrategy">选择已有</el-button>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="RTA推荐逻辑">
-                  <el-radio-group v-model="form.project.rta_recommend" size="small">
-                    <el-radio-button value="ONLY">仅RTA推荐商品</el-radio-button>
-                    <el-radio-button value="MORE">基于RTA推荐更多商品</el-radio-button>
-                  </el-radio-group>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </template>
-        </div>
-
-        <!-- 投放内容与目标 -->
-        <div class="form-section">
-          <div class="form-section__title">投放内容与目标</div>
-        <!-- 应用推广专属：星广联投 / 平台类型 / 应用来源 / 事件资产 / 数据跟踪 / 监测链接 / 下载方式 / 事件回传 -->
-        <template v-if="objCfg.content === 'APP'">
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="关联星广联投任务" v-if="!isSearchAd">
-              <el-radio-group v-model="form.project.star_task" size="small">
-                <el-radio-button value="OFF">不启用</el-radio-button>
-                <el-radio-button value="ON">启用</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <div class="dlg-tip">账户需开通星广联投白名单，否则新建会报错。 <el-button link type="primary" class="sel-row__link" @click="openGuide('media')">加白指引</el-button></div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="平台类型">
-              <el-radio-group v-model="form.project.platform_type" size="small">
-                <el-radio-button v-for="o in PLATFORM_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="应用来源">
-              <el-radio-group v-model="form.project.app_source" size="small">
-                <el-radio-button value="SINGLE">已有应用</el-radio-button>
-                <el-radio-button value="INTERNAL">内广应用</el-radio-button>
-              </el-radio-group>
-              <el-button link type="primary" class="sel-row__link" @click="openGuide('innerApp')">内广应用搭建指引</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="匹配方式">
-              <el-radio-group v-model="form.project.event_asset_match" size="small">
-                <el-radio-button value="ALL">所有账户选择一个资产</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">每个账户选择一个资产</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="选择事件资产">
-              <el-button type="primary" size="small" @click="pickEventAsset">选择事件资产</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-table :data="projEventRows" size="small" border class="proj-inline-table">
-          <el-table-column label="账户" min-width="200">
-            <template #default="{ row }">
-              <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
-            </template>
-          </el-table-column>
-          <el-table-column label="事件资产" min-width="240">
-            <template #default="{ row }">
-              <div class="ad-link-cell"><span>{{ row.asset }}</span><span class="ad-link-cell__id">{{ row.pkg }}</span></div>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="90" align="center">
-            <template #default><el-button link type="primary" @click="pickEventAsset">选择</el-button></template>
-          </el-table-column>
-        </el-table>
-        <el-row :gutter="12">
-          <el-col :span="24">
-            <el-form-item label="数据跟踪方式">
-              <el-radio-group v-model="form.project.track_way" size="small">
-                <el-radio-button value="SUB_AND_MONITOR">应用分包+监测活动</el-radio-button>
-                <el-radio-button value="SUB_ONLY">仅应用分包</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="监测链接来源">
-              <el-radio-group v-model="form.project.track_link_source" size="small">
-                <el-radio v-for="o in TRACK_LINK_SOURCES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="匹配方式">
-              <el-radio-group v-model="form.project.link_group_match" size="small">
-                <el-radio-button value="PER_ACCOUNT">每个账户选择一个分包和链接组</el-radio-button>
-                <el-radio-button value="PER_PROJECT">每个项目选择一个分包和链接组</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="选择分包和链接组">
-              <el-button type="primary" size="small" @click="openMonitorGroup('选择监测链接组')">选择分包和链接组</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-table :data="projLinkRows" size="small" border class="proj-inline-table">
-          <el-table-column label="账户" min-width="220">
-            <template #default="{ row }">
-              <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
-            </template>
-          </el-table-column>
-          <el-table-column label="分包和链接组" min-width="220">
-            <template #default="{ row }">
-              <el-tag v-if="row.group" closable class="ad-link-tag" @close="row.group = ''">{{ row.group }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-row :gutter="12">
-          <el-col :span="12" v-if="form.project.app_promotion_type !== 'RESERVE'">
-            <el-form-item label="下载方式">
-              <el-radio-group v-model="form.project.download_type" size="small">
-                <el-radio-button value="DOWNLOAD_URL">直接下载</el-radio-button>
-                <el-radio-button value="EXTERNAL_URL">落地页下载</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="调起方式">
-              <el-radio-group v-model="form.project.launch_type" size="small">
-                <el-radio-button value="DIRECT">直接调起</el-radio-button>
-                <el-radio-button value="LANDING">落地页调起</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="优先应用商店下载">
-              <template #label>
-                <span class="q-label">优先应用商店下载</span>
-                <el-tooltip :content="TIPS.app_store" placement="top">
-                  <el-icon class="q-icon"><QuestionFilled /></el-icon>
-                </el-tooltip>
-              </template>
-              <el-radio-group v-model="form.project.app_store_first" size="small">
-                <el-radio-button value="OFF">不启用</el-radio-button>
-                <el-radio-button value="ON">启用</el-radio-button>
-              </el-radio-group>
-              <div class="ad-warn-hint">巨量广告媒体加白功能，确认账户拥有权限再启用</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="事件回传方式">
-              <el-radio-group v-model="form.project.event_callback_type" size="small">
-                <el-radio v-for="o in EVENT_CALLBACK_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
-              </el-radio-group>
-              <div class="ad-warn-hint">系统根据您所选回传方式新建事件，若事件已存在，事件的回传方式需与搭建时所选保持一致</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        </template>
-        <!-- 其他推广目的：投放载体 / 应用包名 / 推广类型 / 投放内容 -->
-        <template v-else>
-          <el-row v-if="objCfg.content === 'LEAD'" :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="投放载体">
-                <el-radio-group v-model="form.project.promote_carrier" size="small">
-                  <el-radio-button value="MULTI">多投放载体</el-radio-button>
-                  <el-radio-button value="SINGLE">单投放载体</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row v-if="objCfg.content === 'QUICK'" :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="应用包名">
-                <el-button type="primary" size="small" @click="pickQuickApp">选择已有</el-button>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="快应用资产名">
-                <el-input v-model="form.project.quick_asset_name" placeholder="请输入快应用资产名" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row v-if="objCfg.content === 'QUICK'" :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="调起方式">
-                <el-radio-group v-model="form.project.quick_launch_type" size="small">
-                  <el-radio-button value="DIRECT">直接调起</el-radio-button>
-                  <el-radio-button value="LANDING">落地页调起</el-radio-button>
-                </el-radio-group>
-                <div class="ad-warn-hint">请在媒体后台确认所选账户可用调起方式</div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row v-if="objCfg.content === 'GOODS'" :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="推广类型">
-                <el-radio-group v-model="form.project.goods_promote_type" size="small">
-                  <el-radio-button value="LANDING">落地页</el-radio-button>
-                  <el-radio-button value="APP">应用推广</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row v-if="contentOptions.length" :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="投放内容">
-                <el-radio-group v-model="form.project.promote_content" size="small">
-                  <el-radio-button v-for="o in contentOptions" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </template>
-        <!-- 通用：优化目标 / 深度优化目标 -->
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="优化目标" required>
-              <el-select v-model="form.project.external_action" @change="onActionChange" placeholder="请选择优化目标" style="width: 100%">
-                <el-option v-for="o in externalActionOptions" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="深度优化目标">
-              <el-select v-model="form.project.deep_external_action" style="width: 100%">
-                <el-option v-for="o in DEEP_ACTIONS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        </div>
-
-        <!-- 投放版位 -->
-        <div class="form-section">
-          <div class="form-section__title">投放版位</div>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="广告位置" required>
-              <el-radio-group v-model="form.project.inventory_catalog" size="small">
-                <el-radio-button value="UNIVERSAL_SMART">通投智选</el-radio-button>
-                <el-radio-button value="MANUAL">首选媒体</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="16">
-            <el-form-item v-if="form.project.inventory_catalog === 'MANUAL'" label="投放位置" required>
-              <el-select v-model="form.project.inventory_type" multiple>
-                <el-option v-for="o in INVENTORY_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="优选/穿山甲视频类型">
-              <el-select v-model="form.project.union_video_type" style="width: 100%">
-                <el-option v-for="o in UNION_VIDEO_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- 首选媒体（线上：商品 / 内容营销 推广目的下出现） -->
-        <el-row v-if="objCfg.preferredMedia" :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="首选媒体">
-              <el-checkbox-group v-model="form.project.preferred_media">
-                <el-checkbox value="ALL">全选</el-checkbox>
-                <el-checkbox value="DOUYIN">抖音</el-checkbox>
-              </el-checkbox-group>
-              <div class="ad-warn-hint">首选媒体：广告将主要投放在首选媒体上，同时为了帮助广告计划更好的跑量和优化成本，系统有可能将广告智能拓展投放到其他流量场景。</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <!-- 用户定向 -->
-        </div>
-        <div class="form-section">
-          <div class="form-section__title">
-            用户定向
-            <el-button link type="primary" class="sec-collapse" @click="customTargetingOpen = !customTargetingOpen">{{ customTargetingOpen ? '收起' : '自定义定向' }}</el-button>
-          </div>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="定向包来源">
-              <el-radio-group v-model="form.project.target_package_source" size="small">
-                <el-radio-button value="ACCOUNT">账户已有定向包</el-radio-button>
-                <el-radio-button value="CL">创量定向包</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="匹配方式">
-              <el-radio-group v-model="form.project.target_match_mode" size="small">
-                <el-radio-button value="ALL_SAME">所有账户选择一个定向包</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">每个账户选择一个定向包</el-radio-button>
-                <el-radio-button value="PER_PROJECT">每个项目选择一个定向包</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item v-if="customTargetingOpen" label="使用运营商定向">
-              <el-radio-group v-model="form.project.carrier_targeting" size="small">
-                <el-radio-button value="OFF">不使用</el-radio-button>
-                <el-radio-button value="ON">使用</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="选择定向包">
-              <el-button type="primary" size="small" @click="targetingVisible = true">选择定向包</el-button>
-              <span v-if="form.project.audience_package_id" class="sel-picked">
-                {{ (orientationPackages.find(p => p.id === form.project.audience_package_id) || {}).name }}
-              </span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item v-if="customTargetingOpen" label="地域类型">
-              <el-select v-model="form.project.district" style="width: 100%">
-                <el-option value="NONE" label="不限" /><el-option value="REGION" label="行政区域" /><el-option value="BUSINESS_DISTRICT" label="商圈" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8" v-if="form.project.district !== 'NONE'">
-            <el-form-item v-if="customTargetingOpen" label="位置类型">
-              <el-select v-model="form.project.location_type" style="width: 100%">
-                <el-option v-for="o in LOCATION_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item v-if="customTargetingOpen" label="性别">
-              <el-select v-model="form.project.gender" style="width: 100%">
-                <el-option v-for="o in GENDERS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item v-if="customTargetingOpen" label="年龄">
-              <el-select v-model="form.project.age" multiple>
-                <el-option v-for="o in AGES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item v-if="customTargetingOpen" label="过滤已转化用户">
-              <el-select v-model="form.project.hide_if_converted" style="width: 100%">
-                <el-option v-for="o in HIDE_CONVERTED" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item v-if="customTargetingOpen" label="定向人群包">
-              <el-select v-model="form.project.include_packages" multiple placeholder="包含的自定义人群">
-                <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item v-if="customTargetingOpen" label="排除人群包">
-              <el-select v-model="form.project.exclude_packages" multiple placeholder="排除的自定义人群">
-                <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item v-if="customTargetingOpen" label="行为兴趣定向">
-              <el-select v-model="form.project.interest_action_mode" @change="onInterestModeChange" style="width: 100%">
-                <el-option v-for="o in INTEREST_ACTION_MODES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8" v-if="needActionTargeting">
-            <el-form-item v-if="customTargetingOpen" label="行为天数">
-              <el-select v-model="form.project.action_days" style="width: 100%">
-                <el-option v-for="o in ACTION_DAYS" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8" v-if="needActionTargeting">
-            <el-form-item v-if="customTargetingOpen" label="行为关键词">
-              <el-input v-model="form.project.action_words" placeholder="多个关键词用逗号分隔" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="needActionTargeting && customTargetingOpen" :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="行为类目">
-              <el-select v-model="form.project.action_categories" multiple filterable allow-create default-first-option placeholder="输入并选择行为类目" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item v-if="customTargetingOpen" label="重定向人群包（包含）">
-              <el-select v-model="form.project.retargeting_tags_include" multiple placeholder="包含的重定向人群">
-                <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item v-if="customTargetingOpen" label="重定向人群包（排除）">
-              <el-select v-model="form.project.retargeting_tags_exclude" multiple placeholder="排除的重定向人群">
-                <el-option v-for="p in audiencePackages" :key="p.id" :value="p.id" :label="p.name">{{ p.name }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-          <el-table :data="projAudienceRows" size="small" border class="proj-inline-table">
-            <el-table-column label="账户名称" min-width="220">
-              <template #default="{ row }">
-                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
-              </template>
-            </el-table-column>
-            <el-table-column label="定向包" min-width="220">
-              <template #default="{ row }">
-                <el-tag v-if="row.pack" closable class="ad-link-tag" @close="row.pack = ''">{{ row.pack }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="90" align="center">
-              <template #default="{ row }"><el-button link type="primary" @click="targetingVisible = true">添加</el-button></template>
-            </el-table-column>
-          </el-table>
-        </div>
-
-        <!-- 项目排期与预算 -->
-        <div class="form-section">
-<div class="form-section__title">
-            项目排期与预算
-            <el-button link type="primary" class="sec-collapse" @click="projectRuleFolded = !projectRuleFolded">{{ projectRuleFolded ? '展开' : '全部收起' }}</el-button>
-          </div>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="配置模式">
-              <el-radio-group v-model="form.project.schedule_config_mode" size="small">
-                <el-radio-button value="UNIFIED">统一配置</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">分账户配置</el-radio-button>
-                <el-radio-button value="PER_SUBJECT">分主体配置</el-radio-button>
-                <el-radio-button value="PER_PROJECT">分项目配置</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="投放时间">
-              <el-radio-group v-model="form.project.schedule_time" size="small">
-                <el-radio-button value="LONG_TERM">从今天到长期投放</el-radio-button>
-                <el-radio-button value="CUSTOM">设置开始和结束日期</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="投放时段">
-              <el-radio-group v-model="form.project.schedule_period" size="small">
-                <el-radio-button value="ALL">不限</el-radio-button>
-                <el-radio-button value="CUSTOM">指定时间段</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- 分时投放网格：星期 × 小时，支持点击单元格与拖动圈选 -->
-        <el-row v-if="form.project.schedule_period === 'CUSTOM'" :gutter="12">
-          <el-col :span="24">
-            <el-form-item label="分时投放">
-              <div
-                class="slot-grid"
-                @mouseup="endDrag"
-                @mouseleave="endDrag"
-              >
-                <div class="slot-row slot-head">
-                  <div class="slot-corner">时段</div>
-                  <div v-for="w in WEEK_DAYS" :key="w.value" class="slot-col">{{ w.label }}</div>
-                </div>
-                <div v-for="h in SCHEDULE_HOURS" :key="h.value" class="slot-row">
-                  <div class="slot-hour">{{ h.label }}</div>
-                  <div
-                    v-for="w in WEEK_DAYS"
-                    :key="w.value"
-                    class="slot-cell"
-                    :class="{ on: isSlotOn(w.value, h.value) }"
-                    @mousedown.prevent="onSlotMouseDown(w.value, h.value)"
-                    @mouseenter="onSlotEnter(w.value, h.value)"
-                  ></div>
-                </div>
-              </div>
-              <div class="slot-actions">
-                <el-button link type="primary" size="small" @click="fillAllSlots(true)">全选</el-button>
-                <el-button link type="primary" size="small" @click="fillAllSlots(false)">清空</el-button>
-                <span class="slot-hint">点击单元格切换投放；按住鼠标划过可批量圈选/取消</span>
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="form.project.schedule_time === 'CUSTOM'" :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="开始日期"><el-date-picker v-model="form.project.start_date" type="date" style="width: 100%" /></el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结束日期"><el-date-picker v-model="form.project.end_date" type="date" style="width: 100%" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="objCfg.nightFilter" :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="过滤夜间">
-              <el-radio-group v-model="form.project.night_filter" size="small">
-                <el-radio-button value="OFF">不关闭</el-radio-button>
-                <el-radio-button value="ON">关闭</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="项目预算" v-if="!isSearchAd">
-              <el-radio-group v-model="form.project.budget_mode" size="small" @change="onBudgetModeChange">
-                <el-radio-button v-for="o in budgetModeOptions" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="竞价策略">
-              <template #label><span class="q-label">竞价策略</span><el-tooltip :content="TIPS.bid_strategy" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template>
-              <div class="bid-cards">
-                <div
-                  v-for="o in bidStrategyOptions"
-                  :key="o.value"
-                  class="bid-card"
-                  :class="{ active: form.project.bid_strategy === o.value }"
-                  @click="form.project.bid_strategy = o.value"
-                >
-                  <div class="bid-card__title">{{ o.label }}</div>
-                  <div class="bid-card__desc">{{ o.desc }}</div>
-                </div>
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8" v-if="objCfg.payMode">
-            <el-form-item label="付费方式">
-              <el-radio-group v-model="form.project.pay_method" size="small">
-                <el-radio-button value="PRICING_OCPM">目标转化出价-按展示付费(OCPM)</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="预算出价配置模式">
-              <el-select v-model="form.project.budget_config_mode" style="width: 100%">
-                <el-option v-for="o in CONFIG_MODES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- 线上：预算出价规则1（收起/展开），内含 日预算(快捷值) / 出价方式 / 出价 -->
-        <div class="ad-summary">
-          <span>竞价策略：<b>{{ projectBidSummary.bid_strategy }}</b></span>
-          <span>优化目标：<b>{{ projectBidSummary.optimize_goal }}</b></span>
-          <span>付费方式：<b>{{ projectBidSummary.pay_mode }}</b></span>
-        </div>
-        <el-form-item label="预算出价规则1">
-          <span class="ad-rule-label">预算出价规则1</span>
-          <el-button link type="primary" class="ad-rule-fold" @click="projectRuleFolded = !projectRuleFolded">
-            {{ projectRuleFolded ? '展开' : '收起' }}
-          </el-button>
-        </el-form-item>
-        <div v-show="!projectRuleFolded" class="ad-rule-box">
-          <el-row :gutter="12">
-            <el-col :span="8">
-              <el-form-item label="日预算" required v-if="form.project.budget_mode === 'DAY'">
-                <div class="ad-rule-budget">
-                  <el-input-number v-model="form.project.budget" :min="budgetMin" :step="50" controls-position="right" />
-                  <span class="ad-rule-quick">
-                    <a v-for="q in [300, 500, 1000, 2000]" :key="q" @click="form.project.budget = q">{{ q }}</a>
-                  </span>
-                </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="出价方式">
-                <el-radio-group v-model="form.project.bid_method" size="small">
-                  <el-radio-button v-for="o in BID_METHODS" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="出价">
-                <el-input-number v-model="form.project.bid" :min="bidMin" :step="0.1" controls-position="right" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
-        </div>
-
-
-                  <!-- 搜索快投（线上：出价系数 / 定向拓展 / 搜索快投服务；仅内容营销目的或搜索广告时出现） -->
-        <div class="form-section" v-if="showSearchFast">
-          <div class="form-section__title">搜索快投</div>
-          <el-form-item label="关键词">
-            <div class="sell-ops">
-              <el-input v-model="searchForm.keyword" class="sell-input" placeholder="未添加关键词" readonly />
-              <el-button link type="primary">编辑</el-button>
-              <el-button link type="primary" @click="searchForm.keyword = ''">清空</el-button>
-            </div>
-          </el-form-item>
-          <el-form-item label="出价系数" v-if="!isSearchAd">
-            <el-radio-group v-model="searchForm.bid_coef" size="small">
-              <el-radio-button value="OFF">不启用</el-radio-button>
-              <el-radio-button value="ON">启用</el-radio-button>
-            </el-radio-group>
-            <div class="ad-hint">不再用出价系数时默认出价系数为1（仅针对可设置出价系数的账户生效）</div>
-          </el-form-item>
-          <el-form-item label="定向拓展" v-if="!isSearchAd">
-            <template #label>
-              <span class="q-label">定向拓展</span>
-              <el-tooltip content="定向拓展仅对搜索广告生效，开启后可拓展更多相关人群。" placement="top">
-                <el-icon class="q-icon"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </template>
-            <el-radio-group v-model="searchForm.extend" size="small">
-              <el-radio-button value="OFF">不启用</el-radio-button>
-              <el-radio-button value="ON">启用</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label=" ">
-            <el-checkbox v-model="searchForm.service">搜索快投服务（仅支持媒体平台申请了搜索快投豁免账户，否则"出价系数"和"定向拓展"媒体API策略默认开启）</el-checkbox>
-          </el-form-item>
-        </div>
-        <!-- 第三方监测链接（线上：除应用推广外，切换推广目的后出现） -->
-        <div class="form-section" v-if="objCfg.thirdParty">
-          <div class="form-section__title">第三方监测链接</div>
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="第三方监测链接">
-                <el-radio-group v-model="form.project.third_party_monitor" size="small">
-                  <el-radio-button value="OFF">不启用</el-radio-button>
-                  <el-radio-button value="ON">启用</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <template v-if="form.project.third_party_monitor === 'ON'">
-            <div class="dlg-tip">仅在优化目标=APP下单且深度优化目标=ROI直投时支持多个监测链接,其他链路仅支持单个。</div>
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="第三方监测链接来源">
-                  <el-radio-group v-model="form.project.third_party_source" size="small">
-                    <el-radio-button v-for="o in THIRD_PARTY_LINK_SOURCES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-                  </el-radio-group>
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="匹配方式">
-                  <el-radio-group v-model="form.project.third_party_match" size="small">
-                    <el-radio-button value="ALL">所有项目选择同一个监测链接</el-radio-button>
-                    <el-radio-button value="PER_ACCOUNT">每个账户选择一个监测链接</el-radio-button>
-                    <el-radio-button value="PER_PROJECT">每个项目选择一个监测链接</el-radio-button>
-                  </el-radio-group>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="选择监测链接">
-                  <el-button type="primary" size="small" @click="pickMonitorLink">选择监测链接</el-button>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </template>
-        </div>
-        <!-- 项目名称（线上独立分区） -->
-        <div class="form-section">
-          <div class="form-section__title">项目名称</div>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="项目默认状态">
-              <el-radio-group v-model="form.project.operation" size="small">
-                <el-radio-button value="DISABLE">暂停</el-radio-button>
-                <el-radio-button value="ENABLE">开启</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="名称配置模式">
-              <el-radio-group v-model="form.project.project_name_mode" size="small">
-                <el-radio-button value="UNIFIED">统一配置</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">分账户配置</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="16">
-            <el-form-item label="项目名称" required>
-              <el-input v-model="form.project.name" :maxlength="100" placeholder="通配符：渠道包名 / 监测活动名 / 已有监测链接组名" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="自动截断">
-              <template #label><span class="q-label">自动截断</span><el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template><el-switch v-model="form.project.auto_truncate" /></el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="随机数后缀">
-              <template #label><span class="q-label">随机数后缀</span><el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip></template><el-switch v-model="form.project.random_suffix" /></el-form-item>
-          </el-col>
-        </el-row>
-          <div class="name-wildcards">
-            <span class="name-wildcards__label">通配符:</span>
-            <el-button link type="primary" @click="appendWildcard('下载链接标识')">下载链接标识</el-button>
-            <el-button link type="primary" @click="appendWildcard('渠道包名')">渠道包名</el-button>
-            <el-button link type="primary" @click="appendWildcard('监测活动名')">监测活动名</el-button>
-            <el-button link type="primary" @click="wildcardMoreVisible = true">插入更多</el-button>
-          </div>
-          <div class="name-warn-hint">名称长度最多100字符（1汉字=2字符），使用通配符时，请注意控制自定义内容长度</div>
-        </div>
-      </el-form>
-      <template #footer>
-        <el-button @click="onProjectCancel">取消</el-button>
-        <el-button type="primary" @click="onProjectConfirm">确定</el-button>
-      </template>
-    </el-drawer>
+    <BatchProjectDrawer v-model="projVisible" />
 
     <!-- 抖音号抽屉 -->
     <el-drawer v-model="awemeVisible" title="抖音号" size="780px" direction="rtl">
@@ -2114,688 +937,14 @@
     </el-drawer>
 
     <!-- 广告信息弹窗 -->
-    <el-drawer v-model="adVisible" title="广告基本信息" size="1016px" direction="rtl">
-      <!-- 线上：右上角「预估广告数」浮层 -->
-      <div class="ad-est">
-        <div class="ad-est__title">预估广告数</div>
-        <div class="ad-est__row"><span>账户数：</span><b>{{ adEstimate.accounts }}</b></div>
-        <div class="ad-est__row"><span>项目数：</span><b>{{ adEstimate.projects }}</b></div>
-        <div class="ad-est__row"><span>广告数：</span><b>{{ adEstimate.ads }}</b></div>
-      </div>
-      <!-- 线上「广告基本信息」面板（实测 1016px）：直达链接类型 / 来源 / 匹配方式 -->
-      <el-form label-position="left" label-width="120px" class="ad-basic-form">
-        <el-form-item label="推广身份">
-          <el-radio-group v-model="form.ad.promotion_identity" size="small">
-            <el-radio-button value="AWEME">抖音号</el-radio-button>
-            <el-radio-button value="ACCOUNT">账户信息</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="抖音号">
-          <template #label>
-            <span class="q-label">抖音号</span>
-            <el-tooltip content="抖音号作为推广身份，可获得更多流量；需在巨量广告-账户-账号管理中完成授权。" placement="top">
-              <el-icon class="q-icon"><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </template>
-          <el-select v-model="form.ad.aweme_id" multiple filterable placeholder="请选择抖音号" style="width: 100%">
-            <el-option v-for="a in awemeList" :key="a.aweme_id" :label="a.nickname" :value="a.aweme_id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="账户信息">
-          <template #label>
-            <span class="q-label">账户信息</span>
-            <el-tooltip content="账户信息作为推广身份，无法获得更多流量" placement="top">
-              <el-icon class="q-icon"><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </template>
-          <el-select v-model="form.ad.account_ids" multiple filterable placeholder="请选择账户" style="width: 100%">
-            <el-option v-for="a in selectedAccounts" :key="a.id" :label="a.name" :value="a.id" />
-          </el-select>
-        </el-form-item>
-        <div class="ad-promote-tips">
-          <div>选择账户信息作为推广身份，无法获得更多流量</div>
-          <div>推荐使用抖音号作为推广身份</div>
-        </div>
-        <template v-if="!isUpgrade">
-        <el-form-item label="直达链接类型">
-          <el-radio-group v-model="form.ad.link_type">
-            <el-radio value="DEEPLINK">Deeplink直达链接</el-radio>
-            <el-radio value="DEEPLINK_ULINK">Deeplink+Ulink直达链接</el-radio>
-            <el-radio value="ULINK">Ulink直达链接</el-radio>
-          </el-radio-group>
-          <div class="ad-warn-hint">该直达链接类型仅Deeplink生效</div>
-        </el-form-item>
-        <el-form-item label="直达链接来源">
-          <el-radio-group v-model="form.ad.link_source" @change="onLinkSourceChange">
-            <el-radio value="IMPORT">导入直达链接</el-radio>
-            <el-radio value="LP_AUTO">落地页自动关联</el-radio>
-            <el-radio value="DYNAMIC">动态链接生成</el-radio>
-            <el-radio value="LP_MANUAL">落地页自动生成</el-radio>
-            <el-radio value="MANUAL">手动填写</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="匹配方式" v-if="form.ad.link_source === 'DYNAMIC'">
-          <el-radio-group v-model="form.ad.link_match_mode">
-            <el-radio value="PROJECT">所有项目选择一个直达链接</el-radio>
-            <el-radio value="ACCOUNT">每个账户选择一个直达链接</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="选择直达链接" v-if="['IMPORT', 'MANUAL'].includes(form.ad.link_source)">
-          <el-button type="primary" size="small" @click="pickDeeplink">选择直达链接</el-button>
-        </el-form-item>
-        <el-form-item label="选择动态链接" v-if="form.ad.link_source === 'DYNAMIC'">
-          <el-button type="primary" size="small" @click="pickDynLink">选择动态链接</el-button>
-        </el-form-item>
-        <el-table :data="adLinkRows" size="small" border class="ad-link-table">
-          <el-table-column label="账户" min-width="240">
-            <template #default="{ row }">
-              <div class="ad-link-cell">
-                <span>{{ row.account }}</span>
-                <span class="ad-link-cell__id">{{ row.accountId }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="直达链接" min-width="240">
-            <template #default="{ row }">
-              <el-tag v-if="row.url" closable class="ad-link-tag" @close="removeAdLink(row)">{{ row.url }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-        </template>
-      </el-form>
-      <el-form :model="form.ad" class="drawer-form" label-position="top">
-        <div class="form-section">
-          <div class="form-section__title">创意组件</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="附加创意组件">
-              <el-radio-group v-model="form.ad.extra_component" @change="onExtraComponentChange">
-                <el-radio value="OFF">不启用</el-radio>
-                <el-radio value="ON">启用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="选择创意组件" v-if="form.ad.extra_component === 'ON'">
-              <el-select v-model="form.ad.extra_component_ids" multiple filterable placeholder="请选择创意组件" style="width: 100%">
-                <el-option v-for="c in extraComponentOptions" :key="c.id" :label="c.name" :value="c.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <!-- 行动号召 -->
-        </div>
-        <div class="form-section">
-          <div class="form-section__title">行动号召</div>
-        <el-form-item label="行动号召文案">
-          <div class="sell-ops">
-            <el-input
-              v-model="ctaInput"
-              class="sell-input"
-              placeholder="空格分隔，最多10个，每个标签不超过6个字"
-              @keyup.enter="addCtaTags"
-            />
-            <el-button size="small" type="primary" plain @click="addCtaTags">添加（回车键)</el-button>
-            <el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button>
-          </div>
-          <div class="sell-ops sell-ops--tpl">
-            <el-select v-model="ctaTemplate" class="sell-tpl" clearable placeholder="选择模板">
-              <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
-            </el-select>
-            <el-button size="small" @click="openCtaSaveTpl()">保存为模板</el-button>
-          </div>
-          <div class="sell-tags sell-tags--grid">
-            <div class="sell-tags__head">
-              <span>已选标签</span>
-              <el-button link type="primary" @click="form.ad.cta_tags = []">清空</el-button>
-            </div>
-            <el-tag
-              v-for="(t, ti) in form.ad.cta_tags"
-              :key="t + ti"
-              closable
-              class="sell-tag"
-              @close="form.ad.cta_tags.splice(ti, 1)"
-            >{{ t }}</el-tag>
-            <span v-if="!form.ad.cta_tags.length" class="sell-tags__empty">暂无</span>
-          </div>
-        </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="8"><el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button></el-col>
-          <el-col :span="8"><el-button size="small" @click="openCtaSaveTpl()">保存为模板</el-button></el-col>
-          <el-col :span="8"><el-form-item label="开启智能生成"><el-switch v-model="form.ad.cta_smart" /></el-form-item></el-col>
-        </el-row>
-
-        </div>
-          <!-- 广告预算与出价（线上：与广告设置同面板，滚动到本段；转化优化版无此段） -->
-          <div class="form-section" id="ad-budget" v-if="!isUpgrade">
-            <div class="form-section__title">
-              广告预算与出价
-              <el-button link type="primary" class="sec-collapse" @click="adBudget.folded = !adBudget.folded">全部收起</el-button>
-            </div>
-            <div class="ad-summary">
-              <span>竞价策略: <b>{{ adBudgetSummary.bid_strategy }}</b></span>
-              <span>优化目标: <b>{{ adBudgetSummary.optimize_goal }}</b></span>
-              <span>深度优化方式: <b>{{ adBudgetSummary.deep_bid_mode }}</b></span>
-              <span>付费方式: <b>{{ adBudgetSummary.pay_mode }}</b></span>
-            </div>
-            <el-form-item label="预算出价配置模式">
-              <el-radio-group v-model="adBudget.config_mode" size="small">
-                <el-radio-button value="UNIFIED">统一配置</el-radio-button>
-                <el-radio-button value="ACCOUNT">分账户配置</el-radio-button>
-                <el-radio-button value="SUBJECT">分主体配置</el-radio-button>
-                <el-radio-button value="PROJECT">分项目配置</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="竞价策略">
-              <el-select v-model="adBudget.bid_strategy" style="width: 100%">
-                <el-option label="稳定成本（常规版）" value="STABLE" />
-                <el-option label="成本上限（常规版）" value="COST_CAP" />
-                <el-option label="最大转化" value="MAX_CONV" />
-                <el-option label="控成本投放" value="CONTROL_COST" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="优化目标">
-              <el-select v-model="adBudget.optimize_goal" style="width: 100%">
-                <el-option label="app内付费/无" value="APP_PAY" />
-                <el-option label="激活/无" value="ACTIVATE" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="深度优化方式">
-              <el-select v-model="adBudget.deep_bid_mode" style="width: 100%">
-                <el-option label="无" value="NONE" />
-                <el-option label="双出价" value="DOUBLE" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="付费方式">
-              <el-select v-model="adBudget.pay_mode" style="width: 100%">
-                <el-option label="目标转化出价-按展示付费" value="OCPM" />
-                <el-option label="目标转化出价-按点击付费" value="CPC" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="预算出价规则1">
-              <template #label>
-                <span class="ad-rule-label">预算出价规则1</span>
-                <el-button link type="primary" class="ad-rule-fold" @click="adBudget.folded = !adBudget.folded">
-                  {{ adBudget.folded ? '展开' : '收起' }}
-                </el-button>
-              </template>
-              <div v-show="!adBudget.folded" class="ad-rule-box">
-                <el-form-item label="预算">
-                  <div class="ad-rule-budget">
-                    <el-input v-model="adBudget.budget" class="ad-rule-input">
-                      <template #append>元</template>
-                    </el-input>
-                    <span class="ad-rule-quick">
-                      <a v-for="q in [300, 500, 1000, 2000]" :key="q" @click="adBudget.budget = String(q)">{{ q }}</a>
-                    </span>
-                  </div>
-                </el-form-item>
-                <el-form-item label="出价">
-                  <el-input v-model="adBudget.bid" class="ad-rule-input">
-                    <template #append>元</template>
-                  </el-input>
-                </el-form-item>
-              </div>
-            </el-form-item>
-          </div>
-      
-      
-        <div class="form-section">
-          <div class="form-section__title" id="ad-products">产品信息</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="配置模式">
-              <el-select v-model="form.ad.product_info_mode" style="width: 100%">
-                <el-option v-for="o in CONFIG_MODES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="引用上次信息">
-              <el-button size="small" @click="copyLastProduct">引用上次信息</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="产品名称（0/20）">
-              <el-input v-model="form.ad.product_name" :maxlength="20" placeholder="请输入产品名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="引用应用名称">
-              <el-button size="small" @click="form.ad.product_name = form.project.app_name">引用应用名称</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="产品主图">
-              <div class="pimg-row">
-                <div class="pimg-logo">{{ (form.ad.product_name || form.project.app_name || '产品').slice(0, 2) }}</div>
-                <div class="pimg-add" @click="onPickMainImage">
-                  <span class="pimg-add__plus">+</span>
-                  <span class="pimg-add__text">图片({{ form.ad.product_main_images.length }}/10)</span>
-                </div>
-                <el-tag
-                  v-for="(im, i) in form.ad.product_main_images"
-                  :key="im"
-                  closable
-                  class="pimg-tag"
-                  @close="form.ad.product_main_images.splice(i, 1)"
-                >{{ (images.find(x => x.id === im) || {}).title || im }}</el-tag>
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="产品卖点">
-              <div class="sell-hint">添加的商品是10个,每个不超过5张</div>
-              <div class="sell-ops">
-                <el-button size="small" type="primary" plain @click="addSellPoint">添加（回车键)</el-button>
-                <el-button size="small" @click="ctaRecommendVisible = true">查看推荐</el-button>
-              </div>
-              <div class="sell-ops sell-ops--tpl">
-                <el-select v-model="form.ad.sell_template" class="sell-tpl" clearable placeholder="选择模板">
-                  <el-option v-for="c in CTA_PRESETS" :key="c" :value="c">{{ c }}</el-option>
-                </el-select>
-                <el-button size="small" @click="openCtaSaveTpl()">保存为模板</el-button>
-              </div>
-              <div class="sell-tags">
-                <div class="sell-tags__head">
-                  <span>已选标签</span>
-                  <el-button link type="primary" @click="form.ad.product_sell_points = []">清空</el-button>
-                </div>
-                <el-tag
-                  v-for="(t, ti) in form.ad.product_sell_points"
-                  :key="t + ti"
-                  closable
-                  class="sell-tag"
-                  @close="form.ad.product_sell_points.splice(ti, 1)"
-                >{{ t }}</el-tag>
-                <span v-if="!form.ad.product_sell_points.length" class="sell-tags__empty">暂无</span>
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        </div>
-
-
-      
-        <div class="form-section">
-          <div class="form-section__title" id="ad-settings">广告设置</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="配置模式">
-              <el-select v-model="form.ad.ad_setting_mode" style="width: 100%">
-                <el-option v-for="o in CONFIG_MODES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="广告评论">
-              <el-radio-group v-model="form.ad.comment_disable">
-                <el-radio :value="false">不启用</el-radio>
-                <el-radio :value="true">启用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="客户端下载">
-              <el-radio-group v-model="form.ad.client_download">
-                <el-radio value="OFF">不启用</el-radio>
-                <el-radio value="ON">启用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-alert
-              type="info"
-              :closable="true"
-              title="以内容非必要场景，可根据实际投放需求设置。"
-              class="ad-tip"
-            />
-            <el-form-item label="类别/品牌名称">
-              <el-radio-group v-model="form.ad.brand_switch">
-                <el-radio value="OFF">不启用</el-radio>
-                <el-radio value="ON">启用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <template v-if="form.ad.brand_switch === 'ON'">
-          <el-row :gutter="12">
-            <el-col :span="8"><el-form-item label="所属类别"><el-input v-model="form.ad.category" placeholder="-" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="品牌名称"><el-input v-model="form.ad.brand_name" placeholder="-" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="二级品牌名称"><el-input v-model="form.ad.second_brand_name" placeholder="-" /></el-form-item></el-col>
-          </el-row>
-        </template>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section__title" id="ad-name">广告名称</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-<el-form-item label="广告默认状态">
-              <el-radio-group v-model="form.ad.operation">
-                <el-radio value="DISABLE">暂停</el-radio>
-                <el-radio value="ENABLE">开启</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="名称配置模式">
-              <el-select v-model="form.ad.ad_name_mode" style="width: 100%">
-                <el-option value="UNIFIED" label="统一配置" />
-                <el-option value="PER_ACCOUNT" label="分账户配置" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="24">
-            <el-form-item label="广告名称" required>
-              <el-input v-model="form.ad.name_template" :maxlength="100" placeholder="通配符：渠道包名 / 监测活动名 / 已有监测链接组名" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="自动截断">
-              <template #label>
-                <span class="q-label">自动截断</span>
-                <el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip>
-              </template>
-              <el-switch v-model="form.ad.ad_auto_truncate" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="广告动态标号">
-              <el-switch v-model="form.ad.ad_dynamic_index" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="随机数后缀">
-              <template #label>
-                <span class="q-label">随机数后缀</span>
-                <el-tooltip :content="TIPS.auto_truncate" placement="top"><el-icon class="q-icon"><QuestionFilled /></el-icon></el-tooltip>
-              </template>
-              <el-switch v-model="form.ad.ad_random_suffix" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-          <div class="name-wildcards">
-            <span class="name-wildcards__label">通配符:</span>
-            <el-button link type="primary" @click="appendAdWildcard('下载链接标识')">下载链接标识</el-button>
-            <el-button link type="primary" @click="appendAdWildcard('渠道包名')">渠道包名</el-button>
-            <el-button link type="primary" @click="appendAdWildcard('监测活动名')">监测活动名</el-button>
-            <el-button link type="primary" @click="wildcardMoreVisible = true">插入更多</el-button>
-          </div>
-          <div class="name-warn-hint">名称长度最多100字符（1汉字=2字符），使用通配符时，请注意控制自定义内容长度</div>
-        </div>
-
-        </el-form>
-      <template #footer>
-        <el-button @click="adVisible = false">取消</el-button>
-        <el-button type="primary" @click="adVisible = false">确定</el-button>
-      </template>
-    </el-drawer>
+    <BatchAdDrawer v-model="adVisible" />
 
     <!-- 产品信息抽屉 -->
 
     <!-- 广告设置抽屉 -->
 
     <!-- 创意素材弹窗 -->
-    <el-drawer v-model="matVisible" title="手动选取素材" size="1016px" direction="rtl">
-      <el-tabs v-model="matTab" class="mat-tabs">
-        <!-- 手动选取素材 -->
-        <el-tab-pane label="手动选取素材" name="manual">
-          <el-form :model="form.materials" class="drawer-form" label-position="top">
-            <div class="form-section">
-              <div class="form-section__title">素材设置</div>
-              <el-form-item label="多账户分配规则">
-                <div class="card-choices">
-                  <div
-                    v-for="o in ASSIGN_RULES" :key="o.value"
-                    class="choice-card" :class="{ active: form.materials.assign_rule === o.value }"
-                    @click="form.materials.assign_rule = o.value"
-                  >
-                    <div class="choice-card__title">{{ o.label }}</div>
-                    <div class="choice-card__desc">{{ o.desc }}</div>
-                  </div>
-                </div>
-              </el-form-item>
-              <el-row :gutter="12">
-                <el-col :span="12">
-                  <el-form-item label="视频上传至">
-                    <el-radio-group v-model="form.materials.upload_scope">
-                      <el-radio v-for="o in UPLOAD_SCOPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="主页可见">
-                    <el-radio-group v-model="form.materials.home_visibility">
-                      <el-radio v-for="o in HOME_VISIBILITIES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
-                    </el-radio-group>
-                    <div class="dlg-tip warn">仅视频及图文素材、且来源不为抖音页素材时生效</div>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-row :gutter="12">
-                <el-col :span="12">
-                  <el-form-item label="区分素材版式">
-                    <el-radio-group v-model="form.materials.separate_layout">
-                      <el-radio value="OFF">不启用</el-radio>
-                      <el-radio value="VIDEO">视频</el-radio>
-                      <el-radio value="IMAGE">图片</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="引导视频">
-                    <el-radio-group v-model="form.materials.guide_video">
-                      <el-radio value="OFF">不启用</el-radio>
-                      <el-radio value="ON">原链路</el-radio>
-                      <el-radio value="NEW">新链路</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="每个创意组配置">
-                <div class="count-row">
-                  <div class="count-item">
-                    <span class="count-item__label">视频</span>
-                    <el-input-number v-model="form.materials.group_video_count" :min="0" :max="30" controls-position="right" size="small" />
-                  </div>
-                  <div class="count-item">
-                    <span class="count-item__label">图片</span>
-                    <el-input-number v-model="form.materials.group_image_count" :min="0" :max="50" controls-position="right" size="small" />
-                  </div>
-                  <div class="count-item">
-                    <span class="count-item__label">图文</span>
-                    <el-input-number v-model="form.materials.group_text_count" :min="0" :max="10" controls-position="right" size="small" />
-                  </div>
-                </div>
-                <div class="dlg-tip">即单个广告内的素材数量。注：因媒体限制，视频最多30个，图片最多50个，图文最多10个。</div>
-              </el-form-item>
-              <el-form-item label="统一配置创意组名">
-                <div class="inline-row">
-                  <el-input v-model="form.materials.group_name_template" placeholder="请输入创意组名称" />
-                  <el-button @click="applyGroupName">统一配置</el-button>
-                </div>
-                <div class="dlg-tip">适配符：+素材名　+模版视频名　+竖版视频名　⧉ 插入更多</div>
-              </el-form-item>
-              <el-form-item label="素材类型">
-                <el-checkbox-group v-model="form.materials.material_types">
-                  <el-checkbox v-for="o in MATERIAL_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-checkbox>
-                </el-checkbox-group>
-              </el-form-item>
-            </div>
-            <div class="form-section">
-              <div class="form-section__title">
-                创意制作
-                <span class="form-section__extra">（创意组数量：{{ form.materials.creative_groups.length }}）</span>
-              </div>
-              <div class="creative-toolbar">
-                <el-button link @click="shuffleGroups">乱序</el-button>
-                <el-button link @click="clearMaterials">清空</el-button>
-                <el-button type="primary" plain size="small" @click="randomPick">随机选择</el-button>
-                <el-button type="primary" plain size="small" @click="smartPick">智能优选</el-button>
-                <el-button type="primary" plain size="small" @click="refreshGroups">一键测新</el-button>
-                <el-dropdown>
-                  <el-button>更多菜单<el-icon><ArrowDown /></el-icon></el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="pickCover(true)">批量添加封面</el-dropdown-item>
-                      <el-dropdown-item @click="pickCover(false)">一键指定封面</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-                <el-dropdown>
-                  <el-button type="primary">批量添加素材<el-icon><ArrowDown /></el-icon></el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="addLocalMaterial">添加本地素材</el-dropdown-item>
-                      <el-dropdown-item @click="addSurgeMaterial">添加冲量素材</el-dropdown-item>
-                      <el-dropdown-item @click="pickTextImage">添加已有图文</el-dropdown-item>
-                      <el-dropdown-item @click="autoCreateTextImage">自动新建图文</el-dropdown-item>
-                      <el-dropdown-item @click="pickGuideVideo">添加引导视频</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-              <div v-for="(g, gi) in form.materials.creative_groups" :key="gi" class="creative-group">
-                <div class="group-head">
-                  <span class="group-head__name">创意组{{ String(gi + 1).padStart(2, '0') }}</span>
-                  <el-button type="primary" size="small" @click="pickMaterial(gi)">添加素材</el-button>
-                  <el-input v-model="g.name" placeholder="创意组名称" style="width: 180px" />
-                  <el-button v-if="form.materials.creative_groups.length > 1" link type="danger" @click="removeGroup(gi)">删除创意组</el-button>
-                </div>
-                <el-tabs v-model="g.tab" class="group-tabs">
-                  <el-tab-pane :label="`视频(${(g.videos || []).length}/${form.materials.group_video_count})`" name="video">
-                    <el-select v-model="g.videos" multiple filterable placeholder="选择视频" style="width: 100%">
-                      <el-option v-for="v in videos" :key="v.id" :value="v.id" :label="v.title">{{ v.title }}</el-option>
-                    </el-select>
-                  </el-tab-pane>
-                  <el-tab-pane :label="`图片(${(g.images || []).length}/${form.materials.group_image_count})`" name="image">
-                    <el-select v-model="g.images" multiple filterable placeholder="选择图片" style="width: 100%">
-                      <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
-                    </el-select>
-                  </el-tab-pane>
-                  <el-tab-pane :label="`图文(${(g.text_images || []).length}/${form.materials.group_text_count})`" name="text">
-                    <el-select v-model="g.text_images" multiple filterable placeholder="选择图文" style="width: 100%">
-                      <el-option v-for="im in images" :key="im.id" :value="im.id" :label="im.title">{{ im.title }}</el-option>
-                    </el-select>
-                  </el-tab-pane>
-                </el-tabs>
-              </div>
-              <el-button type="primary" plain @click="addGroup">+ 添加创意组</el-button>
-            </div>
-          </el-form>
-        </el-tab-pane>
-
-        <!-- 动态选取素材 -->
-        <el-tab-pane label="动态选取素材" name="dynamic">
-          <el-form :model="form.materials" class="drawer-form" label-position="top">
-            <div class="form-section">
-              <div class="form-section__title">素材设置</div>
-              <el-form-item label="多账户分配规则">
-                <div class="card-choices">
-                  <div
-                    v-for="o in ASSIGN_RULES" :key="o.value"
-                    class="choice-card" :class="{ active: form.materials.assign_rule === o.value }"
-                    @click="form.materials.assign_rule = o.value"
-                  >
-                    <div class="choice-card__title">{{ o.label }}</div>
-                    <div class="choice-card__desc">{{ o.desc }}</div>
-                  </div>
-                </div>
-              </el-form-item>
-              <el-row :gutter="12">
-                <el-col :span="12">
-                  <el-form-item label="视频上传至">
-                    <el-radio-group v-model="form.materials.upload_scope">
-                      <el-radio v-for="o in UPLOAD_SCOPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="主页可见">
-                    <el-radio-group v-model="form.materials.home_visibility">
-                      <el-radio v-for="o in HOME_VISIBILITIES" :key="o.value" :value="o.value">{{ o.label }}</el-radio>
-                    </el-radio-group>
-                    <div class="dlg-tip warn">仅视频及图文素材、且来源不为抖音页素材时生效</div>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-row :gutter="12">
-                <el-col :span="12">
-                  <el-form-item label="每个广告素材数量">
-                    <el-radio-group v-model="form.materials.ad_material_count_mode">
-                      <el-radio value="UNIFIED">统一设置</el-radio>
-                      <el-radio value="RULE">分规则设置</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="区分素材版式">
-                    <el-radio-group v-model="form.materials.separate_layout">
-                      <el-radio value="OFF">不启用</el-radio>
-                      <el-radio value="VIDEO">视频</el-radio>
-                      <el-radio value="IMAGE">图片</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="每个创意组配置">
-                <div class="count-row">
-                  <div class="count-item">
-                    <span class="count-item__label">视频</span>
-                    <el-input-number v-model="form.materials.group_video_count" :min="0" :max="30" controls-position="right" size="small" />
-                  </div>
-                  <div class="count-item">
-                    <span class="count-item__label">图片</span>
-                    <el-input-number v-model="form.materials.group_image_count" :min="0" :max="50" controls-position="right" size="small" />
-                  </div>
-                </div>
-                <div class="dlg-tip">动态选取时为每个广告使用的素材数量，不需要的素材类型请设置为0。</div>
-              </el-form-item>
-              <el-form-item label="选取素材不足时">
-                <el-radio-group v-model="form.materials.insufficient_rule">
-                  <el-radio value="SKIP">余量广告不搭建</el-radio>
-                  <el-radio value="LOOP">循环使用素材</el-radio>
-                  <el-radio value="REMAIN">余量广告按剩余素材搭建</el-radio>
-                </el-radio-group>
-              </el-form-item>
-              <el-alert
-                type="info" :closable="false" show-icon
-                title="使用动态选取时将为每个创意组参与叉乘，若需生成更多项目广告，请修改规则配置为指定数量"
-              />
-            </div>
-            <div class="form-section">
-              <div class="form-section__title">动态选取规则</div>
-              <div class="creative-toolbar">
-                <el-button type="primary" @click="addDynRule">+ 添加动态选取规则</el-button>
-                <el-button @click="addFixedRule">添加指定素材规则</el-button>
-              </div>
-              <el-empty v-if="!form.materials.dynamic_rules.length" description="暂无动态选取规则，点击添加" :image-size="80" />
-              <div v-for="(r, ri) in form.materials.dynamic_rules" :key="ri" class="dyn-rule">
-                <el-select v-model="r.material_type" placeholder="素材类型" style="width: 180px">
-                  <el-option v-for="o in MATERIAL_TYPES" :key="o.value" :value="o.value" :label="o.label" />
-                </el-select>
-                <span class="dyn-rule__label">每个广告使用</span>
-                <el-input-number v-model="r.count" :min="0" :max="50" controls-position="right" size="small" />
-                <el-button link type="danger" @click="removeDynRule(ri)">删除</el-button>
-              </div>
-            </div>
-          </el-form>
-        </el-tab-pane>
-      </el-tabs>
-      <template #footer>
-        <el-button @click="matVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmMaterials">确定</el-button>
-      </template>
-    </el-drawer>
+    <BatchMaterialDrawer v-model="matVisible" />
 
     <!-- 标题包抽屉（线上：手动选取标题 / 动态选取标题 两个 tab） -->
     <el-drawer v-model="titleVisible" title="添加标题包" size="1016px" direction="rtl">
@@ -2917,154 +1066,16 @@
     </el-drawer>
 
     <!-- 标题乱序弹窗（线上：560px，乱序对象 标题包 / 标题） -->
-    <el-dialog v-model="shuffleVisible" title="标题乱序" width="560px" append-to-body class="shuffle-dialog">
-      <el-form label-position="left" label-width="80px">
-        <el-form-item label="乱序对象">
-          <el-radio-group v-model="shuffleTarget" size="small">
-            <el-radio-button value="PACK">标题包</el-radio-button>
-            <el-radio-button value="TITLE">标题</el-radio-button>
-          </el-radio-group>
-          <div class="ad-warn-hint">{{ shuffleHint }}</div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button type="primary" @click="confirmShuffle">确 定</el-button>
-      </template>
-    </el-dialog>
+    <BatchTitleShuffleDialog v-model="shuffleVisible" />
 
     <!-- 落地页抽屉 -->
-    <el-drawer v-model="lpVisible" title="选择落地页" size="1016px" direction="rtl">
-      <el-form :model="form.landing" class="drawer-form" label-position="left" label-width="144px">
-        <div class="form-section">
-          <div class="form-section__title">选择落地页</div>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="每个广告配置">
-              <el-input-number v-model="form.landing.per_ad_count" :min="1" :max="10" style="width: 100%" />
-              <div class="ad-hint">每个广告配置 N 个落地页链接</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="落地页类型">
-              <el-radio-group v-model="form.landing.landing_page_type" size="small">
-                <el-radio-button v-for="o in LANDING_PAGE_TYPES" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="落地页分配方式">
-              <el-radio-group v-model="form.landing.landing_page_rule" size="small">
-                <el-radio-button value="ALL">全部相同</el-radio-button>
-                <el-radio-button value="PER_ACCOUNT">按账户分配</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="输入落地页">
-              <el-input v-model="form.landing.landing_page_url" placeholder="请输入落地页链接" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12" v-if="needsLandingPicker">
-            <el-form-item label="选择落地页">
-              <el-select v-model="form.ad.landing_page_id" clearable filterable placeholder="选择已登记落地页" style="width: 100%" @change="onLandingSelect">
-                <el-option v-for="lp in landingPages" :key="lp.id" :value="lp.id" :label="lp.title">{{ lp.title }}（{{ lp.url }}）</el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12" v-if="needsLandingDetail">
-          <el-col :span="12">
-            <el-form-item label="落地页名称">
-              <el-input v-model="form.landing.landing_page_name" placeholder="请输入落地页名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="监测链接">
-              <el-input v-model="form.landing.track_url" placeholder="请输入监测链接（可选）" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- 应用下载 / 调起场景专属字段 -->
-        <template v-if="form.project.landing_type === 'APP'">
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="下载方式">
-                <el-select v-model="form.landing.download_type" style="width: 100%">
-                  <el-option v-for="o in DOWNLOAD_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="调起方式">
-                <el-select v-model="form.landing.launch_type" style="width: 100%">
-                  <el-option v-for="o in LAUNCH_TYPES" :key="o.value" :value="o.value" :label="o.label">{{ o.label }}</el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item v-if="form.landing.download_type === 'EXTERNAL_URL'" label="下载地址">
-                <el-input v-model="form.landing.download_url" placeholder="请输入应用下载链接" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item v-if="form.landing.landing_page_type === 'DEEPLINK'" label="直达链接">
-                <el-input v-model="form.landing.deeplink_url" placeholder="请输入 deeplink 直达链接" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </template>
-        </div>
-      </el-form>
-      <template #footer>
-        <el-button @click="lpVisible = false">取消</el-button>
-        <el-button type="primary" @click="lpVisible = false">确定</el-button>
-      </template>
-    </el-drawer>
+    <BatchLandingDrawer v-model="lpVisible" />
 
     <!-- 选择策略（策略组）弹窗 -->
     <StrategyGroupDialog v-model="strategyVisible" @confirm="onStrategyConfirm" />
 
     <!-- 选择任务弹窗 -->
-    <el-dialog v-model="taskVisible" title="选择任务" width="1025px" class="task-dialog" :close-on-click-modal="false">
-      <div class="dlg-filter task-filter">
-        <el-select v-model="taskFilter.account_id" clearable placeholder="媒体账户：全部" style="width: 210px">
-          <el-option v-for="a in accounts" :key="a.id" :value="a.id" :label="a.name" />
-        </el-select>
-        <el-date-picker
-          v-model="taskFilter.date_range" type="daterange" unlink-panels range-separator="至"
-          start-placeholder="创建时间" end-placeholder="结束时间" value-format="YYYY-MM-DD" style="width: 260px"
-        />
-        <el-select v-model="taskFilter.name_type" style="width: 120px">
-          <el-option label="任务名称" value="name" />
-          <el-option label="任务ID" value="id" />
-        </el-select>
-        <el-input v-model="taskFilter.keyword" clearable placeholder="请输入关键词" style="width: 200px" />
-        <el-button link type="primary" @click="resetTaskFilter">清空</el-button>
-      </div>
-      <el-table :data="taskPageRows" border size="small" height="400" highlight-current-row @row-click="selectTask">
-        <el-table-column width="44" align="center">
-          <template #default="{ row }">
-            <el-radio :model-value="taskSelectedId" :value="row.id" @change="selectTask(row)" @click.stop />
-          </template>
-        </el-table-column>
-        <el-table-column label="任务ID" prop="task_no" width="170" />
-        <el-table-column label="任务名称" prop="name" min-width="320" show-overflow-tooltip />
-        <el-table-column label="创建时间" prop="created_at" width="180" />
-      </el-table>
-      <div class="sg-pager">
-        <span class="sg-total">共 {{ taskFiltered.length }} 条</span>
-        <el-pagination v-model:current-page="taskPage" :page-size="taskPageSize" :total="taskFiltered.length" layout="prev, pager, next" size="small" />
-        <span class="sg-jump">前往</span>
-        <el-input v-model="taskJumpPage" class="sg-jump-input" size="small" />
-        <span class="sg-jump">页</span>
-      </div>
-      <template #footer>
-        <el-button @click="taskVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!taskSelected" @click="confirmTask">确定</el-button>
-      </template>
-    </el-dialog>
+    <BatchTaskDialog v-model="taskVisible" />
 
     <!-- 选择已有项目抽屉（对齐线上：大卡片 = 筛选 + 当前项目 + 选择已有项目 + 项目表 + 分页） -->
     <el-drawer v-model="existingVisible" title="选择已有项目" size="1016px" direction="rtl">
@@ -3374,7 +1385,9 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { provide } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import * as batchStore from '@/mock/batchStore';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, ArrowUp, Close, QuestionFilled, Tickets } from '@element-plus/icons-vue';
 import { mediaApi, assetApi, buildApi } from '@/api/media';
@@ -3402,6 +1415,15 @@ import {
   OBJECTIVE_CONF, OBJECTIVE_CONTENT_OPTIONS, RELATED_PRODUCT_OPTIONS,
   DELIVERY_TYPE_OPTIONS, THIRD_PARTY_LINK_SOURCES,
 } from './objectiveConfig';
+import BatchRuleDialog from './components/batch/BatchRuleDialog.vue';
+import BatchAccountDialog from './components/batch/BatchAccountDialog.vue';
+import BatchTaskDialog from './components/batch/BatchTaskDialog.vue';
+import BatchProjectDrawer from './components/batch/BatchProjectDrawer.vue';
+import BatchAdDrawer from './components/batch/BatchAdDrawer.vue';
+import BatchMaterialDrawer from './components/batch/BatchMaterialDrawer.vue';
+import BatchTitleDrawer from './components/batch/BatchTitleDrawer.vue';
+import BatchTitleShuffleDialog from './components/batch/BatchTitleShuffleDialog.vue';
+import BatchLandingDrawer from './components/batch/BatchLandingDrawer.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -3412,6 +1434,13 @@ const isUpgrade = computed(() => media.value === 'upgrade');
 const isUni = computed(() => media.value === 'uni');
 const isOc = computed(() => media.value === 'oc');
 // 卡片标题按媒体收敛：标准=新建项目/广告信息/创意素材/标题包/落地页；全域智擎=投放内容/基础信息/创意素材/标题
+// R110：线上标准版 /promotion/ad/toutiao/smart-assistant/batch 实测页头标题「程序化批量/巨量广告」；
+// 全域/智擎线上为「创编-巨量广告·全域」「创编-巨量广告·智擎」（取自线上路由表 title）
+const pageTitle = computed(() => ({
+  upgrade: '程序化批量/巨量广告',
+  uni: '创编/巨量广告·全域',
+  oc: '创编/巨量广告·智擎',
+}[media.value] || '程序化批量/巨量广告'));
 const cardTitle = computed(() => ({
   proj: isUpgrade.value ? '新建项目' : '投放内容',
   ad: isUpgrade.value ? '广告信息' : '基础信息',
@@ -3424,7 +1453,8 @@ const projColTitle = computed(() => (
 
 const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
-const projInfoFolded = ref(false);
+/* 线上默认折叠：只显示 项目名称/项目预算/项目出价/项目深度出价/推广目的，点「展开」才补齐摘要字段 */
+const projInfoFolded = ref(true);
 const projectRuleFolded = ref(false);
 /* ---- 线上实测的字段联动 ---- */
 const adTypeLabel = computed(() => (AD_TYPES.find((t) => t.value === form.project.ad_type) || {}).label || '');
@@ -3456,6 +1486,11 @@ const titlePackOptions = [
   { id: 'tp_1', name: '标题包-漫剧爽点' },
   { id: 'tp_2', name: '标题包-线索留资' },
   { id: 'tp_3', name: '标题包-通用' },
+];
+/* 鸿蒙应用（线上：平台类型=鸿蒙 时可选） */
+const harmonyApps = [
+  { id: 'ha_1', name: '红果免费短剧-鸿蒙版', pkg: 'com.phoenix.harmony' },
+  { id: 'ha_2', name: '漫剧通用-鸿蒙版', pkg: 'com.manju.harmony' },
 ];
 const keywordPackOptions = [
   { id: 'kp_1', name: '品牌词包' },
@@ -3954,7 +1989,7 @@ function adRuleDesc(rule) {
   const byCreativeBase = form.create_mode === 'EXIST' || form.project_rule === 'BY_COUNT';
   return byCreativeBase
     ? '先基于创意组数生成广告，未达到指定生成的广告数量时，循环使用创意组；超过，则舍弃多余广告'
-    : '先指定广告数量，自动循环使用素材和标题，多选少补';
+    : '先指定广告数量，自动循环使用素材和标题，多退少补';
 }
 
 /** 当前广告规则不可用时，自动回退到第一个可用规则（线上同款联动） */
@@ -4147,6 +2182,8 @@ const form = reactive({
     night_filter: 'OFF',
     platform_types: ['APP_ANDROID'],
     platform_type: 'APP_ANDROID',
+    itunes_id: '',
+    harmony_app: '',
     app_name: '',
     track_link_source: 'EXIST',
     link_group_match: 'PER_ACCOUNT',
@@ -4311,6 +2348,69 @@ const accountSummary = computed(() => {
   if (!form.account_ids.length) return '请选择媒体账户';
   // 只展示第一个账户名称，其余通过鼠标移入浮层查看
   return selectedAccounts.value[0]?.name || '请选择媒体账户';
+});
+/* 线上摘要用短文案（与线上「展开」后的展示一致） */
+const SHORT_LABEL = {
+  marketing: { VIDEO_AND_IMAGE: '短视频/图片', LIVE: '直播' },
+  schedule: { LONG_TERM: '长期投放', CUSTOM: '自定义' },
+  period: { ALL: '不限', CUSTOM: '指定时间段' },
+  bid: {
+    STABLE_COST: '稳定成本（常规版）', STABLE_UPGRADE: '稳定成本（升级版）',
+    VOLUME: '放量投放', BEST_COST: '最优成本', MAX_CONVERT: '最大转化',
+  },
+  callback: { SDK: '应用SDK回传', API: '应用API回传' },
+  download: { DOWNLOAD_URL: '直接下载', EXTERNAL_URL: '落地页下载' },
+  optimize: { AD_CONVERT_TYPE_ACTIVE: '激活', AD_CONVERT_TYPE_PAY: '付费', AD_CONVERT_TYPE_APP_ORDER: 'APP下单' },
+};
+const projectInfo = computed(() => {
+  /* 已有项目模式：回显所选已有项目（多选时取第一个） */
+  if (form.create_mode === 'EXIST' && (form.existing_projects || []).length) {
+    const picked = form.existing_projects[0];
+    const p = (existingProjects || []).find((x) => String(x.id) === String(picked.project_id)) || {};
+    return {
+      name: p.name || '—',
+      budget: p.cost ? `${p.cost}元` : '—',
+      bid: '—',
+      deep_bid: '无',
+      objective: p.objective || '—',
+      sub_objective: p.sub_objective || '—',
+      marketing_goal: p.marketing_goal || '—',
+      delivery_mode: p.delivery_mode || '—',
+      ad_type: p.ad_type || '—',
+      delivery_type: p.delivery_type || '—',
+      optimize_goal: p.optimization_goal || '—',
+      deep_optimize_goal: '无',
+      ad_position: p.position || '—',
+      download_type: '直接下载',
+      callback_type: '应用API回传',
+      schedule_time: '长期投放',
+      schedule_period: '不限',
+      bid_strategy: SHORT_LABEL.bid[p.bid_strategy] || p.bid_strategy || '—',
+    };
+  }
+  const f = form.project;
+  const labelOf = (arr, v) => (arr.find((x) => x.value === v) || {}).label || '—';
+  const ea = (externalActionOptions.value || []).find((x) => x.value === f.external_action);
+  return {
+    name: f.name || '—',
+    budget: ['OFF', 'UNLIMIT'].includes(f.budget_mode) ? '不限' : `${f.budget ?? '—'}元`,
+    bid: f.bid ? `${f.bid}元` : '无',
+    deep_bid: f.deep_bid ? `${f.deep_bid}元` : '无',
+    objective: objectiveLabel.value || '—',
+    sub_objective: f.objective === 'APP' ? labelOf(APP_PROMOTION_TYPES, f.app_promotion_type) : '—',
+    marketing_goal: SHORT_LABEL.marketing[f.marketing_goal] || labelOf(MARKETING_GOALS, f.marketing_goal),
+    delivery_mode: labelOf(DELIVERY_MODE_EXTRA, f.delivery_mode),
+    ad_type: labelOf(AD_TYPES, f.ad_type),
+    delivery_type: labelOf(AD_DELIVERY_TYPES, f.delivery_type),
+    optimize_goal: ea ? ea.label : '激活',
+    deep_optimize_goal: f.deep_external_action ? labelOf(DEEP_ACTIONS, f.deep_external_action) : '无',
+    ad_position: labelOf(INVENTORY_CATALOGS, f.inventory_catalog),
+    download_type: SHORT_LABEL.download[f.download_type] || labelOf(DOWNLOAD_TYPES, f.download_type),
+    callback_type: SHORT_LABEL.callback[f.event_callback_type] || '应用API回传',
+    schedule_time: SHORT_LABEL.schedule[f.schedule_time] || '长期投放',
+    schedule_period: SHORT_LABEL.period[f.schedule_period] || '不限',
+    bid_strategy: SHORT_LABEL.bid[f.bid_strategy] || '稳定成本（常规版）',
+  };
 });
 const projectBudgetText = computed(() => (
   ['OFF', 'UNLIMIT'].includes(form.project.budget_mode) ? '不限' : `${form.project.budget ?? '—'}元`
@@ -4743,7 +2843,7 @@ const shuffleTarget = ref('PACK');
 const shuffleHint = computed(() => (
   shuffleTarget.value === 'PACK'
     ? '将已选标题包随机排序,不打乱其内部标题'
-    : '将已选标题随机排序'
+    : '将所有标题进行随机排序并生成新的临时标题包'
 ));
 function shuffleTitles() {
   shuffleVisible.value = true;
@@ -5438,6 +3538,14 @@ function buildPlan() { return JSON.parse(JSON.stringify(form)); }
 // 策略组由账户列表「使用已有策略新建」带入（route.query.strategy），
 // 回填范围：新建项目 / 广告信息 / 创意素材 / 标题包 / 落地页。
 const strategyGroup = ref(null);
+/* R110：线上「创量项目」框——回显所选任务所属的创量项目（只读，线上无「更改」按钮）。
+ * 任务数据无该字段时回落到策略组里的项目名。 */
+const taskProjectName = computed(() => {
+  const p = taskSelected.value && taskSelected.value.project;
+  if (p) return p;
+  const sg = strategyGroup.value;
+  return (sg && (sg.cl_project || sg.project_name)) || '';
+});
 
 function applyStrategyGroup(id) {
   const sg = findStrategyGroup(id);
@@ -5474,9 +3582,20 @@ async function onPreview() {
   }
 }
 
+/* R110：保存策略组 —— 真落本地（localStorage），不再只是「原型模拟」提示 */
 function onSaveStrategy() {
   if (!sgForm.name.trim()) { ElMessage.warning('请输入策略组名称'); return; }
-  ElMessage.success(`策略组「${sgForm.name}」已保存（原型模拟）`);
+  const rec = batchStore.saveStrategyGroup({
+    name: sgForm.name.trim(),
+    creator: '杨浩蒙',
+    project: form.project.name,
+    accounts: selectedAccounts.value.map((a) => a.name),
+    rule: ruleSummary.value,
+    adRule: form.ad_rule,
+    total: est.value.total,
+    plan: buildPlan(),
+  });
+  ElMessage.success(`策略组「${rec.name}」已保存`);
   saveVisible.value = false;
 }
 
@@ -5489,7 +3608,17 @@ async function onSubmit() {
   submitting.value = true;
   try {
     const res = await buildApi.submit({ plan: buildPlan(), idempotency_key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
-    ElMessage.success(`任务已提交（原型模拟，共 ${res.data?.total ?? 0} 条）`);
+    /* R110：真的写进本地任务中心（localStorage），刷新后仍在，并能在「批量操作任务」列表查到 */
+    const total = res.data?.total ?? est.value.total ?? 0;
+    batchStore.submitBatchTasks({
+      name: form.project.name || '批量新建',
+      accounts: selectedAccounts.value.map((a) => a.name),
+      creator: '杨浩蒙',
+      opType: form.ad_rule === 'BY_CREATIVE' ? '同步巨量通用版商品(升级版工作台)' : '创建广告',
+      total,
+      detail: `项目「${form.project.name || '未命名'}」`,
+    });
+    ElMessage.success(`任务已提交，共 ${total} 条`);
     router.push({ name: 'tasks' });
   } finally {
     submitting.value = false;
@@ -5512,6 +3641,414 @@ onMounted(async () => {
   document.addEventListener('mouseup', onDocMouseUp);
 });
 onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
+
+  /* R110：把整个 setup 作用域通过 provide 暴露给拆出去的子组件，
+   * 子组件用 inject('batch') 取用，避免为了拆组件而搬动/改写业务逻辑。 */
+  provide('batch', {
+    route,
+    TITLE_ASSIGN_RULES, TITLE_SOURCES, LANDING_PAGE_TYPES,
+    router,
+    subject,
+    media,
+    mediaTitle,
+    isUpgrade,
+    isUni,
+    isOc,
+    cardTitle,
+    projColTitle,
+    previewing,
+    projInfoFolded,
+    projectRuleFolded,
+    adTypeLabel,
+    isSearchAd,
+    isLiveGoal,
+    objCfg,
+    relatedProductOptions,
+    relatedProductOn,
+    contentOptions,
+    deliveryTypeOptions,
+    bidStrategyOptions,
+    showSearchFast,
+    budgetModeOptions,
+    onBudgetModeChange,
+    titlePackOptions,
+    harmonyApps,
+    keywordPackOptions,
+    prevObjective,
+    onObjectiveChange,
+    clearObjectiveFilled,
+    onAdTypeChange,
+    onMarketingGoalChange,
+    onAssetGroupChange,
+    customTargetingOpen,
+    projProductRows,
+    projLinkRows,
+    projAudienceRows,
+    projEventRows,
+    relatedVisible,
+    adBudgetVisible,
+    searchForm,
+    adBudgetSummary,
+    monitorGroupVisible,
+    monitorGroupTitle,
+    openMonitorGroup,
+    monitorGroups,
+    monitorGroupForm,
+    monitorGroupRows,
+    onMonitorGroupSearch,
+    confirmMonitorGroup,
+    extraComponentOptions,
+    onLinkSourceChange,
+    onExtraComponentChange,
+    adLinkRows,
+    removeAdLink,
+    ctaInput,
+    ctaTemplate,
+    onPickMainImage,
+    goCreateTargeting,
+    addCtaTags,
+    TIPS,
+    adEstimate,
+    adBudget,
+    openAdPanel,
+    monitorLinkVisible,
+    targetingVisible,
+    monitorLink,
+    targetingFilter,
+    targetingRows,
+    clearTargetingPicked,
+    confirmMonitorLink,
+    confirmTargeting,
+    deeplinkVisible,
+    relatedForm,
+    deeplinkForm,
+    relatedCategories,
+    clearRelatedAssets,
+    onRelatedRefresh,
+    onRelatedSearch,
+    confirmRelated,
+    confirmDeeplink,
+    sectionVisible,
+    sectionKey,
+    sectionTitle,
+    targetingLoading,
+    targetingDetailTime,
+    fetchTargetingDetail,
+    openSection,
+    toggleCreateMode,
+    productPool,
+    targetingPool,
+    selectedTargetings,
+    objectiveLabel,
+    previewAccountIdx,
+    previewAccounts,
+    previewStats,
+    deletedAdKeys,
+    adAssetLines,
+    previewRows,
+    previewSpanMethod,
+    previewChecked,
+    previewAllChecked,
+    previewIndeterminate,
+    previewProjectChecked,
+    setRowChecked,
+    setProjectChecked,
+    toggleAllAd,
+    renameVisible,
+    renameRows,
+    renameTitle,
+    onPreviewBatch,
+    onRenameConfirm,
+    submitting,
+    preview,
+    estOpen,
+    matTab,
+    activeTab,
+    acctVisible,
+    ruleVisible,
+    projVisible,
+    adVisible,
+    awemeVisible,
+    productVisible,
+    adSettingVisible,
+    matVisible,
+    titleVisible,
+    titleTab,
+    titlePackRows,
+    titleAccountRows,
+    clearTitlePicked,
+    titleRandomPick,
+    addTitleDynRule,
+    lpVisible,
+    needsLandingPicker,
+    needsLandingDetail,
+    strategyVisible,
+    taskVisible,
+    saveVisible,
+    existingVisible,
+    PROJECT_RULES,
+    AD_RULES,
+    isAdRuleDisabled,
+    adRuleDesc,
+    ensureAdRuleAvailable,
+    EX_OBJECTIVES,
+    EX_SUB_OBJECTIVE_MAP,
+    EX_DELIVERY_MODES,
+    EX_MARKETING_GOALS,
+    EX_AD_TYPES,
+    EX_XING_TASKS,
+    EX_STATUS_OPTIONS,
+    EX_STATUS_PROPS,
+    accounts,
+    videos,
+    images,
+    titlePacks,
+    landingPages,
+    eventAssets,
+    audiencePackages,
+    orientationPackages,
+    products,
+    monitorActivities,
+    awemeList,
+    acctFilter,
+    developerOptions,
+    acctTemp,
+    acctTableRef,
+    acctSyncing,
+    acctPage,
+    acctPageSize,
+    acctJumpPage,
+    batchVisible,
+    batchText,
+    acctBatch,
+    batchGutterRef,
+    batchTypeLabel,
+    batchKeywords,
+    batchCount,
+    batchLineCount,
+    taskFilter,
+    taskPage,
+    taskPageSize,
+    taskJumpPage,
+    taskSelectedId,
+    exFilter,
+    exSubObjectives,
+    exPage,
+    exPageSize,
+    exJumpPage,
+    exFilterFolded,
+    exShowCost,
+    exCostRange,
+    exSelection,
+    exSelected,
+    exTableRef,
+    syncVisible,
+    syncSearchType,
+    syncKeyword,
+    syncChecked,
+    syncPage,
+    syncPageSize,
+    syncDateRange,
+    sgForm,
+    form,
+    mediaAccounts,
+    selectedAccounts,
+    accountSummary,
+    SHORT_LABEL,
+    projectInfo,
+    projectBudgetText,
+    projectBidText,
+    projectDeepBidText,
+    ruleSummary,
+    externalActionLabel,
+    projectSummary,
+    selectedVideos,
+    selectedImages,
+    materialCount,
+    selectedTitlePacks,
+    selectedTitles,
+    removeTitleText,
+    titleCount,
+    landingSelected,
+    landingSummary,
+    landingUrl,
+    projectOptions,
+    filteredAccounts,
+    acctPageRows,
+    projectConfigured,
+    taskFiltered,
+    taskPageRows,
+    taskSelected,
+    resetTaskFilter,
+    selectTask,
+    confirmTask,
+    exAccounts,
+    exCurrentAccountId,
+    exFiltered,
+    exPageRows,
+    exSpanMethod,
+    exAccountHasSelection,
+    exAccountName,
+    exCurrentProject,
+    exCurrentProjectItems,
+    canPreview,
+    creativeGroupCount,
+    titlePackCount,
+    est,
+    previewTip,
+    assetTypeOptions,
+    externalActionOptions,
+    needEventAsset,
+    needActionTargeting,
+    productOptions,
+    dragActive,
+    dragValue,
+    isSlotOn,
+    setSlot,
+    onSlotMouseDown,
+    onSlotEnter,
+    endDrag,
+    fillAllSlots,
+    onLandingTypeChange,
+    onAppPromoChange,
+    onActionChange,
+    onInterestModeChange,
+    isCpmCpc,
+    budgetMin,
+    bidMin,
+    onPricingChange,
+    addKw,
+    removeKw,
+    onAcctSelection,
+    removeAccount,
+    onAcctOpen,
+    onAcctSearch,
+    clearAcctFilter,
+    applyBatchSearch,
+    clearBatch,
+    onBatchScroll,
+    formatBalance,
+    clearAcctSelection,
+    confirmAccounts,
+    addGroup,
+    removeGroup,
+    syncMaterials,
+    confirmMaterials,
+    onLandingSelect,
+    clearMaterials,
+    clearTitles,
+    shuffleVisible,
+    shuffleTarget,
+    shuffleHint,
+    shuffleTitles,
+    confirmShuffle,
+    clearLanding,
+    pickerVisible,
+    pickerState,
+    openPicker,
+    onPickerConfirm,
+    onPickerAction,
+    PICKER_DATA,
+    videoRows,
+    imageRows,
+    PICKER_COLUMNS,
+    projectBidSummary,
+    pickEventAsset,
+    pickLinkGroup,
+    pickTargeting,
+    pickMonitorLink,
+    pickDeeplink,
+    pickDynLink,
+    pickGoodsCatalog,
+    pickRtaStrategy,
+    pickQuickApp,
+    pickAssetGroup,
+    materialGroupIdx,
+    currentGroup,
+    pickMaterial,
+    addLocalMaterial,
+    pickTextImage,
+    autoCreateTextImage,
+    addSurgeMaterial,
+    pickGuideVideo,
+    pickCover,
+    addSellPoint,
+    onMonitorRefreshAll,
+    onMonitorClearAll,
+    onMonitorQuickSelectAll,
+    onMonitorQuickSelect,
+    MORE_WILDCARDS,
+    appendWildcard,
+    appendAdWildcard,
+    insertMoreWildcard,
+    wildcardMoreVisible,
+    guideVisible,
+    guideTitle,
+    guideLines,
+    guideImage,
+    openGuide,
+    newTitlePackVisible,
+    newTitlePackForm,
+    confirmNewTitlePack,
+    showLatestTargeting,
+    copyLastProduct,
+    pickRule,
+    onStrategyConfirm,
+    openExisting,
+    switchToNewProject,
+    onProjectConfirm,
+    onProjectCancel,
+    onExSelection,
+    onExSearch,
+    onExObjectiveChange,
+    onExJump,
+    clearSelectedProjects,
+    confirmExistingProjects,
+    onMultiAccountQuickSelect,
+    openSyncDialog,
+    onSyncOpen,
+    syncList,
+    syncFilteredList,
+    syncPageRows,
+    syncCheckedAccounts,
+    syncAllChecked,
+    syncHalfChecked,
+    toggleSyncAll,
+    toggleSyncOne,
+    removeSyncAccount,
+    onSyncSearch,
+    onSyncPage,
+    onSyncConfirm,
+    applyGroupName,
+    shuffleGroups,
+    copyFirstGroup,
+    ctaRecommendVisible,
+    ctaRecommendForm,
+    confirmCtaRecommend,
+    ctaSaveTplVisible,
+    ctaSaveTplForm,
+    openCtaSaveTpl,
+    confirmCtaSaveTpl,
+    randomPickVisible,
+    randomPickTitle,
+    MATERIAL_FILTERS,
+    randomPickForm,
+    randomPickRows,
+    randomPick,
+    confirmRandomPick,
+    smartPick,
+    refreshGroups,
+    addDynRule,
+    removeDynRule,
+    addFixedRule,
+    buildPlan,
+    strategyGroup,
+    applyStrategyGroup,
+    onSaveStrategy,
+    goTasks,
+    onDocMouseUp,
+    adRuleMemory
+  })
 </script>
 
 <style scoped>
@@ -5523,7 +4060,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .card { background: #fff; border-radius: 6px; padding: 16px; }
 .seg-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
 .seg { display: flex; gap: 12px; }
+/* R110：线上「选择策略」「选择任务」按钮实测 160×32（el-button w160） */
 .seg :deep(.el-button) { min-width: 120px; margin-left: 0; }
+.seg :deep(.seg__btn) { width: 160px; min-width: 160px; }
 .est-wrap { position: relative; }
 .est { font-size: 14px; color: #4e5969; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 6px 0; }
 .est b { color: #2563eb; font-size: 18px; }
@@ -5550,7 +4089,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .rule-input { width: 220px; }
 /* 五列配置区（列宽比例对齐线上：项目 19.2% / 广告信息 15.4% / 创意素材 30.8% / 标题包 19.2% / 落地页 15.4%） */
 /* 线上实测列宽：400 / 320 / 640 / 400 / 373（总 2133） */
-.grid-cols { display: grid; grid-template-columns: 18.75% 15% 30% 18.75% 17.5%; border: 1px solid #e5e6eb; border-radius: 4px; overflow: hidden; }
+/* R110：线上 5 列实测宽 360/288/577/360/288（合计 1873）→ 比例 19.2% 15.4% 30.8% 19.2% 15.4% */
+.grid-cols { display: grid; grid-template-columns: 19.2% 15.4% 30.8% 19.2% 15.4%; border: 1px solid #e5e6eb; border-radius: 4px; overflow: hidden; }
 .col { display: flex; flex-direction: column; min-height: 300px; border-right: 1px solid #e5e6eb; }
 .col:last-child { border-right: none; }
 .col-head { min-height: 32px; padding: 5px 16px; font-weight: 400; font-size: 14px; color: #333; border-bottom: 1px solid #f2f3f5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -5569,6 +4109,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .material-list { display: flex; flex-direction: column; gap: 6px; }
 .material-chip { font-size: 12px; color: #4e5969; background: #f7f8fa; border-radius: 4px; padding: 6px 8px; }
 .col-foot { padding: 8px 16px; border-top: 1px solid #f2f3f5; text-align: center; }
+/* R110：线上列卡底部「编辑」实测 26×32（el-button--text el-button--small，12px #197afb） */
+.col-foot :deep(.el-button) { min-width: 26px; height: 32px; padding: 9px 0; font-size: 12px; }
 .col-foot .el-button { font-size: 12px; color: #197afb; }
 .mat-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .mat-tile__box { position: relative; aspect-ratio: 16 / 10; background: #f2f3f5; border-radius: 2px; display: flex; align-items: center; justify-content: center; }
@@ -5581,6 +4123,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .pick-row__x { cursor: pointer; color: #86909c; }
 .tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; border-radius: 50%; background: #00b42a; color: #fff; font-style: normal; font-size: 10px; font-weight: 700; line-height: 1; vertical-align: -2px; cursor: help; }
 .action-bar { display: flex; justify-content: center; gap: 12px; background: #fff; border-radius: 6px; padding: 16px; }
+/* R110：线上「保存策略组」「生成广告预览」实测 120×32（mw120） */
+.action-bar :deep(.el-button) { min-width: 120px; }
 .preview-card { min-height: 280px; }
 .preview-title { font-size: 15px; font-weight: 600; }
 .picked-task { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #4e5969; margin-left: 4px; }
@@ -5593,6 +4137,12 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__title { white-space: nowrap; }
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
+.show-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: #197afb; cursor: pointer; }
+.show-more__icon { font-size: 12px; }
+.proj-line__account { color: #1d2129; }
+.audience-info { max-width: 280px; }
+.audience-info-category { display: flex; gap: 8px; font-size: 12px; color: #4e5969; }
+.estimate-label { color: #86909c; }
 .proj-line__sub { color: #c9cdd4; margin-left: 6px; }
 .proj-block__time { font-size: 12px; color: #86909c; margin-left: auto; }
 .proj-line__loading { font-size: 12px; color: #86909c; padding: 4px 0; }

@@ -84,27 +84,34 @@
         <el-table-column label="提交数量" min-width="100">
           <template #default="{ row }">{{ row.submitCount }}</template>
         </el-table-column>
-        <el-table-column label="媒体" width="160">
+        <el-table-column label="媒体" min-width="120">
           <template #default="{ row }">{{ row.media }}</template>
         </el-table-column>
         <el-table-column label="操作类型" min-width="120">
           <template #default="{ row }">{{ row.opType }}</template>
         </el-table-column>
-        <el-table-column label="创建人" width="160">
+        <el-table-column label="创建人" min-width="120">
           <template #default="{ row }">{{ row.creator }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" width="160">
+        <el-table-column label="创建时间" min-width="150">
           <template #default="{ row }">{{ row.createdAt }}</template>
         </el-table-column>
         <el-table-column label="执行状态" min-width="160">
           <template #header>
             <span>执行状态</span>
-            <el-tooltip placement="top" :teleported="false" :content="STATUS_HELP">
-              <i class="ts-help">?</i>
-            </el-tooltip>
+            <!-- 线上是 el-popover（宽 370、两行 <p>），不是 el-tooltip -->
+            <el-popover placement="top-start" :width="370" trigger="hover" popper-class="ts-status-tip">
+              <p>当状态为绿色提交完成时，则包含的所有提交均为成功</p>
+              <p>当状态为红色提交完成时，则包含的提交中有失败项</p>
+              <template #reference>
+                <i class="ts-help">?</i>
+              </template>
+            </el-popover>
           </template>
           <template #default="{ row }">
-            <span class="ts-status"><i class="ts-status__dot" :style="{ background: statusColor(row.status) }"></i><span class="ts-status__text" :style="{ color: statusColor(row.status) }">{{ row.status }}</span></span><span class="ts-opt">成功：{{ row.success }} 失败：{{ row.fail }}</span>
+            <span class="ts-status"><i class="ts-status__dot" :style="{ background: rowStatusColor(row) }"></i><span class="ts-status__text" :style="{ color: rowStatusColor(row) }">{{ row.status }}</span></span><span class="ts-opt">成功：{{ row.success }} 失败：{{ row.fail }}</span>
+            <!-- 线上：已超时的任务额外提示一行 -->
+            <div v-if="row.status === '已超时'" class="ts-timeout-tip">任务排队超时未执行，可删除后重新提交</div>
           </template>
         </el-table-column>
         <el-table-column label="操作" min-width="120">
@@ -126,19 +133,92 @@
       </div>
     </div>
 
-    <!-- ⑤ 详情面板 -->
-    <el-drawer v-model="detailVisible" title="批量操作任务详情" size="560px" class="ts-drawer">
+    <!-- ⑤ 详情抽屉（线上：右侧抽屉，标题「详情」+ 左缘蓝色关闭按钮）
+         结构：① 基本信息（可折叠，两列 label-value）
+               ② 操作详情（右上角「仅查看含有提交失败的任务」复选框 + 明细表格） -->
+    <el-drawer
+      v-model="detailVisible"
+      size="780px"
+      :with-header="false"
+      :close-on-click-modal="false"
+      class="ts-detail-drawer"
+    >
+      <!-- 抽屉标题条（线上：标题「详情」，左侧有蓝色 × 关闭按钮，垂直居中于标题） -->
+      <div class="ts-drawer-head">
+        <span class="ts-drawer-title">详情</span>
+        <button type="button" class="ts-drawer-close" title="关闭" @click="detailVisible = false">
+          <el-icon><Close /></el-icon>
+        </button>
+      </div>
+
       <div v-if="detailRow" class="ts-detail">
-        <div class="ts-detail__row"><span class="ts-detail__label">任务名称</span><span class="ts-detail__value">{{ detailRow.name }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">ID</span><span class="ts-detail__value">{{ detailRow.id }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">媒体</span><span class="ts-detail__value">{{ detailRow.media }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">媒体账户</span><span class="ts-detail__value">{{ detailRow.account }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">操作类型</span><span class="ts-detail__value">{{ detailRow.opType }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">提交数量</span><span class="ts-detail__value">{{ detailRow.submitCount }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">创建人</span><span class="ts-detail__value">{{ detailRow.creator }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">创建时间</span><span class="ts-detail__value">{{ detailRow.createdAt }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">执行状态</span><span class="ts-detail__value">{{ detailRow.status }}</span></div>
-        <div class="ts-detail__row"><span class="ts-detail__label">执行结果</span><span class="ts-detail__value">成功：{{ detailRow.success }} 失败：{{ detailRow.fail }}</span></div>
+        <!-- ① 基本信息 -->
+        <div class="ts-block">
+          <div class="ts-block__head" @click="infoOpen = !infoOpen">
+            <span class="ts-block__title">基本信息</span>
+            <el-icon class="ts-block__arrow" :class="{ 'is-open': infoOpen }"><ArrowDown /></el-icon>
+          </div>
+
+          <div v-show="infoOpen" class="ts-block__body">
+            <div class="ts-info-grid">
+              <div class="ts-info-cell">
+                <span class="ts-info-label">任务名称：</span>
+                <span class="ts-info-value">{{ detailRow.name }}</span>
+              </div>
+              <div class="ts-info-cell">
+                <span class="ts-info-label">操作对象类型：</span>
+                <span class="ts-info-value">{{ detailRow.objectType }}</span>
+              </div>
+              <div class="ts-info-cell">
+                <span class="ts-info-label">媒体：</span>
+                <span class="ts-info-value">{{ detailRow.media }}</span>
+              </div>
+              <div class="ts-info-cell">
+                <span class="ts-info-label">操作类型：</span>
+                <span class="ts-info-value">{{ detailRow.opType }}</span>
+              </div>
+              <div class="ts-info-cell">
+                <span class="ts-info-label">执行状态：</span>
+                <span class="ts-info-value">{{ detailRow.status }}</span>
+              </div>
+              <div class="ts-info-cell">
+                <span class="ts-info-label">执行结果：</span>
+                <span class="ts-info-value">成功：{{ detailRow.success }} 失败：{{ detailRow.fail }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② 操作详情 -->
+        <div class="ts-block">
+          <div class="ts-block__head">
+            <span class="ts-block__title">操作详情</span>
+            <el-checkbox v-model="onlyFailed" class="ts-only-failed">仅查看含有提交失败的任务</el-checkbox>
+          </div>
+
+          <div class="ts-block__body">
+            <el-table :data="shownDetailRows" border class="ts-detail-table">
+              <el-table-column label="序号" width="60" align="center">
+                <template #default="{ $index }">{{ $index + 1 }}</template>
+              </el-table-column>
+              <el-table-column label="巨量商品ID" min-width="140">
+                <template #default="{ row }">{{ row.objectId }}</template>
+              </el-table-column>
+              <el-table-column label="巨量商品" min-width="120">
+                <template #default="{ row }">{{ row.objectName }}</template>
+              </el-table-column>
+              <el-table-column label="创建时间" min-width="160">
+                <template #default="{ row }">{{ row.createdAt }}</template>
+              </el-table-column>
+              <el-table-column label="操作结果" min-width="160" align="center">
+                <template #default="{ row }">{{ row.result }}</template>
+              </el-table-column>
+              <el-table-column label="失败原因" min-width="140">
+                <template #default="{ row }">{{ row.failReason }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
       </div>
     </el-drawer>
   </div>
@@ -159,8 +239,9 @@
  *   - 分页：共 70 条 / 10条每页 / 1~7 页 / 前往 __ 页，整体靠左
  * ------------------------------------------------------------------ */
 import { computed, ref, watch } from 'vue';
+import { listBatchTasks } from '@/mock/batchStore';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { Search, Close, ArrowDown } from '@element-plus/icons-vue';
 
 /** 线上「媒体」下拉（5 项，逐字照抄） */
 const MEDIA_OPTIONS = ['巨量广告2.0', '腾讯广告3.0', '通用', '京东青云', '常读'];
@@ -308,8 +389,7 @@ const OP_TYPE_OPTIONS = [
   "同步组织素材",
 ];
 
-/** 线上「执行状态」表头的问号提示文案 */
-const STATUS_HELP = '当状态为绿色提交完成时，则包含的所有提交均为成功；当状态为红色提交完成时，则包含的提交中有失败项';
+/** 线上「执行状态」表头的问号提示文案见模板中的 el-popover（两行 <p>，宽 370） */
 
 /* ------------------------------------------------------------------
  * 行数据：前 10 行为线上实测数据（逐字照抄），其后补充本地演示数据，
@@ -393,7 +473,9 @@ function buildLocalRows() {
   return rows;
 }
 
-const rows = ref([...ONLINE_ROWS, ...buildLocalRows()]);
+/* R110：本地任务中心落库的记录（来自「批量新建」页的 保存策略组 / 全部提交审核）排在最前，
+ * 刷新后仍在，可在本页查询到 */
+const rows = ref([...listBatchTasks(), ...ONLINE_ROWS, ...buildLocalRows()]);
 
 /* ---------------- 筛选条件 ---------------- */
 const query = ref({
@@ -449,70 +531,131 @@ function clearAll() {
 }
 
 /* ---------------- 行内操作 ---------------- */
+/**
+ * 线上（/task/index，CSS scope data-v-fe81aa92）getStatusClassType：
+ *   FINISHED → 'finish'、TIMEOUT → 'timeout'、其余 → 'processing'
+ *   finish #28ba52 / hasfail #ec5f2e / processing #d6941d / timeout #e6a23c
+ */
 const STATUS_COLOR = {
   执行完成: '#28ba52',
-  执行中: '#409eff',
-  等待执行: '#ff9900',
-  已终止: '#909399',
-  已超时: '#f56c6c',
+  执行中: '#d6941d',
+  等待执行: '#d6941d',
+  已终止: '#d6941d',
+  已超时: '#e6a23c',
 };
 function statusColor(s) {
   return STATUS_COLOR[s] || '#909399';
 }
 
-/** 已结束的任务不允许再终止（线上「终止」为置灰） */
+/** 线上：执行完成但有失败项时，圆点与文字都变成橙红 */
+function rowStatusColor(row) {
+  if (row.status === '执行完成' && row.fail > 0) return '#ec5f2e';
+  return statusColor(row.status);
+}
+
+/** 已结束的任务不允许再终止（线上「终止」为置灰：
+ *  TERMINATED / FINISHED / WAITING / TIMEOUT 四个状态都置灰） */
 function canTerminate(row) {
-  return ['执行完成', '已终止', '已超时'].includes(row.status);
+  return ['执行完成', '已终止', '已超时', '等待执行'].includes(row.status);
 }
 
 const detailVisible = ref(false);
 const detailRow = ref(null);
+/** 「基本信息」区块是否展开（线上右侧箭头可折叠） */
+const infoOpen = ref(true);
+/** 「仅查看含有提交失败的任务」复选框 */
+const onlyFailed = ref(false);
+
+/**
+ * 操作详情明细（线上截图实测：任务「同步巨量通用版商品-11_25_15:51:53」）
+ *   巨量商品ID / 巨量商品 / 创建时间 / 操作结果 / 失败原因
+ */
+const DETAIL_ROWS = [
+  { objectId: '1841400194795305', objectName: '184140019479...', createdAt: '2026-11-25 15:51:55', result: '成功', failReason: '--' },
+  { objectId: '1841400194795227', objectName: '184140019479...', createdAt: '2026-11-25 15:51:54', result: '成功', failReason: '--' },
+  { objectId: '1841400194795018', objectName: '184140019479...', createdAt: '2026-11-25 15:51:53', result: '失败', failReason: '商品标题不合法' },
+  { objectId: '1841400194794980', objectName: '184140019479...', createdAt: '2026-11-25 15:51:52', result: '成功', failReason: '--' },
+];
+
+/** 操作对象类型：按操作类型推导（线上同步类任务为「巨量商品」） */
+function objectTypeOf(opType) {
+  if (String(opType || '').indexOf('商品') > -1) return '巨量商品';
+  if (String(opType || '').indexOf('素材') > -1) return '巨量素材';
+  if (String(opType || '').indexOf('项目') > -1) return '巨量项目';
+  if (String(opType || '').indexOf('广告') > -1) return '巨量广告';
+  return '巨量商品';
+}
+
+/** 抽屉「操作详情」表格数据：按提交数量造行，末行模拟一条失败 */
+const detailRows = computed(() => {
+  const row = detailRow.value;
+  if (!row) return [];
+  const n = Math.max(1, Math.min(row.submitCount || 1, DETAIL_ROWS.length));
+  return DETAIL_ROWS.slice(0, n).map((d, i) => ({
+    ...d,
+    result: row.fail > 0 && i === n - 1 ? '失败' : '成功',
+    failReason: row.fail > 0 && i === n - 1 ? '商品标题不合法' : '--',
+  }));
+});
+
+/** 勾选「仅查看含有提交失败的任务」→ 只保留失败行 */
+const shownDetailRows = computed(() => {
+  if (!onlyFailed.value) return detailRows.value;
+  return detailRows.value.filter((d) => d.result === '失败');
+});
 
 function openDetail(row) {
-  detailRow.value = row;
+  detailRow.value = { ...row, objectType: objectTypeOf(row.opType) };
+  infoOpen.value = true;
+  onlyFailed.value = false;
   detailVisible.value = true;
 }
 
-/** 删除：二次确认 → 移除本地数据 */
+/**
+ * 删除：Element Plus **系统默认** ElMessageBox.confirm（warning 型）
+ * 线上原文（/task/index chunk handleDelete）：
+ *   超时任务 → '该任务排队超时未执行，删除后不可恢复，可重新提交。确定删除吗?'
+ *   其它      → '确认删除此任务吗?'
+ *   标题「提示」/ 确定 / 取消
+ */
 async function onDelete(row) {
+  const message =
+    row.status === '已超时'
+      ? '该任务排队超时未执行，删除后不可恢复，可重新提交。确定删除吗?'
+      : '确认删除此任务吗?';
   try {
-    await ElMessageBox.confirm(
-      `确定要删除任务「${row.name}」吗？删除后将无法恢复。`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-        closeOnClickModal: false,
-      }
-    );
+    await ElMessageBox.confirm(message, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customClass: 'ts-message-box',
+    });
   } catch (e) {
     return;
   }
   rows.value = rows.value.filter((r) => r.id !== row.id);
   const maxPage = Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value));
   if (pageNo.value > maxPage) pageNo.value = maxPage;
-  ElMessage.success('删除成功');
+  ElMessage.success('删除成功!');
 }
 
-/** 终止：二次确认 → 置为「已终止」 */
+/**
+ * 终止：Element Plus **系统默认** ElMessageBox.confirm（warning 型）
+ * 线上原文（/task/index chunk handleTermination）：'确认终止此任务吗?' / 标题「提示」
+ */
 async function onTerminate(row) {
   try {
-    await ElMessageBox.confirm(
-      `确定要终止任务「${row.name}」吗？终止后该任务将不再执行。`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-        closeOnClickModal: false,
-      }
-    );
+    await ElMessageBox.confirm('确认终止此任务吗?', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customClass: 'ts-message-box',
+    });
   } catch (e) {
     return;
   }
   row.status = '已终止';
-  ElMessage.success('任务已终止');
+  ElMessage.success('终止成功!');
 }
 </script>
 
@@ -766,11 +909,13 @@ async function onTerminate(row) {
   font-size: 12px;
   line-height: 15px;
 }
+/* 线上「成功：x 失败：y」是 .opt-link（#197afb），margin-left 22px、cursor default */
 .ts-opt {
   margin-left: 22px;
   font-size: 12px;
-  color: #333;
+  color: #197afb;
   line-height: 18px;
+  cursor: default;
 }
 /* 操作列文字按钮（线上 .opt-link 12px #197afb，间距 8px） */
 .ts-op.el-button {
@@ -789,22 +934,28 @@ async function onTerminate(row) {
   color: #ccc;
 }
 
-/* 表头问号图标（线上「执行状态」列头右侧的小圆圈问号） */
+/* 表头问号图标（线上 .mg-icon-question2 实测 12×13 / color #ccc / margin-left 4px） */
 .ts-help {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 13px;
+  width: 12px;
   height: 13px;
   margin-left: 4px;
-  border: 1px solid #c0c4cc;
+  border: 1px solid #ccc;
   border-radius: 50%;
   font-size: 9px;
   line-height: 1;
   font-style: normal;
-  color: #c0c4cc;
+  color: #ccc;
   cursor: help;
   vertical-align: middle;
+}
+/* 线上 .task-timeout-tip：margin-top 2px / 12px / #e6a23c */
+.ts-timeout-tip {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #e6a23c;
 }
 
 /* ---------- 分页（线上：白底 64px，内容靠左） ---------- */
@@ -873,8 +1024,14 @@ async function onTerminate(row) {
 }
 .ts-pager :deep(.el-pagination__jump) {
   margin-left: 24px;
-  font-size: 13px;
+  /* EP 2.14 模板在「前往」/「页」两侧带空格（font-size 0 去掉），
+     线上 Element UI 2 没有这个空格 */
+  font-size: 0;
   color: #606266;
+}
+.ts-pager :deep(.el-pagination__goto),
+.ts-pager :deep(.el-pagination__jump > span:not(.el-pagination__goto)) {
+  font-size: 13px;
 }
 /* 线上「前往」与输入框之间只有 2px（EP 2.14 默认 8px） */
 .ts-pager :deep(.el-pagination__goto) { margin-right: 2px; }
@@ -892,20 +1049,170 @@ async function onTerminate(row) {
   line-height: 26px;
 }
 
-/* ---------- 详情面板 ---------- */
-.ts-detail__row {
+/* ---------- 详情抽屉（线上：右抽屉 780px + 左缘蓝色关闭按钮） ---------- */
+/* 抽屉通过 teleport 渲染到 body，EP 内部节点不携带本组件 scoped 属性，
+   故抽屉内样式放到文件末尾的全局 <style> 块里（用 .ts-detail-drawer 前缀限定）。 */
+
+/* 抽屉头部（标题「详情」+ 左侧蓝色关闭按钮） */
+.ts-drawer-head {
+  position: relative;
+  height: 49px;
+  padding: 0 20px;
   display: flex;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f1f3;
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e8eaec;
+}
+.ts-drawer-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+/* 关闭按钮：蓝色方块 + 白色 ×，位于抽屉左缘之外、垂直居中于「详情」标题
+   （线上实测：约 32×32，右边缘紧贴抽屉左边缘） */
+.ts-drawer-close {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin-top: -16px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #197afb;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ts-drawer-close:hover { background: #4b95ff; }
+.ts-drawer-close :deep(.el-icon) { font-size: 18px; }
+
+/* 区块（基本信息 / 操作详情） */
+.ts-block { background: #fff; }
+.ts-block__head {
+  height: 48px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.ts-block__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+}
+.ts-block__arrow {
+  font-size: 14px;
+  color: #c0c4cc;
+  transition: transform 0.2s;
+}
+.ts-block__arrow.is-open { transform: rotate(180deg); }
+.ts-block__body { padding: 4px 20px 28px; }
+
+/* 基本信息：两列 label-value */
+.ts-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: 22px;
+}
+.ts-info-cell {
+  display: flex;
+  align-items: flex-start;
   font-size: 13px;
+  line-height: 20px;
+  min-width: 0;
 }
-.ts-detail__label {
-  width: 90px;
+.ts-info-label {
   flex: none;
+  width: 92px;
   color: #909399;
+  text-align: right;
+  padding-right: 12px;
 }
-.ts-detail__value {
+.ts-info-value {
   color: #333;
   word-break: break-all;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 操作详情：右上角复选框 */
+.ts-only-failed {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 400;
+  cursor: pointer;
+}
+.ts-only-failed :deep(.el-checkbox__label) { font-size: 13px; color: #606266; }
+</style>
+
+<!-- ElMessageBox 会 teleport 到 body，scoped 样式够不到它；
+     这里用 customClass="ts-message-box" 统一成创量蓝（线上 #197afb）与 3px 圆角。 -->
+<style>
+.ts-message-box {
+  --el-color-primary: #197afb;
+  --el-color-primary-dark-2: #1462c9;
+  --el-border-radius-base: 3px;
+}
+/* App.vue 里 .el-button{border-radius:6px} 是直接规则，变量压不住，这里补一条 */
+.ts-message-box .el-button {
+  border-radius: 3px;
+}
+/* 线上 el-popover 内 <p> 的 margin 是 0（气泡 370×65），EP 2.14 默认有 1em 外边距 */
+.ts-status-tip p {
+  margin: 0 !important;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ---------- 详情抽屉（teleport 到 body，需全局覆盖） ---------- */
+.ts-detail-drawer .el-drawer__body {
+  padding: 0;
+  background: #f5f6f7;
+  overflow-y: auto;
+}
+/* 抽屉头部区域：去掉 EP 自带的 header 占位（:with-header="false" 已隐藏，这里兜底） */
+.ts-detail-drawer .el-drawer__header { display: none; }
+/* 关闭按钮位于抽屉左缘之外：EP 的 .el-drawer__body 是 overflow:auto 的滚动容器，
+   会裁掉溢出的按钮，这里给 body 加左右 padding 并把按钮定位到面板外侧可见区。 */
+.ts-detail-drawer .el-drawer__body { overflow: visible; }
+.ts-detail-drawer .ts-detail { overflow-y: auto; max-height: calc(100vh - 49px); }
+.ts-detail-drawer .ts-drawer-head { overflow: visible; }
+
+/* 操作详情表格：线上表头 #ebedf4 / 12px / 700 / #333，单元格 12px #333 */
+.ts-detail-table {
+  width: 100%;
+  font-size: 12px;
+}
+.ts-detail-table th.el-table__cell {
+  height: 56px;
+  padding: 0;
+  background: #ebedf4;
+  color: #333;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 1px solid #e8eaec;
+}
+.ts-detail-table td.el-table__cell {
+  height: 56px;
+  padding: 0;
+  font-size: 12px;
+  color: #333;
+  border-bottom: 1px solid #e8eaec;
+  border-right: 1px solid #e8eaec;
+}
+.ts-detail-table .el-table__cell .cell {
+  line-height: 18px;
+  font-size: 12px;
+  color: #333;
+  padding: 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

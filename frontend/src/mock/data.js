@@ -195,11 +195,11 @@ const assets = [...videos, ...images, ...titlePacks, ...landingPages];
 
 // ---------- 任务 ----------
 const tasks = [
-  { id: 1, task_no: 'BT20261112001', name: '漫剧竖版批量搭建-1112', creator: '杨浩蒙', total: 120, succeeded: 118, failed: 2, status: 'PARTIAL', created_at: fmt(now - 86400000 * 1.2) },
-  { id: 2, task_no: 'BT20261112002', name: '线索留资-表单落地页', creator: '申旭阳', total: 48, succeeded: 48, failed: 0, status: 'DONE', created_at: fmt(now - 86400000 * 0.8) },
-  { id: 3, task_no: 'BT20261111018', name: '小程序付费-ROI 测试', creator: '刘松涵', total: 60, succeeded: 21, failed: 0, status: 'RUNNING', created_at: fmt(now - 86400000 * 0.3) },
-  { id: 4, task_no: 'BT20261111015', name: '口播素材批量起量', creator: '文清滨', total: 30, succeeded: 0, failed: 0, status: 'QUEUED', created_at: fmt(now - 86400000 * 0.1) },
-  { id: 5, task_no: 'BT20261110009', name: '历史-拒审回炉', creator: '杨浩蒙', total: 24, succeeded: 10, failed: 14, status: 'FAILED', created_at: fmt(now - 86400000 * 2) },
+  { id: 1, task_no: 'BT20261112001', name: '漫剧竖版批量搭建-1112', creator: '杨浩蒙', project: '漫剧端原生', total: 120, succeeded: 118, failed: 2, status: 'PARTIAL', created_at: fmt(now - 86400000 * 1.2) },
+  { id: 2, task_no: 'BT20261112002', name: '线索留资-表单落地页', creator: '申旭阳', project: '百度文库', total: 48, succeeded: 48, failed: 0, status: 'DONE', created_at: fmt(now - 86400000 * 0.8) },
+  { id: 3, task_no: 'BT20261111018', name: '小程序付费-ROI 测试', creator: '刘松涵', project: 'soul', total: 60, succeeded: 21, failed: 0, status: 'RUNNING', created_at: fmt(now - 86400000 * 0.3) },
+  { id: 4, task_no: 'BT20261111015', name: '口播素材批量起量', creator: '文清滨', project: '知乎小说', total: 30, succeeded: 0, failed: 0, status: 'QUEUED', created_at: fmt(now - 86400000 * 0.1) },
+  { id: 5, task_no: 'BT20261110009', name: '历史-拒审回炉', creator: '杨浩蒙', project: '知乎小说', total: 24, succeeded: 10, failed: 14, status: 'FAILED', created_at: fmt(now - 86400000 * 2) },
 ];
 
 const taskItems = {

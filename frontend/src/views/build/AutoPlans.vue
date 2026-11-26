@@ -37,21 +37,21 @@
     <el-card class="table-card">
       <el-table :data="list" row-key="id" border stripe style="margin-top: 12px">
         <el-table-column type="selection" :width="42" />
-        <el-table-column label="状态" :width="100">
+        <el-table-column label="状态" :min-width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'enabled' ? 'success' : 'info'">{{ row.status === 'enabled' ? '启用中' : '已停用' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="托管方案名称" prop="name" :min-width="220" />
-        <el-table-column label="优化目标" prop="external_action" :width="120" />
-        <el-table-column label="深度优化目标" prop="deep_action" :width="130" />
-        <el-table-column label="深度优化方式" prop="deep_mode" :width="120" />
+        <el-table-column label="优化目标" prop="external_action" :min-width="120" />
+        <el-table-column label="深度优化目标" prop="deep_action" :min-width="130" />
+        <el-table-column label="深度优化方式" prop="deep_mode" :min-width="120" />
         <el-table-column label="媒体账户" prop="account_name" :min-width="220" />
-        <el-table-column label="推广目的" prop="goal" :width="130" />
-        <el-table-column label="投放模式" :width="150">
+        <el-table-column label="推广目的" prop="goal" :min-width="130" />
+        <el-table-column label="投放模式" :min-width="150">
           <template #default="{ row }">{{ modeText(row.delivery_mode) }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="created_at" :width="180" />
+        <el-table-column label="创建时间" prop="created_at" :min-width="180" />
         <el-table-column label="操作" :width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="onDetail(row)">查看</el-button>

@@ -49,7 +49,7 @@
         @selection-change="(k) => (selected = k)"
       >
         <el-table-column type="selection" :width="42" />
-        <el-table-column label="状态" :width="90">
+        <el-table-column label="状态" :min-width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'enabled' ? 'success' : 'info'">{{ row.status === 'enabled' ? '启用' : '停用' }}</el-tag>
           </template>
@@ -62,13 +62,13 @@
           </template>
         </el-table-column>
         <el-table-column label="执行规则" prop="rule" :min-width="260" />
-        <el-table-column label="近一次执行结果" prop="last_result" :width="150" />
+        <el-table-column label="近一次执行结果" prop="last_result" :min-width="150" />
         <el-table-column label="描述" prop="desc" :min-width="240" />
-        <el-table-column label="有效期" prop="expire" :width="110" />
+        <el-table-column label="有效期" prop="expire" :min-width="110" />
         <el-table-column label="账户" prop="account_name" :min-width="220" />
-        <el-table-column label="创建者" prop="creator" :width="100" />
-        <el-table-column label="更新人" prop="updater" :width="100" />
-        <el-table-column label="更新时间" prop="updated_at" :width="180" />
+        <el-table-column label="创建者" prop="creator" :min-width="100" />
+        <el-table-column label="更新人" prop="updater" :min-width="100" />
+        <el-table-column label="更新时间" prop="updated_at" :min-width="180" />
       </el-table>
 
       <el-pagination class="pager" layout="total, sizes, prev, pager, next, jumper" :total="list.length" :page-size="20" />
