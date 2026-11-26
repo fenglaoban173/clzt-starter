@@ -85,8 +85,12 @@
         <div class="col">
           <div class="col-head">
             <span class="col-head__title">{{ projColTitle }}</span>
-            <span class="col-head__right" v-if="isUpgrade && hasExistingProjects">
-              <el-button link class="col-head__link" @click="switchToNewProject">从新项目创建</el-button>
+            <!-- R114：线上只有在「已配置项目」后列头右侧才出现链接：
+                 新建项目态 = 从已有项目创建 + 切换；已有项目态 = 从新项目创建 + 切换 -->
+            <span class="col-head__right" v-if="isUpgrade && (projectConfigured || hasExistingProjects)">
+              <el-button link class="col-head__link" @click="hasExistingProjects ? switchToNewProject() : openExisting()">
+                {{ hasExistingProjects ? '从新项目创建' : '从已有项目创建' }}
+              </el-button>
               <el-button link class="col-head__link" @click="toggleCreateMode">切换</el-button>
             </span>
           </div>
@@ -122,26 +126,29 @@
                   <span class="proj-block__title">基本信息</span>
                 </div>
                 <div class="proj-block__body">
-                  <div class="proj-line">项目名称：{{ projectInfo.name }}</div>
-                  <div class="proj-line">项目预算：{{ projectInfo.budget }}</div>
-                  <div class="proj-line">项目出价：{{ projectInfo.bid }}</div>
-                  <div class="proj-line">项目深度出价：{{ projectInfo.deep_bid }}</div>
-                  <div class="proj-line">推广目的：{{ projectInfo.objective }}</div>
-                  <!-- 线上：展开后补齐子目标 / 营销场景 / 投放模式 … 等摘要字段 -->
+                  <!-- R114：对齐线上 —— 折叠态 5 项（项目名称/项目预算/推广目的/子目标/营销场景）+ 展开；
+                       展开后补齐 15 项摘要，顺序与线上一致 -->
+                  <div class="proj-line"><label class="proj-line__label">项目名称：</label><p class="proj-line__value">{{ projectInfo.name }}</p></div>
+                  <div class="proj-line"><label class="proj-line__label">项目预算：</label><p class="proj-line__value">{{ projectInfo.budget }}</p></div>
+                  <div class="proj-line"><label class="proj-line__label">推广目的：</label><p class="proj-line__value">{{ projectInfo.objective }}</p></div>
+                  <div class="proj-line"><label class="proj-line__label">子目标：</label><p class="proj-line__value">{{ projectInfo.sub_objective }}</p></div>
+                  <div class="proj-line"><label class="proj-line__label">营销场景：</label><p class="proj-line__value">{{ projectInfo.marketing_goal }}</p></div>
                   <template v-if="!projInfoFolded">
-                    <div class="proj-line">子目标：{{ projectInfo.sub_objective }}</div>
-                    <div class="proj-line">营销场景：{{ projectInfo.marketing_goal }}</div>
-                    <div class="proj-line">投放模式：{{ projectInfo.delivery_mode }}</div>
-                    <div class="proj-line">广告类型：{{ projectInfo.ad_type }}</div>
-                    <div class="proj-line">投放类型：{{ projectInfo.delivery_type }}</div>
-                    <div class="proj-line">优化目标：{{ projectInfo.optimize_goal }}</div>
-                    <div class="proj-line">深度优化目标：{{ projectInfo.deep_optimize_goal }}</div>
-                    <div class="proj-line">广告位置：{{ projectInfo.ad_position }}</div>
-                    <div class="proj-line">下载方式：{{ projectInfo.download_type }}</div>
-                    <div class="proj-line">事件回传方式：{{ projectInfo.callback_type }}</div>
-                    <div class="proj-line">投放时间：{{ projectInfo.schedule_time }}</div>
-                    <div class="proj-line">投放时段：{{ projectInfo.schedule_period }}</div>
-                    <div class="proj-line">竞价策略：{{ projectInfo.bid_strategy }}</div>
+                    <div class="proj-line"><label class="proj-line__label">投放模式：</label><p class="proj-line__value">{{ projectInfo.delivery_mode }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">广告类型：</label><p class="proj-line__value">{{ projectInfo.ad_type }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">投放类型：</label><p class="proj-line__value">{{ projectInfo.delivery_type }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">优化目标：</label><p class="proj-line__value">{{ projectInfo.optimize_goal }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">深度优化目标：</label><p class="proj-line__value">{{ projectInfo.deep_optimize_goal }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">深度优化方式：</label><p class="proj-line__value">{{ projectInfo.deep_optimize_mode }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">广告位置：</label><p class="proj-line__value">{{ projectInfo.ad_position }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">关联产品投放：</label><p class="proj-line__value">{{ projectInfo.related_product }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">调起方式：</label><p class="proj-line__value">{{ projectInfo.launch_type }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">事件回传方式：</label><p class="proj-line__value">{{ projectInfo.callback_type }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">投放版位：</label><p class="proj-line__value">{{ projectInfo.delivery_form }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">投放时间：</label><p class="proj-line__value">{{ projectInfo.schedule_time }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">投放时段：</label><p class="proj-line__value">{{ projectInfo.schedule_period }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">搜索快投：</label><p class="proj-line__value">{{ projectInfo.search_keyword }}</p></div>
+                    <div class="proj-line"><label class="proj-line__label">竞价策略：</label><p class="proj-line__value">{{ projectInfo.bid_strategy }}</p></div>
                   </template>
                   <span class="show-more" @click="projInfoFolded = !projInfoFolded">
                     {{ projInfoFolded ? '展开' : '收起' }}
@@ -2474,11 +2481,16 @@ const projectInfo = computed(() => {
       delivery_type: p.delivery_type || '—',
       optimize_goal: p.optimization_goal || '—',
       deep_optimize_goal: '无',
+      deep_optimize_mode: '无',
       ad_position: p.position || '—',
+      related_product: '启用',
+      launch_type: '直接调起',
       download_type: '直接下载',
       callback_type: '应用API回传',
+      delivery_form: '今日头条、西瓜视频、抖音、番茄小说',
       schedule_time: '长期投放',
       schedule_period: '不限',
+      search_keyword: '启用',
       bid_strategy: SHORT_LABEL.bid[p.bid_strategy] || p.bid_strategy || '—',
     };
   }
@@ -2498,11 +2510,16 @@ const projectInfo = computed(() => {
     delivery_type: labelOf(AD_DELIVERY_TYPES, f.delivery_type),
     optimize_goal: ea ? ea.label : '激活',
     deep_optimize_goal: f.deep_external_action ? labelOf(DEEP_ACTIONS, f.deep_external_action) : '无',
+    deep_optimize_mode: '无',
     ad_position: labelOf(INVENTORY_CATALOGS, f.inventory_catalog),
+    related_product: f.related_product === 'ON' ? '启用' : '不启用',
+    launch_type: f.launch_type === 'DIRECT' ? '直接调起' : (SHORT_LABEL.download[f.download_type] || labelOf(DOWNLOAD_TYPES, f.download_type)),
     download_type: SHORT_LABEL.download[f.download_type] || labelOf(DOWNLOAD_TYPES, f.download_type),
     callback_type: SHORT_LABEL.callback[f.event_callback_type] || '应用API回传',
+    delivery_form: f.promote_carrier === 'MULTI' ? '今日头条、西瓜视频、抖音、番茄小说' : '抖音',
     schedule_time: SHORT_LABEL.schedule[f.schedule_time] || '长期投放',
     schedule_period: SHORT_LABEL.period[f.schedule_period] || '不限',
+    search_keyword: '不启用',
     bid_strategy: SHORT_LABEL.bid[f.bid_strategy] || '稳定成本（常规版）',
   };
 });
@@ -4269,7 +4286,11 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__body--targeting.is-expanded::-webkit-scrollbar { width: 8px; }
 .proj-block__body--targeting.is-expanded::-webkit-scrollbar-thumb { background: #c9cdd4; border-radius: 4px; }
 .proj-block__body--targeting.is-expanded::-webkit-scrollbar-track { background: transparent; }
-.proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
+/* R114：对齐线上 ad-info-item —— label 固定 60px（5 个汉字）+ value 自适应，
+ * 长文本在自己的列内换行（不回流到标签行） */
+.proj-line { display: flex; align-items: flex-start; font-size: 12px; color: #606266; line-height: 24px; }
+.proj-line__label { flex: 0 0 60px; width: 60px; color: #606266; }
+.proj-line__value { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .show-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: #197afb; cursor: pointer; }
 .show-more__icon { font-size: 12px; }
 .proj-line__account { color: #1d2129; }
