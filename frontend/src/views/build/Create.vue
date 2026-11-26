@@ -81,33 +81,30 @@
 
       <!-- 五列配置区（对齐线上：项目 / 广告信息 / 创意素材 / 标题包 / 落地页） -->
       <div class="grid-cols">
-        <!-- 新建项目 / 已有项目 -->
+        <!-- 新建项目 / 已有项目（R113：对齐线上三态） -->
         <div class="col">
           <div class="col-head">
             <span class="col-head__title">{{ projColTitle }}</span>
-            <span class="col-head__right" v-if="isUpgrade">
-              <el-button link class="col-head__link" @click="form.create_mode === 'EXIST' ? switchToNewProject() : openExisting()">
-                {{ form.create_mode === 'EXIST' ? '从新项目创建' : '从已有项目创建' }}
-              </el-button>
+            <span class="col-head__right" v-if="isUpgrade && hasExistingProjects">
+              <el-button link class="col-head__link" @click="switchToNewProject">从新项目创建</el-button>
               <el-button link class="col-head__link" @click="toggleCreateMode">切换</el-button>
             </span>
           </div>
           <div class="col-body col-body--center">
-            <!-- 未选媒体账户时，线上仅展示居中的「请选择媒体账户」入口 -->
+            <!-- ① 未选媒体账户：线上仅展示居中的「请选择媒体账户」入口 -->
             <el-link v-if="!form.account_ids.length" type="primary" class="col-pick" @click="acctVisible = true">请选择媒体账户</el-link>
-            <div class="proj-col">
-            <div v-if="form.account_ids.length" class="mode-split">
-              <template v-if="!isUpgrade">
-                <div class="mode-split__cell" :class="{ active: form.create_mode === 'EXIST' }" @click="openExisting">
-                  <span class="mode-split__text">选择已有项目</span>
-                </div>
-                <div class="mode-split__cell" :class="{ active: form.create_mode === 'NEW' }" @click="switchToNewProject">
-                  <span class="mode-split__text">新建项目</span>
-                </div>
-              </template>
+            <div class="proj-col" v-if="form.account_ids.length">
+            <!-- ② 选了媒体账户、还没配置项目：线上为两格分割（选择已有项目 | 新建项目），整列高、居中对齐 -->
+            <div v-if="showModeSplit" class="mode-split">
+              <div class="mode-split__cell" :class="{ active: projPane === 'EXIST' }" @click="pickPane('EXIST')">
+                <span class="mode-split__text">选择已有项目</span>
+              </div>
+              <div class="mode-split__cell" :class="{ active: projPane === 'NEW' }" @click="pickPane('NEW')">
+                <span class="mode-split__text">新建项目</span>
+              </div>
             </div>
-            <!-- R112：已有项目模式 —— 回显已选项目列表（线上：账户名 14px #333 + 项目名 12px #666 + 右侧 ×） -->
-            <div v-if="isExistMode" class="exist-list">
+            <!-- ③ 已选已有项目：回显项目列表（线上：账户名 14px #333 + 项目名 12px #666 + 右侧 ×） -->
+            <div v-if="hasExistingProjects" class="exist-list">
               <div v-for="it in selectedExistingList" :key="it.key" class="exist-project">
                 <div class="exist-project-account">
                   <div class="account-name ellipsis" :title="it.account_name">{{ it.account_name }}</div>
@@ -117,10 +114,9 @@
                   <el-icon class="exist-project__del" title="移除" @click="removeExistingProject(it)"><Close /></el-icon>
                 </div>
               </div>
-              <div v-if="!selectedExistingList.length" class="exist-list__empty">暂无已有项目</div>
             </div>
-            <!-- 线上：基本信息（可展开）+ 定向包 -->
-            <div v-else class="proj-blocks">
+            <!-- ④ 已配置项目：基本信息（可展开）+ 定向包 -->
+            <div v-else-if="projectConfigured" class="proj-blocks">
               <div class="proj-block">
                 <div class="proj-block__head">
                   <span class="proj-block__title">基本信息</span>
@@ -206,13 +202,18 @@
         <div class="col">
           <div class="col-head"><span class="col-head__title">{{ cardTitle.ad }}</span></div>
           <div class="col-body">
-            <div class="col-line">广告名称：{{ form.ad.name_template || '未设置' }}</div>
+            <!-- R113：线上默认态只有「广告名称 / 产品名称」两项；配置项目后才补齐其余字段 -->
+            <div class="col-line">广告名称：{{ adNameDisplay }}</div>
             <div class="col-line">产品名称：{{ form.ad.product_name || form.project.app_name || '无' }}</div>
-            <div class="col-line">广告评论：{{ form.ad.comment || '无' }}</div>
-            <div class="col-line">客户端下载视频：{{ form.ad.download_video === 'ON' ? '启用' : '不启用' }}</div>
-            <div class="col-line">所属类别：{{ form.ad.category || '无' }}</div>
-            <div class="col-line">品牌名称：{{ form.ad.brand_name || '无' }}</div>
-            <div class="col-line">二级品牌名称：{{ form.ad.brand_name_2 || '无' }}</div>
+            <template v-if="projectConfigured">
+              <div class="col-line">广告预算：{{ form.ad_budget ? form.ad_budget + '元' : '无' }}</div>
+              <div class="col-line">广告出价：{{ form.ad_bid ? form.ad_bid + '元' : '无' }}</div>
+              <div class="col-line">广告评论：{{ form.ad.comment || '无' }}</div>
+              <div class="col-line">客户端下载视频：{{ form.ad.download_video === 'ON' ? '启用' : '不启用' }}</div>
+              <div class="col-line">所属类别：{{ form.ad.category || '无' }}</div>
+              <div class="col-line">品牌名称：{{ form.ad.brand_name || '无' }}</div>
+              <div class="col-line">二级品牌名称：{{ form.ad.brand_name_2 || '无' }}</div>
+            </template>
           </div>
           <div class="col-foot">
             <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -1467,9 +1468,31 @@ const cardTitle = computed(() => ({
   title: isUni.value ? '标题' : '标题包',
 }));
 // 首列标题随「创建方式」变化（对齐线上：已有项目 / 新建项目）
+/* R113：线上「新建项目」列标题 = 已选已有项目时「已有项目」，否则「新建项目」 */
+const hasExistingProjects = computed(() => (form.existing_projects || []).length > 0);
+/* R113：广告名称模板展示 —— 线上默认展示为「<日期>-<时分秒>-<当日标号>」而非原始通配符 */
+const adNameDisplay = computed(() => {
+  const t = String(form.ad.name_template || '').trim();
+  if (!t) return '未设置';
+  return t
+    .replace(/\{date\}/g, '<日期>')
+    .replace(/\{time\}/g, '<时分秒>')
+    .replace(/\{index\}/g, '<当日标号>');
+});
 const projColTitle = computed(() => (
-  form.create_mode === 'EXIST' ? '已有项目' : cardTitle.value.proj
+  hasExistingProjects.value ? '已有项目' : cardTitle.value.proj
 ));
+/* R113：线上两格分割的高亮项（默认「选择已有项目」为选中态：白底 + #409eff 蓝字） */
+const projPane = ref('EXIST');
+/** 线上：只有「选了媒体账户、但还没配置项目」时才显示两格分割 */
+const showModeSplit = computed(() => (
+  form.account_ids.length > 0 && !hasExistingProjects.value && !projectConfigured.value
+));
+/** 点两格分割：切到对应模式并打开对应抽屉 */
+function pickPane(pane) {
+  projPane.value = pane;
+  if (pane === 'EXIST') openExisting(); else switchToNewProject();
+}
 
 const previewing = ref(false);
 /* ---- 线上：已选任务 chip / 基本信息展开 / 通用配置抽屉 ---- */
@@ -2155,6 +2178,10 @@ const form = reactive({
   account_ids: [],
   creative_project: '',
   create_mode: 'NEW',
+  /* R113：广告预算 / 广告出价（广告信息抽屉用的是 form.ad_budget / form.ad_bid；
+   * 线上已配置态的广告信息列会展示这两项） */
+  ad_budget: 999999,
+  ad_bid: 52,
   project_rule: 'BY_TOTAL',
   ad_rule: 'BY_CREATIVE',
   ads_limit_per_project: 100, // 每个项目广告数上限（项目生成规则=按总广告数/每项目广告数）
@@ -4174,9 +4201,10 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 /* R112：线上列体内缩 8px（广告信息列首行 x=390 / 列头 x=382；已有项目条目 x=29 / 列 x=21），
  * 本地原为 16px，与线上差 8px —— 统一改为 8px */
 .col-body { flex: 1; padding: 8px; overflow-y: auto; }
-.col-body--center { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; }
+/* R113：首列空态的「请选择媒体账户」在线上是垂直居中（图1），这里改为居中对齐 */
+.col-body--center { display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
 .col-body--center .col-pick { align-self: center; }
-.proj-col { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: flex-start; }
+.proj-col { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: flex-start; flex: 1; min-height: 0; }
 .col-pick { font-size: 13px; }
 .col-line { font-size: 13px; color: #4e5969; margin-bottom: 8px; }
 .material-list { display: flex; flex-direction: column; gap: 6px; }
@@ -4577,21 +4605,26 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .sync-tip { margin-top: 8px; font-size: 13px; color: #86909c; }
 
 /* ===== 线上批量搭建页对齐（新增） ===== */
-/* 项目列：选择已有项目 / 新建项目 双磁贴 */
-/* 项目列：选择已有项目 / 新建项目 各占一半（对齐线上 图1） */
-.mode-split { display: flex; width: 100%; height: 100%; }
+/* 项目列：选择已有项目 / 新建项目 双磁贴
+ * R113 对齐线上 ad-config：容器灰底 #f5f5f5，两格各占一半、整列高、文字水平+垂直居中；
+ * 选中格 = 白底 + #409eff 蓝字，未选中格 = 透���底 + #606266 灰字。 */
+.mode-split {
+  display: flex; width: calc(100% + 16px); margin: -8px; align-self: stretch;
+  flex: 1; min-height: 0; background: #f5f5f5;
+}
 .mode-split__cell {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  text-align: center;
+  background: transparent;
   cursor: pointer;
-  transition: background .15s;
+  transition: background .15s, color .15s;
 }
-.mode-split__cell.active { background: #f2f3f5; }
-.mode-split__text { font-size: 14px; color: #165dff; }
-.mode-split__cell.active .mode-split__text { color: #1d2129; font-weight: 600; }
+.mode-split__cell.active { background: #fff; color: #409eff; }
+.mode-split__text { font-size: 14px; color: inherit; }
+.mode-split__cell:not(.active) .mode-split__text { color: #606266; }
 /* 抖音号 / 产品信息 / 广告设置 按钮行 */
 .cfg-btns { display: flex; gap: 12px; margin-top: 0; padding: 8px 16px; border: 1px solid #e5e6eb; border-top: none; border-radius: 0 0 4px 4px; }
 .cfg-btns .el-button { font-size: 12px; color: #666; background: #fff; border-color: #d0d0d0; border-radius: 3px; padding: 9px 15px; }
