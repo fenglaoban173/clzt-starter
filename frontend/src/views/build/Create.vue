@@ -86,7 +86,9 @@
           <div class="col-head">
             <span class="col-head__title">{{ projColTitle }}</span>
             <span class="col-head__right" v-if="isUpgrade">
-              <el-button link class="col-head__link" @click="openExisting">从已有项目创建</el-button>
+              <el-button link class="col-head__link" @click="form.create_mode === 'EXIST' ? switchToNewProject() : openExisting()">
+                {{ form.create_mode === 'EXIST' ? '从新项目创建' : '从已有项目创建' }}
+              </el-button>
               <el-button link class="col-head__link" @click="toggleCreateMode">切换</el-button>
             </span>
           </div>
@@ -104,8 +106,21 @@
                 </div>
               </template>
             </div>
+            <!-- R112：已有项目模式 —— 回显已选项目列表（线上：账户名 14px #333 + 项目名 12px #666 + 右侧 ×） -->
+            <div v-if="isExistMode" class="exist-list">
+              <div v-for="it in selectedExistingList" :key="it.key" class="exist-project">
+                <div class="exist-project-account">
+                  <div class="account-name ellipsis" :title="it.account_name">{{ it.account_name }}</div>
+                </div>
+                <div class="select-data-item">
+                  <p class="ellipsis" :title="it.name">{{ it.name }}</p>
+                  <el-icon class="exist-project__del" title="移除" @click="removeExistingProject(it)"><Close /></el-icon>
+                </div>
+              </div>
+              <div v-if="!selectedExistingList.length" class="exist-list__empty">暂无已有项目</div>
+            </div>
             <!-- 线上：基本信息（可展开）+ 定向包 -->
-            <div class="proj-blocks">
+            <div v-else class="proj-blocks">
               <div class="proj-block">
                 <div class="proj-block__head">
                   <span class="proj-block__title">基本信息</span>
@@ -2392,6 +2407,28 @@ const SHORT_LABEL = {
   download: { DOWNLOAD_URL: '直接下载', EXTERNAL_URL: '落地页下载' },
   optimize: { AD_CONVERT_TYPE_ACTIVE: '激活', AD_CONVERT_TYPE_PAY: '付费', AD_CONVERT_TYPE_APP_ORDER: 'APP下单' },
 };
+/* R112：已有项目模式 —— 首列回显已选项目列表（线上：账户名 14px #333 换行 + 项目名 12px #666 + 右侧 × 移除） */
+const isExistMode = computed(() => form.create_mode === 'EXIST');
+const selectedExistingList = computed(() => (form.existing_projects || []).map((x) => {
+  const p = (existingProjects || []).find((it) => (
+    String(it.id) === String(x.project_id) || String(it.project_id) === String(x.project_id)
+  )) || null;
+  const acc = selectedAccounts.value.find((a) => String(a.id) === String(x.account_id)) || null;
+  return {
+    key: `${x.account_id}-${x.project_id}`,
+    account_id: x.account_id,
+    project_id: x.project_id,
+    account_name: acc ? acc.name : `账户 ${x.account_id}`,
+    name: p ? p.name : `项目 ${x.project_id}`,
+  };
+}));
+/** 移除已选项目；全部移除后回到「新建项目」模式 */
+function removeExistingProject(it) {
+  form.existing_projects = (form.existing_projects || []).filter(
+    (x) => !(String(x.account_id) === String(it.account_id) && String(x.project_id) === String(it.project_id))
+  );
+  if (!form.existing_projects.length) form.create_mode = 'NEW';
+}
 const projectInfo = computed(() => {
   /* 已有项目模式：回显所选已有项目（多选时取第一个） */
   if (form.create_mode === 'EXIST' && (form.existing_projects || []).length) {
@@ -4134,7 +4171,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .col-count { font-size: 12px; font-weight: 400; color: #86909c; }
 .col-head .col-head__act { margin-left: auto; padding: 0; font-size: 12px; }
 .col-head .col-head__act + .col-head__act { margin-left: 0; }
-.col-body { flex: 1; padding: 8px 16px; overflow-y: auto; }
+/* R112：线上列体内缩 8px（广告信息列首行 x=390 / 列头 x=382；已有项目条目 x=29 / 列 x=21），
+ * 本地原为 16px，与线上差 8px —— 统一改为 8px */
+.col-body { flex: 1; padding: 8px; overflow-y: auto; }
 .col-body--center { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; }
 .col-body--center .col-pick { align-self: center; }
 .proj-col { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: flex-start; }
@@ -4166,6 +4205,27 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .picked-task__edit { font-size: 13px; }
 .rule-box__count { padding: 0 12px; font-size: 12px; color: #86909c; border-left: 1px solid #e5e6eb; align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
 .proj-blocks { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; width: 100%; }
+/* R112：已有项目列表（对齐线上 show-body / exist-project / select-data-item）
+ * 线上实测：列体 360 宽，条目区 344 宽（左右各 8px 内边距）；
+ * 账户名 14px #333 / 18px 行高；项目名 12px #666 单行省略；右侧 × 移除。 */
+.exist-list { width: 100%; }
+.exist-project { margin-bottom: 4px; }
+.exist-project-account {
+  font-size: 14px; color: #333; line-height: 18px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.select-data-item {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 8px; margin-top: 0; margin-bottom: 4px; min-height: 32px;
+}
+.select-data-item .ellipsis {
+  flex: 1; min-width: 0; margin: 0;
+  font-size: 12px; color: #666; line-height: 16px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.exist-project__del { flex: none; cursor: pointer; font-size: 14px; color: #c9cdd4; }
+.exist-project__del:hover { color: #86909c; }
+.exist-list__empty { font-size: 12px; color: #86909c; padding: 4px 8px; }
 .proj-block { border-top: 1px solid #f2f3f5; padding-top: 8px; width: 100%; }
 .proj-block__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #1d2129; font-weight: 600; }
 .proj-block__title { white-space: nowrap; }

@@ -4160,3 +4160,29 @@ R87 未提交改动已把 7 菜单做到与线上一比一（含「创量项目�
 （线上是有「铺剧策略」的，按用户要求先移除）。弹窗尺寸/位置不受影响（仍 990×728 垂直居中）。
 
 验证：`npm run build` 通过；全流程 0 pageerror / 0 console error。
+
+### ⑪ R112 选择已有项目「多选回显」样式对齐线上（2026-11-26）
+
+**用户反馈**：选择已有项目多选时，线上首列回显的是「账户名 + 项目名 + ×」的条目列表，本地不是这个样式。
+
+**线上取证**（`C:/tmp/verify/cx_online_exist*.py`，只读）：
+- 进入「已有项目」态的方式：选一个**搭建模式=已有项目**的策略组（或在选择已有项目抽屉里勾选后确定），
+  首列标题变「已有项目」，列头右侧 `table-header-left-wrapper-right` 显示
+  **「从新项目创建」+「切换」**（`display` 由 none 变 block）。
+- 首列 DOM：`show-body`(360×300, overflow hidden) → 每个条目 `exist-project`(344×50)：
+  - `exist-project-account` → `account-name ellipsis`：**14px / #333 / 18px 行高 / 单行省略**
+  - `select-data-item`(344×32, margin-bottom 4px) → `p.ellipsis`：**12px / #666 / 单行省略** + 右侧 ×（14×14）
+- 线上列体内缩 **8px**（广告信息列首行 x=390 / 列头 x=382；已有项目条目 x=29 / 列 x=21），
+  本地原为 16px —— 差 8px。
+
+**本地改动**（`views/build/Create.vue`）：
+- 新增 `isExistMode` / `selectedExistingList` / `removeExistingProject`；
+- 首列在「已有项目」模式下渲染 `.exist-list`（账户名 14px #333 + 项目名 12px #666 + × 移除），
+  隐藏「基本信息 / 定向包」块（与线上一致）；
+- 列头右侧链接在已有项目态改为「从新项目创建」（点击回到新建项目模式），新建项目态仍是「从已有项目创建」；
+- `.col-body` 内缩由 16px 改为 **8px**，与线上各列一致；
+- 条目行高 50px（18 + 32），与线上 `exist-project` 一致。
+
+验证（真实 Chrome，2560×1319）：标题「已有项目」、链接「从新项目创建/切换」、条目 50px 高、
+账户名 14px #333、项目名 12px #666、× 14×14 且可点击移除（20 → 19）；
+`npm run build` 通过；全流程 0 pageerror / 0 console error。
