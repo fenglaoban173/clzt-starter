@@ -9,11 +9,10 @@
     @update:model-value="(v) => emit('update:modelValue', v)"
     @open="init"
   >
-    <!-- R110：线上无标题栏，页签（策略组 / 铺剧策略）直接置于弹窗顶部 -->
+    <!-- R110：线上无标题栏，页签直接置于弹窗顶部；R111：按用户要求先移除「铺剧策略」页签 -->
     <template #header>
       <el-tabs v-model="tab" class="sg-tabs">
         <el-tab-pane label="策略组" name="group" />
-        <el-tab-pane label="铺剧策略" name="drama" />
       </el-tabs>
     </template>
     <div class="sg-body">

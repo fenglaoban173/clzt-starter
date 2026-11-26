@@ -144,8 +144,13 @@
                   <span class="proj-block__time" v-if="targetingDetailTime">更新时间：{{ targetingDetailTime }}</span>
                   <el-button link type="primary" class="proj-block__act" @click="fetchTargetingDetail">获取定向详情</el-button>
                 </div>
-                <div class="proj-block__body">
-                  <div v-for="a in selectedAccounts" :key="a.id" class="proj-line">
+                <div
+                  ref="targetingBoxRef"
+                  class="proj-block__body proj-block__body--targeting"
+                  :class="{ 'is-expanded': targetingExpanded }"
+                  :style="targetingExpanded ? { maxHeight: targetingMaxH + 'px' } : null"
+                >
+                  <div v-for="a in targetingShownAccounts" :key="a.id" class="proj-line">
                     <div class="proj-line__account">{{ a.name }}</div>
                     <el-tooltip placement="top" :show-after="200">
                       <template #content>
@@ -1765,10 +1770,30 @@ const sectionTitle = computed(() => ({
 /* 线上：获取定向详情为行内展开（加载态 + 更新时间），不弹面板 */
 const targetingLoading = ref(false);
 const targetingDetailTime = ref('');
+/* R111：多账户时定向包列表不能把「新建项目」列撑高 —— 默认只显示 1~2 条，
+ * 点「获取定向详情」后在原矩形内展开并用垂直滚动条查看（列高保持不变）。
+ * 做法：记录折叠态的实际高度作为展开后的 max-height，展开时容器高度被钳住，只出滚动条。 */
+const targetingExpanded = ref(false);
+const TARGETING_PREVIEW_COUNT = 2;
+const targetingBoxRef = ref(null);
+const targetingMaxH = ref(84);
+const targetingShownAccounts = computed(() => (
+  targetingExpanded.value ? selectedAccounts.value : selectedAccounts.value.slice(0, TARGETING_PREVIEW_COUNT)
+));
+/* 折叠态高度随账户名长度变化，账户变化后重新量一次 */
+function syncTargetingMaxH() {
+  nextTick(() => {
+    const el = targetingBoxRef.value;
+    if (!el || targetingExpanded.value) return;
+    const h = el.scrollHeight;
+    if (h > 0) targetingMaxH.value = h;
+  });
+}
 function fetchTargetingDetail() {
   targetingLoading.value = true;
   setTimeout(() => {
     targetingLoading.value = false;
+    targetingExpanded.value = true;
     const d = new Date();
     const p = (n) => String(n).padStart(2, '0');
     targetingDetailTime.value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
@@ -2348,6 +2373,11 @@ const accountSummary = computed(() => {
   if (!form.account_ids.length) return '请选择媒体账户';
   // 只展示第一个账户名称，其余通过鼠标移入浮层查看
   return selectedAccounts.value[0]?.name || '请选择媒体账户';
+});
+/* R111：账户增减后重置定向包折叠态并重测折叠高度（watch 源必须放在 selectedAccounts 之后，避免 TDZ） */
+watch(() => selectedAccounts.value.length, () => {
+  targetingExpanded.value = false;
+  syncTargetingMaxH();
 });
 /* 线上摘要用短文案（与线上「展开」后的展示一致） */
 const SHORT_LABEL = {
@@ -3733,7 +3763,11 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     sectionTitle,
     targetingLoading,
     targetingDetailTime,
+    targetingExpanded,
+    targetingMaxH,
+    targetingShownAccounts,
     fetchTargetingDetail,
+    syncTargetingMaxH,
     openSection,
     toggleCreateMode,
     productPool,
@@ -4136,6 +4170,17 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .proj-block__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #1d2129; font-weight: 600; }
 .proj-block__title { white-space: nowrap; }
 .proj-block__body { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; width: 100%; }
+/* R111：定向包多时不能把「新建项目」列撑高 —— 默认只渲染 1~2 条；
+ * 点「获取定向详情」后在原矩形内展开，列表自带垂直滚动条（列高不变，max-height 由 JS 按折叠态实测填入）。
+ * scrollbar-width/color 是标准属性：能让 Chromium 的 overlay 滚动条变成占位的经典滚动条，
+ * 保证「原矩形内提供垂直滚动条」真的看得见（::-webkit-scrollbar 单独写时 overlay 模式不占位）。 */
+.proj-block__body--targeting.is-expanded {
+  overflow-y: auto; overflow-x: hidden; box-sizing: border-box;
+  scrollbar-width: thin; scrollbar-color: #c9cdd4 transparent;
+}
+.proj-block__body--targeting.is-expanded::-webkit-scrollbar { width: 8px; }
+.proj-block__body--targeting.is-expanded::-webkit-scrollbar-thumb { background: #c9cdd4; border-radius: 4px; }
+.proj-block__body--targeting.is-expanded::-webkit-scrollbar-track { background: transparent; }
 .proj-line { font-size: 12px; color: #4e5969; line-height: 1.6; }
 .show-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: #197afb; cursor: pointer; }
 .show-more__icon { font-size: 12px; }

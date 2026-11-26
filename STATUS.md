@@ -4130,3 +4130,33 @@ R87 未提交改动已把 7 菜单做到与线上一比一（含「创量项目�
 
 > 教训：Element Plus 的 `align-center` 与「自定义 margin」互斥；给弹窗写任何 margin 都要先确认
 > 是不是在破坏 `margin: auto` 的居中机制。
+
+### ⑩ R111 用户反馈两处（2026-11-26）
+
+**① 定向包多时不能撑高「新建项目」列**
+
+现象：选 20 个账户后，「新建项目」列的定向包区把整列撑到 ~950px，五列区整体被拉长。
+
+改法（`views/build/Create.vue`）：
+- 默认只渲染 **前 2 条**定向包（`targetingShownAccounts` = `selectedAccounts.slice(0, 2)`）；
+- 点「获取定向详情」→ `targetingExpanded = true`，展开全部账户，但容器高度被 **折叠态实测高度** 钳住
+  （`targetingMaxH`，用 `nextTick` 量 `scrollHeight` 写回，inline `max-height`），于是列表在**原矩形内**出垂直滚动条；
+- 账户增减时 watch 重置折叠态并重新量高（watch 源必须写在 `selectedAccounts` 定义之后，否则 TDZ 报
+  `Cannot access 'selectedAccounts' before initialization`，整页白屏）；
+- 滚动条可见性：`scrollbar-width: thin` + `scrollbar-color` + `::-webkit-scrollbar`。
+  **headless Chromium 用 overlay 滚动条（占位 0px），必须用真实 Chrome（channel=chrome, headless=False）验证**，
+  实测真实 Chrome 占位 10px、滚动条可见。
+
+实测（真实 Chrome，2560×1319，选 16 个账户）：
+
+| | 定向包条数 | 定向包矩形高 | scrollHeight | 新建项目列高 | 五列区总高 |
+|---|---|---|---|---|---|
+| 默认（未点获取定向详情） | 2 | 79 | 79 | 410 | 412 |
+| 点「获取定向详情」后 | 16 | **79（不变）** | 644（可滚动） | **410（不变）** | **412（不变）** |
+
+**② 选择策略弹窗移除「铺剧策略」页签**
+
+`views/media/components/StrategyGroupDialog.vue` 的 `el-tabs` 只保留「策略组」一个页签
+（线上是有「铺剧策略」的，按用户要求先移除）。弹窗尺寸/位置不受影响（仍 990×728 垂直居中）。
+
+验证：`npm run build` 通过；全流程 0 pageerror / 0 console error。
