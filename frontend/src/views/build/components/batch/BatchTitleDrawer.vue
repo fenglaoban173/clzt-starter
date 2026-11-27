@@ -242,11 +242,6 @@
                       </template>
                       <template v-else-if="c.key === 'op'">
                         <button class="tit-link" @click="editRow(row)">编辑</button>
-                        <button
-                          v-if="v.title_source === 'TITLE_LIB'"
-                          class="tit-link tit-link--fixed"
-                          @click="addAsFixed(row)"
-                        >添加为固定标题</button>
                       </template>
                       <template v-else>{{ row[c.key] ?? '--' }}</template>
                     </td>
@@ -713,17 +708,6 @@ function editRow(row) {
     text: (row.titles && row.titles.length ? row.titles : [row.name]).join('\n'),
   };
   titleAddVisible.value = true;
-}
-
-/** 列表「添加为固定标题」 */
-function addAsFixed(row) {
-  if (row.fixed) {
-    ElMessage.info('该标题已为固定标题');
-    return;
-  }
-  row.fixed = true;
-  v.fixed_title_count = String(Number(v.fixed_title_count || 0) + 1);
-  ElMessage.success('已添加为固定标题');
 }
 
 /** 添加标题确定：新建写入列表 / 编辑回写原行 */
@@ -1283,7 +1267,6 @@ function onClose() {
 .tit-tag--red { color: #f53f3f; background: #ffece8; }
 .tit-link { font-size: 12px; color: #197afb; background: none; border: none; padding: 0; cursor: pointer; }
 .tit-link + .tit-link { margin-left: 8px; }
-.tit-link--fixed { color: #197afb; }
 .tit-link:hover { text-decoration: underline; }
 .tit-link--danger { color: #f53f3f; }
 .tit-empty { text-align: center; color: #86909c; }
