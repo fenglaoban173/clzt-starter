@@ -25,7 +25,7 @@ export const BATCH_LIMIT = 10;
 const num = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
 
 /**
- * 线上（创量）点击后仅提示、不弹窗的操作：所选广告类型不支持该操作。
+ * 线上（智投）点击后仅提示、不弹窗的操作：所选广告类型不支持该操作。
  * 巨量接口本身是有对应字段的，本地原型仍给出完整表单，并保留该提示作为说明。
  */
 export const ONLINE_ONLY_TOAST = {
@@ -428,7 +428,7 @@ export const PROMOTION_BATCH_OPS = {
   },
   批量修改广告名称: {
     title: '批量修改广告名称',
-    desc: (n) => `已选${n}个广告，广告名称不能超过100字符（一个中文字符计为两个字符长度），任务执行成功后会立即修改创量侧名称，但媒体存在几分钟的审核缓存，需等待审核通过后同步显示。`,
+    desc: (n) => `已选${n}个广告，广告名称不能超过100字符（一个中文字符计为两个字符长度），任务执行成功后会立即修改智投侧名称，但媒体存在几分钟的审核缓存，需等待审核通过后同步显示。`,
     api: { method: 'POST', path: '/open_api/v3.0/promotion/update/', name: '修改单元（name）', scope: AUTH_PROMOTION },
     fields: [
       { key: 'mode', label: '修改模式', type: 'radio', apiField: 'name', required: true, default: '自定义', options: ['自定义', '关键词替换', '表格导入'] },

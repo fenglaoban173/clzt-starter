@@ -1,9 +1,9 @@
-// 广告列表「查询条件」的候选项：与创量广告·广告列表页（cl.mobgi.com/promotion/ad/toutiaoupgrade/ad）保持一致。
+// 广告列表「查询条件」的候选项：与智投广告·广告列表页（cl.mobgi.com/promotion/ad/toutiaoupgrade/ad）保持一致。
 // 2026-11 线上逐个下拉抓取的结果；媒体账户 / 项目 为账号相关数据，本地取模拟数据。
 
-// 智投项目（线上原为「创量项目」）
+// 智投项目（线上原为「智投项目」）
 export const AD_CL_PROJECTS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];
-// 创量产品（仅作模拟数据字段，筛选栏按 R35 要求不展示）
+// 智投产品（仅作模拟数据字段，筛选栏按 R35 要求不展示）
 export const AD_CL_PRODUCTS = ['测试商品', '测试安卓应用(android)'];
 // 优化师
 export const AD_OPTIMIZERS = [

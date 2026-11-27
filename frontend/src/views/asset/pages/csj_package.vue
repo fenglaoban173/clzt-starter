@@ -219,7 +219,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { CircleClose, Close, Search } from '@element-plus/icons-vue';
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 穿山甲媒体包」
+ * 智投标准版「巨量广告·标准 → 资产 → 穿山甲媒体包」
  * 线上：https://cl.mobgi.com/property/toutiao/flowpackage
  * 采集依据：线上 DOM + 线上构建产物 assets/flow-package-*.js
  *   - 页面无二级页签，标题 h1「穿山甲媒体包」

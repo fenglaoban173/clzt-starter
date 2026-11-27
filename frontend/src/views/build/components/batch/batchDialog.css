@@ -1,0 +1,1008 @@
+/**
+ * 批量搭建模块 · 弹窗容器样式（对齐线上巨量智投）
+ *
+ * 线上实测（2026-11-26，cl.mobgi.com 批量新建 → 配置行 / 步骤区）：
+ *
+ *   选择媒体账户  el-dialog.cl-dialog--large  1136×725
+ *   选择任务      el-dialog.cl-dialog--large  1025×710
+ *   选择策略      el-dialog.cl-modal            990×728
+ *
+ *   共同点：border-radius 2px
+ *          box-shadow rgba(0,0,0,.3) 0 1px 3px 0
+ *          margin-top 固定（177.5 / 185 / 176 px），**不是垂直居中**
+ *
+ *   cl-dialog--large：header 51px（padding 16px 32px，标题 16px）
+ *                     body   600/585px（padding 24px 32px）
+ *                     footer 74px（padding 11px 32px 30px）
+ *
+ *   cl-modal：       header 47px（padding 14px 24px，标题 18px）
+ *                     body   620px（padding 0）
+ *                     无 footer
+ *
+ * 注意：el-dialog 被 teleport 到 body，scoped 样式不生效 → 必须全局。
+ */
+
+/* ── 容器通用 ── */
+.el-dialog.cl-dialog--large,
+.el-dialog.cl-modal {
+  border-radius: 2px;
+  box-shadow: rgba(0, 0, 0, 0.3) 0 1px 3px 0;
+  background: #fff;
+  overflow: visible;
+}
+
+/* ── 选择媒体账户 / 选择任务（cl-dialog--large） ── */
+.el-dialog.cl-dialog--large .el-dialog__header {
+  padding: 16px 32px;
+  margin-right: 0;
+  border-bottom: none;
+}
+.el-dialog.cl-dialog--large .el-dialog__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2129;
+  line-height: 19px;
+}
+.el-dialog.cl-dialog--large .el-dialog__headerbtn {
+  top: 16px;
+  right: 24px;
+  width: 20px;
+  height: 20px;
+}
+.el-dialog.cl-dialog--large .el-dialog__body {
+  padding: 24px 32px;
+  color: #1d2129;
+}
+.el-dialog.cl-dialog--large .el-dialog__footer {
+  padding: 11px 32px 30px;
+}
+
+/* ── 选择策略（cl-modal） ── */
+.el-dialog.cl-modal .el-dialog__header {
+  padding: 14px 24px;
+  margin-right: 0;
+  border-bottom: none;
+}
+.el-dialog.cl-modal .el-dialog__title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #1d2129;
+  line-height: 19px;
+}
+.el-dialog.cl-modal .el-dialog__headerbtn {
+  top: 14px;
+  right: 16px;
+  width: 20px;
+  height: 20px;
+}
+.el-dialog.cl-modal .el-dialog__body {
+  padding: 0;
+}
+/* 注意：早期这里写过 footer{display:none}，导致「选择策略」弹窗的取消/确定被整体隐藏；
+ * Element Plus 在没有 footer 插槽时本来就不渲染 footer 节点，故不需要隐藏规则。 */
+
+/* ══════════════════════════════════════════════════════════════
+   广告信息抽屉的二级「资产选择」弹窗（700×）
+   · 选择抖音号（图1）· 选择原生锚点模板（图4）· 选择附加创意组件（图5）
+   三个弹窗共用 .adpick- 前缀，样式集中在此处（弹窗 teleport 到 body，必须全局）
+   ══════════════════════════════════════════════════════════════ */
+.el-dialog.adpick-dialog {
+  border-radius: 4px;
+  padding: 0;
+  overflow: hidden;
+}
+.el-dialog.adpick-dialog .el-dialog__header {
+  padding: 16px 20px 14px;
+  margin-right: 0;
+}
+.el-dialog.adpick-dialog .el-dialog__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2129;
+  line-height: 20px;
+}
+.el-dialog.adpick-dialog .el-dialog__headerbtn {
+  top: 14px;
+  right: 16px;
+  width: 20px;
+  height: 20px;
+}
+.el-dialog.adpick-dialog .el-dialog__body {
+  padding: 0 20px 12px;
+  color: #1d2129;
+}
+.el-dialog.adpick-dialog .el-dialog__footer {
+  padding: 8px 20px 24px;
+  text-align: center;
+}
+
+/* 自定义标题行（右侧挂「功能说明」） */
+.adpick-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adpick-header__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2129;
+}
+.adpick-header__help {
+  font-size: 13px;
+}
+
+/* ── 蓝色文字链接（线上就是可点的 a，字号 13） ── */
+.adpick-link {
+  font-size: 12px;
+  color: #197afb;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.adpick-link:hover {
+  text-decoration: underline;
+}
+
+/* ── 橙色提示条 ── */
+.adpick-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.adpick-tip--compact {
+  margin-bottom: 10px;
+}
+.adpick-tip__icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: #ff9b48;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  font-style: normal;
+}
+.adpick-tip__text p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: #1d2129;
+}
+.adpick-tip__text a {
+  color: #197afb;
+  text-decoration: none;
+}
+.adpick-tip__text a:hover {
+  text-decoration: underline;
+}
+
+/* ── 卡片容器 ── */
+.adpick-panel {
+  border: 1px solid #e5e6eb;
+  border-radius: 4px;
+  padding: 8px 12px 12px;
+}
+.adpick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  margin-bottom: 8px;
+}
+.adpick-head--right {
+  justify-content: flex-end;
+  height: auto;
+  margin-bottom: 8px;
+}
+.adpick-head__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1d2129;
+}
+.adpick-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adpick-head__actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+/* ── 描边小按钮（线上：白底 + 灰边 + 灰字） ── */
+.adpick-btn.el-button {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #1d2129;
+  border-color: #d9dbe1;
+  border-radius: 2px;
+  background: #fff;
+}
+.adpick-btn.el-button:hover {
+  color: #197afb;
+  border-color: #a8c7fb;
+  background: #f2f7ff;
+}
+
+/* ── 筛选行 ── */
+.adpick-filter {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 10px;
+}
+.adpick-filter--tight {
+  margin-bottom: 8px;
+}
+.adpick-field {
+  width: 84px;
+  flex: none;
+  margin-right: 8px;
+}
+.adpick-kw {
+  flex: 1;
+}
+.adpick-kw .el-input__wrapper {
+  border-radius: 2px 0 0 2px;
+  box-shadow: 0 0 0 1px #d9dbe1 inset;
+}
+.adpick-search {
+  flex: none;
+  width: 32px;
+  height: 24px;
+  margin-left: -1px;
+  border: 1px solid #d9dbe1;
+  border-left: none;
+  border-radius: 0 2px 2px 0;
+  background: #fff;
+  color: #8a8f99;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.adpick-search:hover {
+  color: #197afb;
+}
+.adpick-unused {
+  flex: none;
+  margin-left: 12px;
+  height: 24px;
+}
+.adpick-query.el-button {
+  flex: none;
+  height: 24px;
+  margin-left: 8px;
+  padding: 0 14px;
+  font-size: 12px;
+  border-radius: 2px;
+  background: #197afb;
+  border-color: #197afb;
+}
+.adpick-product {
+  margin-bottom: 8px;
+}
+.adpick-product__select {
+  width: 168px;
+}
+
+/* ── 双栏 / 三栏 ── */
+.adpick-cols {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.adpick-cols--3 .adpick-accounts {
+  flex: none;
+  width: 168px;
+}
+.adpick-cols--3 .adpick-list {
+  flex: 1;
+  min-width: 0;
+}
+.adpick-cols--3 .adpick-sel {
+  flex: none;
+  width: 140px;
+}
+.adpick-list {
+  flex: 1;
+  min-width: 0;
+}
+.adpick-meta {
+  height: 22px;
+  font-size: 12px;
+  line-height: 22px;
+  color: #4e5969;
+}
+.adpick-table {
+  width: 100%;
+  font-size: 12px;
+}
+.adpick-table .el-table__header th {
+  height: 34px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #4e5969;
+  background: #f7f8fa;
+}
+.adpick-table .el-table__cell {
+  padding: 4px 0;
+}
+.adpick-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 16px;
+}
+.adpick-cell__sub {
+  font-size: 11px;
+  color: #8a8f99;
+}
+
+/* 空态 */
+.adpick-empty {
+  padding: 12px 0;
+  text-align: center;
+}
+.adpick-empty--anchor {
+  padding: 96px 0;
+}
+.adpick-empty--nowrap p {
+  white-space: nowrap;
+}
+.adpick-empty__icon {
+  display: inline-block;
+  width: 46px;
+  height: 34px;
+  margin-bottom: 8px;
+  border: 1px solid #e5e6eb;
+  border-radius: 3px;
+  background: #f7f8fa;
+  position: relative;
+}
+.adpick-empty__icon::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 12px;
+  height: 1px;
+  background: #e5e6eb;
+  box-shadow: 0 5px 0 #e5e6eb, 0 10px 0 #e5e6eb;
+}
+.adpick-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: #8a8f99;
+}
+
+/* ── 已选面板 ── */
+.adpick-sel {
+  flex: none;
+  width: 176px;
+  border: 1px solid #e5e6eb;
+  border-radius: 2px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.adpick-sel__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: #1d2129;
+  border-bottom: 1px solid #e5e6eb;
+  background: #f7f8fa;
+}
+.adpick-sel__body {
+  flex: 1;
+  min-height: 250px;
+  padding: 4px;
+  overflow: auto;
+}
+.adpick-sel__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  border-radius: 2px;
+  background: #f2f7ff;
+  color: #1d2129;
+}
+.adpick-sel__x {
+  flex: none;
+  font-size: 12px;
+  color: #8a8f99;
+  cursor: pointer;
+}
+
+/* ── 账户列表 ── */
+.adpick-accounts {
+  border: 1px solid #e5e6eb;
+  border-radius: 2px;
+  overflow: auto;
+  max-height: 296px;
+}
+.adpick-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f2f3f5;
+}
+.adpick-account:last-child {
+  border-bottom: none;
+}
+.adpick-account.is-active {
+  background: #f2f7ff;
+}
+.adpick-account__name {
+  font-size: 12px;
+  line-height: 17px;
+  color: #1d2129;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adpick-account__id {
+  font-size: 11px;
+  line-height: 16px;
+  color: #8a8f99;
+}
+.adpick-account__check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: #197afb;
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  font-style: normal;
+}
+
+/* ── 原生锚点模板弹窗 ── */
+.adpick-anchor {
+  border: 1px solid #e5e6eb;
+  border-radius: 4px;
+  padding: 12px;
+}
+.adpick-anchor__row {
+  display: flex;
+  align-items: center;
+}
+.adpick-anchor__label {
+  flex: none;
+  font-size: 13px;
+  color: #1d2129;
+}
+.adpick-anchor__select {
+  width: 320px;
+  flex: none;
+}
+.adpick-anchor__refresh {
+  margin-left: 14px;
+}
+.adpick-anchor__hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: #1d2129;
+}
+.adpick-anchor__body {
+  margin-top: 8px;
+  border-top: 1px dashed #f2f3f5;
+  min-height: 300px;
+}
+
+/* ── footer 按钮 ── */
+.adpick-foot-btn.el-button {
+  width: 88px;
+  height: 32px;
+  padding: 0;
+  font-size: 13px;
+  border-radius: 2px;
+}
+.adpick-foot-btn--primary.el-button {
+  background: #197afb;
+  border-color: #197afb;
+  color: #fff;
+}
+
+
+
+
+/* ══════════════════════════════════════════════════════════════
+   直达链接：选择/填写抽屉（760×）+ 新增链接模板弹窗（760×）
+   · 图1 选择直达链接（列表）/ 图2 填写直达链接 / 图3 选择链接模板
+   · 图4 新增链接模板 / 图5·图6 DeepLink·Ulink 问号文案
+   ══════════════════════════════════════════════════════════════ */
+.dlx {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.dlx__bar {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.dlx__clear.el-button {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #197afb;
+  border: 1px solid #a8c7fb;
+  border-radius: 2px;
+  background: #fff;
+}
+.dlx__clear.el-button:hover {
+  color: #fff;
+  background: #197afb;
+  border-color: #197afb;
+}
+.dlx__card {
+  background: #fff;
+  border: 1px solid #e8eaec;
+  display: flex;
+}
+.dlx__card--tall {
+  flex: 1;
+  min-height: 0;
+}
+.dlx-link {
+  font-size: 12px;
+  color: #197afb;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dlx-link:hover {
+  text-decoration: underline;
+}
+
+/* ── 图1 双栏 ── */
+.dlx-cols {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+}
+.dlx-main {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 12px 0;
+  display: flex;
+  flex-direction: column;
+}
+.dlx-sel {
+  flex: none;
+  width: 208px;
+  border-left: 1px solid #e8eaec;
+  display: flex;
+  flex-direction: column;
+}
+.dlx-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dlx-tag {
+  width: 104px;
+  flex: none;
+}
+.dlx-tag .el-select__wrapper,
+.dlx-kw .el-input__wrapper {
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #d9dbe1 inset;
+}
+.dlx-kw {
+  flex: 1;
+}
+.dlx-search {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d9dbe1;
+  border-radius: 2px;
+  background: #fff;
+  color: #8a8f99;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dlx-search:hover {
+  color: #197afb;
+  border-color: #a8c7fb;
+}
+.dlx-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: #1d2129;
+  white-space: nowrap;
+}
+.dlx-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #4e5969;
+}
+.dlx-quick.el-button {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #1d2129;
+  border-color: #d9dbe1;
+  border-radius: 2px;
+  background: #fff;
+}
+.dlx-quick__ico {
+  margin-right: 4px;
+  font-size: 13px;
+}
+.dlx-checks {
+  display: flex;
+  align-items: center;
+  height: 28px;
+}
+.dlx-checks > .dlx-check:last-child {
+  margin-left: auto;
+}
+.dlx-checks__left {
+  display: flex;
+  align-items: center;
+}
+.dlx-check {
+  height: 24px;
+  font-size: 12px;
+}
+.dlx-check .el-checkbox__label {
+  font-size: 12px;
+  color: #1d2129;
+}
+.dlx-q {
+  color: #c0c4cc;
+  font-size: 13px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.dlx-q--sm {
+  font-size: 13px;
+}
+.dlx-table-wrap {
+  flex: 1;
+  min-height: 0;
+  margin-top: 4px;
+}
+.dlx-table {
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+}
+.dlx-table .el-table__header th .cell {
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.dlx-table .el-table__body td .cell {
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dlx-table .el-table__header th {
+  height: 34px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #4e5969;
+  background: #f7f8fa;
+}
+.dlx-table .el-table__cell {
+  padding: 4px 0;
+}
+.dlx-empty {
+  padding: 10px 0;
+  text-align: center;
+}
+.dlx-empty__icon {
+  display: inline-block;
+  width: 46px;
+  height: 34px;
+  margin-bottom: 10px;
+  border: 1px solid #e5e6eb;
+  border-radius: 3px;
+  background: #f7f8fa;
+  position: relative;
+}
+.dlx-empty__icon::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 12px;
+  height: 1px;
+  background: #e5e6eb;
+  box-shadow: 0 5px 0 #e5e6eb, 0 10px 0 #e5e6eb;
+}
+.dlx-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: #8a8f99;
+  white-space: nowrap;
+}
+.dlx-pager {
+  flex: none;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #4e5969;
+}
+.dlx-pager__arrow {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #e5e6eb;
+  border-radius: 2px;
+  text-align: center;
+  line-height: 22px;
+  color: #c0c4cc;
+  background: #fff;
+}
+.dlx-pager__num {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  background: #f2f3f5;
+  color: #1d2129;
+  text-align: center;
+  line-height: 24px;
+}
+.dlx-sel__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #1d2129;
+  border-bottom: 1px solid #e8eaec;
+  background: #fff;
+}
+.dlx-sel__clear {
+  color: #197afb;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.dlx-sel__del {
+  font-size: 13px;
+  color: #197afb;
+}
+.dlx-sel__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+}
+.dlx-sel__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  border-radius: 2px;
+  background: #f2f7ff;
+}
+.dlx-sel__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dlx-sel__x {
+  flex: none;
+  font-size: 12px;
+  color: #8a8f99;
+  cursor: pointer;
+}
+
+/* ── 图2 填写直达链接 ── */
+.dlx-manual {
+  width: 100%;
+  padding: 20px 16px;
+}
+.dlx-row {
+  display: flex;
+  align-items: center;
+}
+.dlx-label {
+  flex: none;
+  width: 104px;
+  font-size: 13px;
+  color: #1d2129;
+}
+.dlx-manual__input {
+  width: 262px;
+}
+
+/* ── 图3 选择链接模板 ── */
+.dlx-tpl {
+  width: 100%;
+  padding: 20px 16px 260px;
+}
+.dlx-row--tpl {
+  align-items: center;
+}
+.dlx-tpl__select {
+  width: 300px;
+  flex: none;
+}
+.dlx-tpl__refresh {
+  margin-left: 16px;
+}
+.dlx-hint--tpl {
+  margin-left: auto;
+}
+/* 弹窗自身 z-index 2700，气泡必须再高一层（否则被弹窗遮挡） */
+.el-popper.dlx-pop {
+  z-index: 2800 !important;
+}
+.dlx-pop__text {
+  font-size: 12px;
+  line-height: 18px;
+  color: #1d2129;
+}
+.dlx-pop__text p {
+  margin: 0 0 6px;
+}
+.dlx-pop__text p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── 图4 新增链接模板 ── */
+.el-dialog.dlx-tpl-dialog .el-dialog__header {
+  padding: 16px 20px 10px;
+  margin-right: 0;
+}
+.el-dialog.dlx-tpl-dialog .el-dialog__headerbtn {
+  top: 14px;
+  right: 16px;
+}
+.el-dialog.dlx-tpl-dialog .el-dialog__body {
+  padding: 0 20px 4px;
+  color: #1d2129;
+}
+.el-dialog.dlx-tpl-dialog .el-dialog__footer {
+  padding: 8px 20px 24px;
+  text-align: right;
+}
+.dlx-tpl-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dlx-tpl-head__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2129;
+}
+.dlx-tpl-body {
+  padding: 4px 0 8px;
+}
+.dlx-tpl-group {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1d2129;
+  margin: 4px 0 12px;
+}
+.dlx-form-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.dlx-form-row--link {
+  margin-bottom: 22px;
+}
+.dlx-form-label {
+  flex: none;
+  width: 112px;
+  padding-top: 7px;
+  font-size: 13px;
+  color: #1d2129;
+  line-height: 18px;
+}
+.dlx-form-label.is-required::before {
+  content: '*';
+  color: #f53f3f;
+  margin-right: 2px;
+}
+.dlx-form-ctl {
+  width: 292px;
+  flex: none;
+}
+.dlx-form-ctl .el-input__wrapper,
+.dlx-form-ctl .el-select__wrapper {
+  border-radius: 2px;
+}
+.dlx-form-ctl .el-input__inner {
+  font-size: 12px;
+}
+.dlx-q--form {
+  margin-left: 10px;
+  margin-top: 9px;
+  font-size: 14px;
+}
+.dlx-link-box {
+  width: 100%;
+}
+.dlx-link-line {
+  display: flex;
+  align-items: center;
+}
+.dlx-chips {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 6px 0 0 0;
+}
+.dlx-chip {
+  font-size: 12px;
+  line-height: 18px;
+  color: #197afb;
+  cursor: pointer;
+  text-decoration: none;
+}
+.dlx-chip:hover {
+  text-decoration: underline;
+}
+.dlx-tpl-btn.el-button {
+  width: 88px;
+  height: 32px;
+  padding: 0;
+  font-size: 13px;
+  border-radius: 2px;
+  margin-left: 24px;
+}
+.dlx-tpl-btn.el-button:first-child {
+  margin-left: 0;
+}
+.dlx-tpl-btn--primary.el-button {
+  background: #197afb;
+  border-color: #197afb;
+  color: #fff;
+}
+
+
+
+
+
+
+
+
+

@@ -174,7 +174,7 @@ export const DELIVERY_TYPE_OPTIONS = {
 
 /* 第三方监测链接来源 */
 export const THIRD_PARTY_LINK_SOURCES = [
-  { value: 'LOCAL', label: '创量本地导入' },
+  { value: 'LOCAL', label: '智投本地导入' },
   { value: 'DYNAMIC', label: '动态选取监测链接' },
   { value: 'LANDING', label: '关联第三方落地页' },
   { value: 'MANUAL', label: '手动填写' },

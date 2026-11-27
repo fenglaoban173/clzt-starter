@@ -529,7 +529,7 @@ import { CaretBottom, MagicStick, MoreFilled, Search } from '@element-plus/icons
 const props = defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------------------------------------------ *
- * 线上枚举（来源：创量线上「巨量广告·标准 → 资产 → 试玩/直玩素材」页）
+ * 线上枚举（来源：智投线上「巨量广告·标准 → 资产 → 试玩/直玩素材」页）
  * ------------------------------------------------------------------ */
 const SUBJECTS = [
   '百度在线网络技术（北京）有限公司',
@@ -573,7 +573,7 @@ const AUTO_FIX_OPTIONS = ['关闭', '开启'];
 const SEARCH_FIELDS = [
   { label: '账户名称', value: 'name' },
   { label: '账户ID', value: 'advertiser_id' },
-  { label: '账户备注(创量)', value: 'remark_cl' },
+  { label: '账户备注(智投)', value: 'remark_cl' },
   { label: '账户备注(巨量)', value: 'remark_gy' },
 ];
 
@@ -663,7 +663,7 @@ function makeAccountRow(i, name, advertiserId, subject, optimizer, status, balan
     product: product || '--',
     email: `${['yangqingbin', 'beijingyangguang', 'liwenbin', 'zhangconghao', 'wangchunlei'][i % 5]}@clzt.com`,
     autoFix: i % 4 === 0 ? '开启' : '关闭',
-    remarkCl: `${name}-创量备注`,
+    remarkCl: `${name}-智投备注`,
     remarkGy: `${name}-巨量备注`,
     createTime: `2026-01-${String((i % 28) + 1).padStart(2, '0')} 10:24:00`,
     cost: Number(cost.toFixed(2)),

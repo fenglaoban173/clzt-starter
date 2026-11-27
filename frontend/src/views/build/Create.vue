@@ -4,9 +4,6 @@
     <div class="top-bar">
       <div class="page-title">{{ pageTitle }}</div>
       <div class="top-right">
-        <el-tag v-if="strategyGroup" type="primary" effect="light">
-          已套用策略组：{{ strategyGroup.name }}
-        </el-tag>
         <el-link class="task-link" @click="goTasks"><el-icon><Tickets /></el-icon> 查看任务管理</el-link>
       </div>
     </div>
@@ -17,10 +14,10 @@
         <div class="seg">
           <el-button type="primary" class="seg__btn" @click="strategyVisible = true">选择策略</el-button>
           <el-button type="primary" class="seg__btn" @click="taskVisible = true">选择任务</el-button>
-          <span v-if="taskSelected" class="picked-task">
-            已选「任务」：{{ taskSelected.name }}
-            <el-icon class="picked-task__x" title="重新选择" @click="taskVisible = true"><Close /></el-icon>
-            <el-button link type="primary" class="picked-task__edit" @click="taskVisible = true">更改</el-button>
+          <span v-if="pickedSource" class="picked-task">
+            已选「{{ pickedSource.kind }}」：<span class="picked-task__name" :title="pickedSource.name">{{ pickedSource.name }}</span>
+            <el-icon class="picked-task__x" title="清除" @click="resetPage"><Close /></el-icon>
+            <el-button link type="primary" class="picked-task__edit" @click="pickedSource.kind === '策略' ? strategyVisible = true : taskVisible = true">更改</el-button>
           </span>
         </div>
         <div class="est-wrap">
@@ -56,9 +53,9 @@
           <span v-if="form.account_ids.length" class="rule-box__count">已选 {{ form.account_ids.length }} 个</span>
           <el-button link type="primary" class="rule-box__act" @click="acctVisible = true">更改</el-button>
         </div>
-        <!-- R110：线上「创量项目」只读回显（选中任务后出现，位于 媒体账户 与 规则配置 之间；线上无「更改」按钮） -->
+        <!-- R110：线上「智投项目」只读回显（选中任务后出现，位于 媒体账户 与 规则配置 之间；线上无「更改」按钮） -->
         <div class="rule-box rule-box--proj" v-if="isUpgrade && taskProjectName">
-          <span class="rule-box__label">创量项目</span>
+          <span class="rule-box__label">智投项目</span>
           <span class="rule-box__value">{{ taskProjectName }}</span>
         </div>
         <div class="rule-box" v-if="isUpgrade">
@@ -302,18 +299,20 @@
         </div>
       </div>
 
-      <!-- R110：线上标准版实测 8 个能力按钮（关联产品 / 分包与监测活动 / 定向包 / 项目预算与出价 /
-           直达链接 / 产品信息 / 广告设置 / 广告预算与出价），每个前面带绿色 ✓ 图标 -->
+      <!-- R115：线上 8 个能力按钮 **不新开抽屉**，而是打开对应主抽屉并定位到该分区：
+           关联产品 / 分包与监测活动 / 定向包 / 项目预算与出价 → 新建项目抽屉；
+           直达链接 / 产品信息 / 广告设置 / 广告预算与出价 → 广告基本信息抽屉 -->
+      <!-- R110：8 个能力按钮，每个前面带绿色 ✓ 图标 -->
       <div class="cfg-btns" v-if="projectConfigured">
         <template v-if="isUpgrade">
-          <el-button @click="relatedVisible = true"><i class="tip-icon">✓</i>关联产品</el-button>
-          <el-button @click="openMonitorGroup('选择巨量后台监测连接组')"><i class="tip-icon">✓</i>分包与监测活动</el-button>
-          <el-button @click="targetingVisible = true"><i class="tip-icon">✓</i>定向包</el-button>
-          <el-button @click="projVisible = true"><i class="tip-icon">✓</i>项目预算与出价</el-button>
-          <el-button @click="deeplinkVisible = true"><i class="tip-icon">✓</i>直达链接</el-button>
-          <el-button @click="openAdPanel('ad-products')"><i class="tip-icon">✓</i>产品信息</el-button>
-          <el-button @click="openAdPanel('ad-settings')"><i class="tip-icon">✓</i>广告设置</el-button>
-          <el-button @click="openSection('adBudget')"><i class="tip-icon">✓</i>广告预算与出价</el-button>
+          <el-button @click="openProjSection('related_product')"><i class="tip-icon">✓</i>关联产品</el-button>
+          <el-button @click="openProjSection('goal')"><i class="tip-icon">✓</i>分包与监测活动</el-button>
+          <el-button @click="openProjSection('targeting')"><i class="tip-icon">✓</i>定向包</el-button>
+          <el-button @click="openProjSection('project_budget')"><i class="tip-icon">✓</i>项目预算与出价</el-button>
+          <el-button @click="openAdSection('deeplink')"><i class="tip-icon">✓</i>直达链接</el-button>
+          <el-button @click="openAdSection('product')"><i class="tip-icon">✓</i>产品信息</el-button>
+          <el-button @click="openAdSection('ad_setting')"><i class="tip-icon">✓</i>广告设置</el-button>
+          <el-button @click="openAdSection('ad_budget')"><i class="tip-icon">✓</i>广告预算与出价</el-button>
         </template>
         <template v-else>
           <el-tooltip content="请配置项目信息" placement="top" :disabled="projectConfigured">
@@ -365,22 +364,13 @@
         </div>
       </div>
       <template v-if="preview">
-        <el-alert type="warning" :closable="false" class="preview-alert">
-          <template #title>
-            <span class="preview-alert__text">
-              创量定向已升级至提交任务时获取最新定向信息，点击
-              <el-button link type="primary" class="preview-alert__link" @click="showLatestTargeting">查看</el-button>
-              此刻最新定向内容（仅供查看实际以提交时为准）
-            </span>
-          </template>
-        </el-alert>
         <div class="stat-row">
           <span class="stat-row__item">项目数量：<b>{{ previewStats.project_count }}</b></span>
           <span class="stat-row__item">广告数量：<b>{{ previewStats.ad_count }}</b></span>
           <span class="stat-row__item">已有项目：<b>{{ previewStats.selected_project }}</b></span>
           <span class="stat-row__item">当日新建广告数：<b>{{ previewStats.new_ad_count }}</b></span>
           <span class="stat-row__item">所有广告配额：<b>{{ previewStats.ad_quota }}</b></span>
-          <el-dropdown class="preview-batch" @command="onPreviewBatch">
+          <el-dropdown class="preview-batch" trigger="click" @command="onPreviewBatch">
             <el-button size="small">
               批量操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </el-button>
@@ -556,99 +546,78 @@
       </template>
     </el-drawer>
 
-    <!-- 定向包（线上：创量定向包 1016px） -->
-    <el-drawer v-model="targetingVisible" title="创量定向包" size="1016px" direction="rtl">
-      <el-form label-position="left" label-width="90px" class="targeting-form">
-        <el-form-item label="创量项目">
-          <el-select v-model="targetingFilter.project" clearable placeholder="全部" style="width: 100%">
-            <el-option v-for="p in PROJECT_RULES" :key="p.value" :label="p.label" :value="p.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="产品">
-          <el-select v-model="targetingFilter.product" clearable placeholder="全部" style="width: 100%">
-            <el-option v-for="p in PRODUCTS" :key="p" :label="p" :value="p" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="定向包类型">
-          <el-select v-model="targetingFilter.type" clearable placeholder="全部" style="width: 100%">
-            <el-option v-for="t in PACKAGE_TYPES" :key="t" :label="t" :value="t" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="仅查看可用的定向包">
-          <el-checkbox v-model="targetingFilter.onlyAvailable">仅查看可用的定向包</el-checkbox>
-        </el-form-item>
-      </el-form>
-      <div class="targeting-tips">
-        创量定向包基于主体、投放范围、定向包类型进行筛选后展示; 未选满时系统将自动根据匹配方式循环使用定向包，请预览后核实每个项目分配的定向包<br />
-        跨主体搭建且定向分配使用全部相同时仅支持开启【跨主体使用】的定向包
-      </div>
-      <div class="targeting-ops">
-        <el-button size="small" @click="clearTargetingPicked">清空</el-button>
-        <el-button size="small" @click="goCreateTargeting">新建创量定向包</el-button>
-        <el-button size="small" @click="ElMessage.success('已获取头条定向（原型模拟）')">获取头条定向</el-button>
-        <el-button size="small" @click="clearTargetingPicked">清空所有资产</el-button>
-        <el-button size="small" @click="acctVisible = true">多账户快速选择</el-button>
-      </div>
-      <el-table :data="targetingRows" size="small" border style="margin-top: 10px">
-        <el-table-column type="selection" width="48" />
-        <el-table-column label="定向包名称" prop="name" min-width="180" />
-        <el-table-column label="主体" prop="subject" min-width="140" />
-        <el-table-column label="创量项目" prop="project" min-width="120" />
-        <el-table-column label="投放范围" prop="range" min-width="120" />
-        <el-table-column label="定向包ID" prop="id" min-width="120" />
-        <el-table-column label="平台" prop="platform" min-width="90" />
-        <el-table-column label="定向包类型" prop="type" min-width="130" />
-        <el-table-column label="操作" prop="id" width="90" align="center">
-          <template #default="{ row }"><el-button link type="primary">选择</el-button></template>
-        </el-table-column>
-      </el-table>
-      <template #footer>
-        <el-button @click="targetingVisible = false">取 消</el-button>
-        <el-button type="primary" @click="confirmTargeting">确 定</el-button>
-      </template>
-    </el-drawer>
+    <!-- 定向包（线上「智投定向包」整页抽屉 → BatchTargetPackageDrawer） -->
 
     <!-- 关联产品（线上：选择头条产品 弹窗 + 填写直达链接 抽屉） -->
-    <el-dialog v-model="relatedVisible" title="选择头条产品" width="800px" class="related-dialog" :close-on-click-modal="false">
+    <el-dialog v-model="relatedVisible" width="744px" class="related-dialog" :close-on-click-modal="false" @open="openRelatedDialog" @closed="onRelatedClosed">
+      <template #header>
+        <div class="related-head">
+          <span class="related-head__title">选择头条产品</span>
+          <a class="related-head__link" href="https://chuangliang.feishu.cn/wiki/EbPIwMdVhimCZnk16B9cOUmjn4c" target="_blank" rel="noopener">功能说明</a>
+        </div>
+      </template>
       <div class="related-tips">
-        <p>1、关联产品需依附在已批量 广告 进行配置，配置后通过刷新获取。</p>
-        <p>2、广告主账户余额不足时自动添加至媒体资产，可为缺少目标商品补充选择内容。</p>
-        <p>3、请确保所选产品已共享到媒体账户，避免填写失败。</p>
+        <p>1、关联产品需提前在巨量广告进行配置，配置后通过刷新获取。</p>
+        <p>2、广告主账户为教育行业时商品为课程库内容，为小说行业时商品为小说库内容。</p>
+        <p>3、请确保商品库已共享到其他账户，避免搭建失败。</p>
       </div>
       <div class="related-ver">
         <span class="related-ver__label">产品版本</span>
-        <el-radio-group v-model="relatedForm.version" size="small">
-          <el-radio value="UPGRADE">升级版</el-radio>
-          <el-radio value="COMMON">通用版</el-radio>
+        <el-radio-group v-model="relatedForm.version" class="related-ver__group" @change="onRelatedVersionChange">
+          <el-radio-button value="UPGRADE">升级版</el-radio-button>
+          <el-radio-button value="COMMON">通用版</el-radio-button>
         </el-radio-group>
         <span class="related-ver__hint">若找不到产品，请切换版本查询</span>
-        <el-button link type="primary" class="related-ver__clear" @click="clearRelatedAssets">清理所有资产</el-button>
-      </div>
-      <div class="related-filters">
-        <el-select v-model="relatedForm.product" class="related-filters__sel" filterable placeholder="请选择产品">
-          <el-option v-for="p in productPool" :key="p.id" :label="p.name" :value="p.id" />
-        </el-select>
-        <el-select v-model="relatedForm.category" class="related-filters__sel" filterable placeholder="请选择商品类目">
-          <el-option v-for="c in relatedCategories" :key="c" :label="c" :value="c" />
-        </el-select>
-        <el-button size="small" @click="onRelatedRefresh">刷新</el-button>
-        <el-input v-model="relatedForm.keyword" class="related-filters__kw" size="small" placeholder="请输入关键词" clearable @keyup.enter="onRelatedSearch" />
-        <el-button size="small" @click="onRelatedSearch">查询</el-button>
+        <el-button class="related-ver__clear" @click="clearRelatedAssets">清空所有客户</el-button>
       </div>
       <div class="related-body">
-        <div class="related-list">
-          <el-checkbox-group v-model="relatedForm.picked">
-            <el-checkbox v-for="p in productPool" :key="p.id" :label="p.id">{{ p.name }}</el-checkbox>
-          </el-checkbox-group>
+        <div class="related-main">
+          <el-select v-model="relatedForm.account" class="related-main__account" filterable placeholder="请选择账户">
+            <el-option v-for="a in selectedAccounts" :key="a.id" :label="a.name" :value="a.id" />
+          </el-select>
+          <!-- 通用版：多一行「商品库 + 刷新」；升级版没有 -->
+          <div v-if="relatedForm.version === 'COMMON'" class="related-main__row">
+            <el-select v-model="relatedForm.library" class="related-main__lib" placeholder="请选择商品库">
+              <el-option v-for="c in relatedLibraries" :key="c" :label="c" :value="c" />
+            </el-select>
+            <el-button type="primary" @click="onRelatedRefresh">刷新</el-button>
+          </div>
+          <div class="related-main__row">
+            <el-input v-model="relatedForm.keyword" class="related-main__kw" placeholder="请输入关键词" clearable @keyup.enter="onRelatedSearch" @clear="onRelatedSearch" />
+            <el-button class="related-main__search" @click="onRelatedSearch">查询</el-button>
+          </div>
+          <div class="related-main__count">项目数：{{ relatedTotal }}</div>
+          <!-- 列表：线上通用版/升级版均为单选，表格形态（表头「商品名称」） -->
+          <div class="related-list">
+            <div class="related-list__head">商品名称</div>
+            <div class="related-list__body">
+              <el-radio-group v-model="relatedPickedSingle" class="related-list__group">
+                <el-radio v-for="p in relatedList" :key="p.id" :value="p.id" class="related-list__item">{{ p.name }}</el-radio>
+              </el-radio-group>
+              <el-empty v-if="!relatedList.length" description="暂无数据" :image-size="72" />
+            </div>
+          </div>
+          <div class="related-main__pager">
+            <el-pagination
+              v-model:current-page="relatedPage"
+              :page-size="RELATED_PAGE_SIZE"
+              :total="relatedTotal"
+              layout="prev, next"
+              small
+              background
+            />
+          </div>
         </div>
         <div class="related-picked">
           <div class="related-picked__head">
             <span>已选({{ relatedForm.picked.length }})</span>
-            <el-button link type="primary" @click="relatedForm.picked = []">清空</el-button>
+            <el-button link type="primary" class="related-picked__clear" @click="relatedForm.picked = []">清空<i class="related-picked__refresh"></i></el-button>
           </div>
-          <div v-for="id in relatedForm.picked" :key="id" class="related-picked__item">
-            {{ (productPool.find(p => p.id === id) || {}).name }}
-            <el-icon class="related-picked__x" @click="relatedForm.picked = relatedForm.picked.filter(x => x !== id)"><Close /></el-icon>
+          <div class="related-picked__body">
+            <div v-for="id in relatedForm.picked" :key="id" class="related-picked__item">
+              <span class="related-picked__name">{{ relatedNameOf(id) }}</span>
+              <el-icon class="related-picked__x" @click="removeRelatedPicked(id)"><Close /></el-icon>
+            </div>
           </div>
         </div>
       </div>
@@ -706,7 +675,7 @@
     />
 
     <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
-    <AdRenameDialog v-model="renameVisible" :rows="renameRows" :title="renameTitle" @confirm="onRenameConfirm" />
+    <AdRenameDialog v-model="renameVisible" :rows="renameRows" :type="renameType" @confirm="onRenameConfirm" />
 
     <!-- 查看推荐（线上：打开「行动号召」全宽面板，最多选 6 条） -->
     <el-dialog v-model="ctaRecommendVisible" title="行动号召" width="100%" top="6vh" append-to-body class="cta-rec-dialog">
@@ -750,8 +719,8 @@
         <el-form-item label="素材上传时间">
           <el-date-picker v-model="randomPickForm.uploadTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="创量项目">
-          <el-select v-model="randomPickForm.project" multiple clearable placeholder="请选择创量项目" style="width: 100%">
+        <el-form-item label="智投项目">
+          <el-select v-model="randomPickForm.project" multiple clearable placeholder="请选择智投项目" style="width: 100%">
             <el-option v-for="p in PROJECT_RULES" :key="p.value" :label="p.label" :value="p.value" />
           </el-select>
         </el-form-item>
@@ -821,58 +790,7 @@
       </template>
     </el-dialog>
 
-    <!-- 分包与监测活动（线上打开的是「选择巨量后台监测连接组」1016px，单列布局） -->
-    <el-drawer v-model="monitorGroupVisible" :title="monitorGroupTitle" size="1016px" direction="rtl">
-      <div class="mg-body">
-        <div class="mg-left__head">
-          <span class="mg-left__title">选择监测链接组</span>
-          <div class="mg-left__ops">
-            <el-button size="small" plain @click="onMonitorRefreshAll">多账户刷新</el-button>
-            <el-button size="small" plain @click="onMonitorClearAll">清空所有资产</el-button>
-            <el-button size="small" plain @click="onMonitorQuickSelectAll">多账户快速选择</el-button>
-          </div>
-        </div>
-        <!-- 账户切换（线上：已选媒体账户列表） -->
-        <div class="mg-accounts">
-          <label v-for="a in selectedAccounts" :key="a.id" class="mg-account" :class="{ on: monitorGroupForm.accountId === a.id }">
-            <el-radio v-model="monitorGroupForm.accountId" :value="a.id" size="small">{{ a.name }}</el-radio>
-            <span class="mg-account__id">{{ a.id }}</span>
-          </label>
-        </div>
-        <div class="mg-search">
-          <el-input v-model="monitorGroupForm.keyword" size="small" placeholder="请输入关键词" clearable @keyup.enter="onMonitorGroupSearch" />
-          <el-button size="small" @click="onMonitorGroupSearch">查询</el-button>
-        </div>
-        <div class="mg-row">
-          <span class="mg-row__label">项目数：{{ monitorGroupForm.projectCount }}</span>
-          <el-button link type="primary" @click="ElMessage.success('已刷新（原型模拟）')">刷新</el-button>
-          <el-button size="small" @click="onMonitorQuickSelect">快速选择</el-button>
-        </div>
-        <el-checkbox v-model="monitorGroupForm.onlyEmpty" class="mg-only">仅看关联数为0</el-checkbox>
-        <el-table :data="monitorGroupRows" size="small" border class="mg-table">
-          <el-table-column label="监测链接组名称" min-width="260" prop="name" />
-          <el-table-column label="类型" width="120" prop="type" />
-          <el-table-column label="关联项目数" width="120" prop="projects" />
-        </el-table>
-        <div class="mg-right__head">
-          <span>已选：{{ monitorGroupForm.picked.length }}/{{ monitorGroupForm.pickedTotal }}</span>
-          <el-button link type="primary" @click="monitorGroupForm.picked = []">清空</el-button>
-        </div>
-        <div class="mg-picked">
-          <div v-for="p in monitorGroupForm.picked" :key="p" class="mg-picked__row">
-            <span>{{ p }}</span>
-            <el-icon class="mg-picked__x" @click="monitorGroupForm.picked = monitorGroupForm.picked.filter(x => x !== p)"><Close /></el-icon>
-          </div>
-          <div v-for="d in monitorGroupForm.pickedDetail" :key="d" class="mg-picked__row mg-picked__row--sub">
-            <span>{{ d }}</span>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="monitorGroupVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmMonitorGroup">确定</el-button>
-      </template>
-    </el-drawer>
+    <!-- 分包与监测活动 / 选择分包和链接组：线上「选择巨量后台监测链接组」三栏抽屉（BatchLinkGroupDrawer） -->
 
     <!-- 通用配置抽屉：分包与监测活动 / 定向包 / 项目预算与出价 / 广告预算与出价 -->
     <el-drawer v-model="sectionVisible" :title="sectionTitle" size="780px" direction="rtl">
@@ -911,7 +829,10 @@
     <BatchRuleDialog v-model="ruleVisible" />
 
     <!-- 项目配置弹窗 -->
-    <BatchProjectDrawer v-model="projVisible" />
+    <BatchProjectDrawer v-model="projVisible" :focus="projFocus" />
+    <BatchEventAssetDrawer v-model="eventAssetVisible" @confirm="onEventAssetConfirm" />
+    <BatchLinkGroupDrawer v-model="linkGroupVisible" :initial-account-id="linkGroupInitialAccount" @confirm="onLinkGroupConfirm" />
+    <BatchTargetPackageDrawer v-model="targetPackageVisible" :initial-account-id="targetPackageInitialAccount" @confirm="onTargetPackageConfirm" />
 
     <!-- 抖音号抽屉 -->
     <el-drawer v-model="awemeVisible" title="抖音号" size="780px" direction="rtl">
@@ -965,7 +886,7 @@
     </el-drawer>
 
     <!-- 广告信息弹窗 -->
-    <BatchAdDrawer v-model="adVisible" />
+    <BatchAdDrawer v-model="adVisible" :focus="adFocus" />
 
     <!-- 产品信息抽屉 -->
 
@@ -975,123 +896,6 @@
     <BatchMaterialDrawer v-model="matVisible" />
 
     <!-- 标题包抽屉（线上：手动选取标题 / 动态选取标题 两个 tab） -->
-    <el-drawer v-model="titleVisible" title="添加标题包" size="1016px" direction="rtl">
-      <el-tabs v-model="titleTab" class="drawer-tabs">
-        <el-tab-pane label="手动选取标题" name="manual">
-      <el-form :model="form.titles" class="drawer-form" label-position="left" label-width="144px">
-        <div class="form-section">
-          <div class="form-section__title">标题设置</div>
-          <el-form-item label="标题来源">
-            <el-radio-group v-model="form.titles.title_source" size="small">
-              <el-radio-button value="TITLE_PACK">标题包</el-radio-button>
-              <el-radio-button value="TITLE_LIB">标题库</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="标题分配方式">
-            <div class="card-choices">
-              <div
-                v-for="o in TITLE_ASSIGN_RULES" :key="o.value"
-                class="choice-card" :class="{ active: form.titles.assign_rule === o.value }"
-                @click="form.titles.assign_rule = o.value"
-              >
-                <div class="choice-card__title">{{ o.label }}</div>
-                <div class="choice-card__desc">{{ o.desc }}</div>
-              </div>
-            </div>
-          </el-form-item>
-          <!-- 账户表（线上：账户 / 优化师 / 拒审次数 / 建议次数） -->
-          <el-table :data="titleAccountRows" size="small" border class="proj-inline-table">
-            <el-table-column label="账户" min-width="240">
-              <template #default="{ row }">
-                <div class="ad-link-cell"><span>{{ row.account }}</span><span class="ad-link-cell__id">{{ row.accountId }}</span></div>
-              </template>
-            </el-table-column>
-            <el-table-column label="优化师" width="160" prop="optimizer" />
-            <el-table-column label="拒审次数" width="120" prop="reject" />
-            <el-table-column label="建议次数" width="120" prop="suggest" />
-          </el-table>
-          <div class="creative-toolbar">
-            <el-button link @click="clearTitlePicked">清空</el-button>
-            <el-button type="primary" size="small" @click="newTitlePackVisible = true">新建标题包</el-button>
-            <el-button type="primary" plain size="small" @click="titleRandomPick('随机选择')">随机选择</el-button>
-            <el-button type="primary" plain size="small" @click="titleRandomPick('智能优选')">智能优选</el-button>
-            <el-button type="primary" plain size="small" @click="titleRandomPick('一键测新')">一键测新</el-button>
-          </div>
-          <div class="mg-right__head">
-            <span>已选：{{ (form.ad.title_packs || []).length }}/195</span>
-            <div class="tp-filters">
-              <span>拒审次数</span>
-              <el-input-number v-model="form.titles.reject_count" :min="0" :max="99" controls-position="right" size="small" />
-              <span>建议次数</span>
-              <el-input-number v-model="form.titles.suggest_count" :min="0" :max="99" controls-position="right" size="small" />
-            </div>
-          </div>
-          <!-- 标题包表（线上 11 列） -->
-          <el-table :data="titlePackRows" size="small" border class="proj-inline-table">
-            <el-table-column label="标题包名称" min-width="180" prop="name" />
-            <el-table-column label="拒审次数" width="110" prop="reject" />
-            <el-table-column label="建议次数" width="110" prop="suggest" />
-            <el-table-column label="创建者" min-width="180" prop="creator" />
-            <el-table-column label="近3日点击率" width="120" prop="ctr3" />
-            <el-table-column label="近3日消耗" width="120" prop="cost3" />
-            <el-table-column label="近90天点击率" width="130" prop="ctr90" />
-            <el-table-column label="近90天消耗" width="130" prop="cost90" />
-            <el-table-column label="标题数" width="90" prop="count" />
-            <el-table-column label="创建时间" width="170" prop="created" />
-            <el-table-column label="操作" width="90" align="center">
-              <template #default><el-button link type="primary">编辑</el-button></template>
-            </el-table-column>
-          </el-table>
-          <div class="mg-right__head"><span>共 {{ titlePackRows.length }} 条</span></div>
-        </div>
-      </el-form>
-        </el-tab-pane>
-        <el-tab-pane label="动态选取标题" name="dynamic">
-      <el-form :model="form.titles" class="drawer-form" label-position="left" label-width="144px">
-        <div class="form-section">
-          <div class="form-section__title">动态选取标题</div>
-          <el-form-item label="每个广告标题数量">
-            <el-radio-group v-model="form.titles.dyn_count_mode" size="small">
-              <el-radio-button value="UNIFIED">统一设置</el-radio-button>
-              <el-radio-button value="RULE">分规则设置</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="每个广告标题数量">
-            <el-input-number v-model="form.titles.dyn_count" :min="1" :max="50" controls-position="right" size="small" />
-          </el-form-item>
-          <el-form-item label="规则分配方式">
-            <el-radio-group v-model="form.titles.dyn_rule_match" size="small">
-              <el-radio-button value="ALL">全账户复用</el-radio-button>
-              <el-radio-button value="PER_ACCOUNT">分账户选择</el-radio-button>
-            </el-radio-group>
-            <div class="ad-warn-hint">所有账户都使用一样的规则</div>
-          </el-form-item>
-          <el-form-item label="选取标题不足时">
-            <el-radio-group v-model="form.titles.dyn_shortage" size="small">
-              <el-radio-button value="SKIP">余量广告不搭建</el-radio-button>
-              <el-radio-button value="CYCLE">循环使用标题</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <div class="form-section__title">动态选取规则</div>
-          <el-button type="primary" @click="addTitleDynRule">添加动态选取规则</el-button>
-          <el-empty v-if="!form.titles.dyn_rules.length" description="暂无动态选取规则，点击添加" :image-size="80" />
-          <div v-for="(r, ri) in form.titles.dyn_rules" :key="ri" class="dyn-rule">
-            <el-select v-model="r.title_source" placeholder="标题来源" style="width: 180px">
-              <el-option v-for="o in TITLE_SOURCES" :key="o.value" :value="o.value" :label="o.label" />
-            </el-select>
-            <span class="dyn-rule__label">每个广告使用</span>
-            <el-input-number v-model="r.count" :min="0" :max="50" controls-position="right" size="small" />
-            <el-button link type="danger" @click="form.titles.dyn_rules.splice(ri, 1)">删除</el-button>
-          </div>
-        </div>
-      </el-form>
-        </el-tab-pane>
-      </el-tabs>
-      <template #footer>
-        <el-button @click="titleVisible = false">取消</el-button>
-        <el-button type="primary" @click="titleVisible = false">确定</el-button>
-      </template>
-    </el-drawer>
 
     <!-- 标题乱序弹窗（线上：560px，乱序对象 标题包 / 标题） -->
     <BatchTitleShuffleDialog v-model="shuffleVisible" />
@@ -1106,7 +910,8 @@
     <BatchTaskDialog v-model="taskVisible" />
 
     <!-- 选择已有项目抽屉（对齐线上：大卡片 = 筛选 + 当前项目 + 选择已有项目 + 项目表 + 分页） -->
-    <el-drawer v-model="existingVisible" title="选择已有项目" size="1016px" direction="rtl">
+    <BatchDrawer v-model="existingVisible" title="选择已有项目" :width="1016">
+      <template #content>
       <div class="ex-card">
         <!-- 筛选区：每项为「标签 + 控件」合成输入框 -->
         <div class="ex-filter-grid" v-show="!exFilterFolded">
@@ -1290,11 +1095,12 @@
           </div>
         </div>
       </div>
-      <template #footer>
-        <el-button @click="existingVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmExistingProjects">确定</el-button>
       </template>
-    </el-drawer>
+      <template #footer>
+        <el-button class="cl-drawer__btn" @click="existingVisible = false">取 消</el-button>
+        <el-button class="cl-drawer__btn cl-drawer__btn--primary" @click="confirmExistingProjects">确 定</el-button>
+      </template>
+    </BatchDrawer>
 
     <!-- 同步项目与广告弹窗（对齐线上 图3：左侧媒体账户列表 + 右侧已选 + 更新时间区间） -->
     <el-dialog
@@ -1447,6 +1253,10 @@ import BatchRuleDialog from './components/batch/BatchRuleDialog.vue';
 import BatchAccountDialog from './components/batch/BatchAccountDialog.vue';
 import BatchTaskDialog from './components/batch/BatchTaskDialog.vue';
 import BatchProjectDrawer from './components/batch/BatchProjectDrawer.vue';
+import BatchEventAssetDrawer from './components/batch/BatchEventAssetDrawer.vue';
+import BatchLinkGroupDrawer from './components/batch/BatchLinkGroupDrawer.vue';
+import BatchTargetPackageDrawer from './components/batch/BatchTargetPackageDrawer.vue';
+import BatchDrawer from './components/batch/BatchDrawer.vue';
 import BatchAdDrawer from './components/batch/BatchAdDrawer.vue';
 import BatchMaterialDrawer from './components/batch/BatchMaterialDrawer.vue';
 import BatchTitleDrawer from './components/batch/BatchTitleDrawer.vue';
@@ -1631,28 +1441,49 @@ function onAssetGroupChange(val) {
 /* 自定义定向（线上新版默认不露出，字段保留在此开关后） */
 const customTargetingOpen = ref(false);
 /* 内联表：账户|产品 / 账户|分包和链接组 / 账户名称|定向包|操作 */
+/* 账户|产品 表格：优先从「选择头条产品」商品池取名称，其次 mock products，最后回退 id */
 const projProductRows = computed(() => selectedAccounts.value.map((a) => ({
   account: a.name,
   accountId: a.id,
-  products: (form.project.product_ids || []).map((id) => (productOptions.value.find((p) => p.id === id) || {}).name || id),
+  products: (form.project.product_ids || []).map((id) => relatedNameOf(id)),
 })));
+/* 内联表：账户 | 分包和链接组(链接卡片) | 操作「添加」—— 每个账户一行，未选时为空 */
 const projLinkRows = computed(() => selectedAccounts.value.map((a) => ({
   account: a.name,
   accountId: a.id,
-  group: '临时监测链接组',
+  group: linkGroupPicked.value.find((p) => String(p.accountId) === String(a.id)) || null,
 })));
+/* 内联表：账户名称 | 定向包(卡片：名称 + ID + ×) | 操作「添加」 */
 const projAudienceRows = computed(() => selectedAccounts.value.map((a) => ({
   account: a.name,
   accountId: a.id,
-  pack: form.project.audience_package_id ? '正确测试' : '',
+  pack: targetPackagePicked.value.find((p) => String(p.accountId) === String(a.id)) || null,
 })));
-/* 线上「选择事件资产」内联表：账户 | 事件资产(含包名) | 操作 */
-const projEventRows = computed(() => selectedAccounts.value.map((a) => ({
-  account: a.name,
+/* 线上「选择事件资产」抽屉：候选资产按账户组织（mock：每账户同一套样例，取自线上截图） */
+const eventAssetCatalog = [
+  { id: '1882276296295515', name: '红果免费短剧', pkg: 'com.phoenix.read', projectCount: 0 },
+  { id: '1882276296295516', name: '红果付费短剧', pkg: 'com.phoenix.read', projectCount: 3 },
+  { id: '1882276296295517', name: '应用内激活', pkg: 'com.phoenix.read', projectCount: 12 },
+  { id: '1882276296295518', name: '首次付费', pkg: 'com.phoenix.read', projectCount: 7 },
+];
+const eventAssetRows = computed(() => selectedAccounts.value.flatMap((a) => eventAssetCatalog.map((r) => ({
+  ...r,
+  /* 选择键：账户ID_资产ID（各账户资产独立，不能只用资产 ID） */
+  key: `${a.id}_${r.id}`,
   accountId: a.id,
-  asset: '红果免费短剧',
-  pkg: 'ID: 1882276296295515 包名: com.phoenix.read',
+  accountName: a.name,
+  pkgLine: `ID: ${r.id} 包名: ${r.pkg}`,
+}))));
+/* 已确认的事件资产选择：[{ accountId, accountName, assetId, assetName, pkgLine }] */
+const eventAssetPicked = ref([]);
+/* 内联表：账户 | 事件资产(含包名) | 操作 —— 只列出有选择的账户 */
+const projEventRows = computed(() => eventAssetPicked.value.map((p) => ({
+  account: p.accountName,
+  accountId: p.accountId,
+  asset: p.assetName,
+  pkg: p.pkgLine,
 })));
+const eventAssetVisible = ref(false);
 /* ---- 关联产品（线上「选择头条产品」）+ 直达链接 ---- */
 const relatedVisible = ref(false);
 /* ---- 广告基本信息面板：广告预算与出价 / 定位到指定段 ---- */
@@ -1667,36 +1498,48 @@ const adBudgetSummary = computed(() => ({
   pay_mode: { OCPM: '目标转化出价-按展示付费', CPC: '目标转化出价-按点击付费' }[adBudget.pay_mode] || '',
 }));
 /* ---- 广告基本信息：直达链接行 / 行动号召输入 ---- */
-/* 监测链接组（线上「选择巨量后台监测链接组」抽屉） */
-const monitorGroupVisible = ref(false);
-/* 线上同一面板有两个入口：分包与监测活动 →「选择巨量后台监测连接组」；选择分包和链接组 →「选择监测链接组」 */
-const monitorGroupTitle = ref('选择巨量后台监测连接组');
-function openMonitorGroup(title) {
-  monitorGroupTitle.value = title || '选择巨量后台监测连接组';
-  monitorGroupVisible.value = true;
+/* 监测链接组（线上「选择巨量后台监测链接组」三栏抽屉 → BatchLinkGroupDrawer）
+ * 两个入口共用：分包与监测活动 →「选择巨量后台监测连接组」；选择分包和链接组 →「选择监测链接组」 */
+const linkGroupVisible = ref(false);
+const linkGroupTitle = ref('选择巨量后台监测连接组');
+const linkGroupInitialAccount = ref('');
+function openMonitorGroup(title, accountId) {
+  linkGroupTitle.value = title || '选择巨量后台监测连接组';
+  linkGroupInitialAccount.value = accountId ?? '';
+  linkGroupVisible.value = true;
 }
-const monitorGroups = ref([
-  { id: '1879740549850608', name: '红果-央广-50', picked: true },
-  { id: '1879740539885770', name: '红果-央广-49', picked: true },
-]);
-const monitorGroupForm = reactive({
-  keyword: '',
-  projectCount: 1,
-  accountId: '',
-  onlyEmpty: false,
-  picked: ['https://ugapk.com/YG9EX'],
-  pickedDetail: ['YG9EX-安卓-短剧-单激活-50户'],
-  pickedTotal: 1,
-});
-const monitorGroupRows = ref([
-  { name: 'https://ugapk.com/YG9EX', type: '', projects: 7 },
-  { name: 'YG9EX-安卓-短剧-单激活-50户', type: '自建', projects: 7 },
-]);
-function onMonitorGroupSearch() { ElMessage.success('已按关键词查询（原型模拟）'); }
-function confirmMonitorGroup() {
-  ElMessage.success(`已选择 ${monitorGroupForm.picked.length} 个链接组（原型模拟）`);
-  monitorGroupVisible = false;
-}
+/* 线上样例：每个账户一个分组 url，组下若干子链接组（类型 自建） */
+const linkGroupCatalog = {
+  url: 'https://ugapk.com/YG9EX',
+  children: [
+    { name: 'YG9EX-短剧-单激活-安卓-{acc}户', type: '自建', projects: 0 },
+    { name: 'YG9EX-短剧-注册-安卓-{acc}户', type: '自建', projects: 2 },
+    { name: 'YG9EX-短剧-付费-安卓-{acc}户', type: '自建', projects: 5 },
+  ],
+};
+/* 按账户分组的树：[{ key, accountId, accountName, url, projects, children:[{ key, accountId, name, type, projects }] }] */
+const linkGroupRows = computed(() => selectedAccounts.value.map((a) => {
+  /* 账户名末尾的序号（如 红果-央广-199 → 199），没有则用账户 id */
+  const acc = (a.name.match(/-(\d+)$/) || [])[1] || a.id;
+  const children = linkGroupCatalog.children.map((c) => ({
+    key: `${a.id}_${c.name}`,
+    accountId: a.id,
+    name: c.name.replace('{acc}', acc),
+    type: c.type,
+    projects: c.projects,
+  }));
+  return {
+    key: `${a.id}_${linkGroupCatalog.url}`,
+    isGroup: true,
+    accountId: a.id,
+    accountName: a.name,
+    url: linkGroupCatalog.url,
+    projects: children.reduce((n, c) => n + c.projects, 0),
+    children,
+  };
+}));
+/* 已确认：[{ key, accountId, accountName, url, name }] */
+const linkGroupPicked = ref([]);
 /* 创意组件候选（线上：附加创意组件启用后带出） */
 const extraComponentOptions = [
   { id: 'ec_1', name: '答题组件' },
@@ -1732,10 +1575,6 @@ function onPickMainImage() {
   if (!rest.length) { ElMessage.warning('产品主图最多 10 张'); return; }
   form.ad.product_main_images = [...form.ad.product_main_images, rest[0].id].slice(0, 10);
 }
-function goCreateTargeting() {
-  ElMessage.success('已跳转至创量定向包新建（原型模拟）');
-  router.push({ name: 'asset-list', query: { kind: 'orientation' } });
-}
 function addCtaTags() {
   const tags = String(ctaInput.value || '').split(/[\s,，]+/).map((t) => t.trim()).filter(Boolean);
   if (!tags.length) { ElMessage.warning('请输入行动号召文案'); return; }
@@ -1767,40 +1606,163 @@ function openAdPanel(sectionId) {
     if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
-/* ---- 线上：手动输入监测链接 / 创量定向包 ---- */
+/* ---- 线上：手动输入监测链接 / 智投定向包 ---- */
 const monitorLinkVisible = ref(false);
-const targetingVisible = ref(false);
+const targetPackageVisible = ref(false);
+const targetPackageTitle = ref('智投定向包');
+const targetPackageInitialAccount = ref('');
+function openTargetPackage(accountId) {
+  targetPackageInitialAccount.value = accountId ?? '';
+  targetPackageVisible.value = true;
+}
+/* 线上样例（图1）：定向包名称 | 主体 | 智投项目 | 是否可用 */
+const targetPackageCatalog = [
+  { id: '17326901565', name: '红果短剧-定向', subject: '北京笔阁图书科技有限公司', project: '', type: '应用推广-Android', available: true, dot: false },
+  { id: '17326901566', name: '红果定向-安卓', subject: '北京笔阁图书科技有限公司', project: '', type: '应用推广-Android', available: true, dot: true },
+  { id: '17326901567', name: '红果定向-鸿蒙', subject: '北京笔阁图书科技有限公司', project: '', type: '应用推广-鸿蒙', available: true, dot: false },
+];
+/* 按账户展开：[{ key, accountId, accountName, id, name, subject, project, type, available }] */
+const targetPackageRows = computed(() => selectedAccounts.value.flatMap((a) => targetPackageCatalog.map((p) => ({
+  ...p,
+  key: `${a.id}_${p.id}`,
+  accountId: a.id,
+  accountName: a.name,
+}))));
+/* 已确认：[{ key, accountId, accountName, id, name }] */
+const targetPackagePicked = ref([]);
+function onTargetPackageConfirm(rows) {
+  targetPackagePicked.value = rows;
+  form.project.audience_package_id = rows[0]?.id ?? null;
+  if (rows.length) ElMessage.success(`已选择 ${rows.length} 个定向包`);
+}
+function removeTargetPackage(accountId) {
+  targetPackagePicked.value = targetPackagePicked.value.filter((p) => String(p.accountId) !== String(accountId));
+}
+/* 兼容旧引用（跳转新建智投定向包） */
+function goCreateTargeting() {
+  ElMessage.success('已跳转至智投定向包新建（原型模拟）');
+  router.push({ name: 'asset-list', query: { kind: 'orientation' } });
+}
 const monitorLink = reactive({
   show: 'OFF', touch: 'OFF', touchUrl: '', play: 'OFF',
   playDone: 'OFF', effectivePlay: 'OFF', activate: 'OFF',
 });
-const targetingFilter = reactive({ project: '', product: '', type: '', onlyAvailable: true });
-const targetingRows = ref([
-  { id: 1873758649506, name: '央广-雷盟-知乎-APP内付费-124-792335571-在投', subject: '央广-雷盟-知乎-APP内付费-124-792335571-在投', project: '知乎小说', range: '通投智选', platform: '巨量广告', type: '应用推广-Android' },
-  { id: 1873758649507, name: '红果-央广-46', subject: '红果-央广-46', project: '漫剧端原生', range: '通投智选', platform: '巨量广告', type: '应用推广-Android' },
-]);
-function clearTargetingPicked() { targetingRows.value = []; }
 function confirmMonitorLink() {
   ElMessage.success('监测链接配置已保存（原型模拟）');
   monitorLinkVisible = false;
 }
-function confirmTargeting() {
-  ElMessage.success(`已选择 ${targetingRows.value.length} 个定向包（原型模拟）`);
-  targetingVisible = false;
-}
 const deeplinkVisible = ref(false);
-const relatedForm = reactive({ version: 'UPGRADE', product: '', category: '', keyword: '', picked: [] });
+/* ---- 选择头条产品（线上弹窗）：账户 → 商品库(可刷新) → 关键词 → 商品复选列表(分页) → 右侧已选 ---- */
+const RELATED_PAGE_SIZE = 7;
+const relatedForm = reactive({
+  version: 'COMMON',
+  account: '',
+  library: '短漫剧商品库',
+  keyword: '',
+  picked: [],
+  /* 弹窗打开前的已选快照：取消 / 关闭时回滚 */
+  snapshot: [],
+  versionSnapshot: 'GENERAL',
+});
+const relatedPage = ref(1);
 const deeplinkForm = reactive({ url: '' });
-const relatedCategories = ['知乎推流商品库', '通用商品库', '教育商品库'];
-function clearRelatedAssets() { relatedForm.picked = []; }
-function onRelatedRefresh() { ElMessage.success('已刷新资产（原型模拟）'); }
-function onRelatedSearch() { ElMessage.success(`已按「${relatedForm.keyword || '全部'}」查询（原型模拟）`); }
+/* 商品库候选：线上「短漫剧商品库」等，按所选账户返回 */
+const relatedLibraries = ref(['短漫剧商品库', '教育商品库', '小说商品库']);
+/* 商品候选池：按线上图1 的 7 条样例 + 分页需要补足的多页数据 */
+const relatedProducts = ref([
+  { id: '7700453656538714393', name: '刘施一说送了命，离异残半小时做好', lib: '短漫剧商品库' },
+  { id: '7708820574339877912', name: '末世重启后', lib: '短漫剧商品库' },
+  { id: '7708073750129806361', name: '伤人追散我先冲', lib: '短漫剧商品库' },
+  { id: '77007100125264350232', name: '重生升学季：我截亭学长躺局', lib: '短漫剧商品库' },
+  { id: '7706798963717835801', name: '爱有归零，破局重生', lib: '短漫剧商品库' },
+  { id: '77058921884591377433', name: '八季稻创下乡：我携药众闯江城', lib: '短漫剧商品库' },
+  { id: '77008397711949919661', name: '全人类搬家，没人通知我', lib: '短漫剧商品库' },
+  { id: '7575114750539861017', name: '天下第一·纵缔', lib: '短漫剧商品库' },
+  { id: '7575114750539861018', name: '天下第二·问心', lib: '短漫剧商品库' },
+  { id: '7575114750539861019', name: '小渔的爱', lib: '短漫剧商品库' },
+  { id: '7575114750539861020', name: '知乎小说·会员专享', lib: '短漫剧商品库' },
+  { id: '7575114750539861021', name: '红果急漫跑剧', lib: '短漫剧商品库' },
+  { id: '7575114750539861022', name: '漫剧端原生·合集', lib: '短漫剧商品库' },
+  { id: '7575114750539861023', name: '天下第三·归途', lib: '短漫剧商品库' },
+  { id: '7575114750539861024', name: '末世重启后·第二季', lib: '短漫剧商品库' },
+  { id: '7575114750539861025', name: '爱有归零·续章', lib: '短漫剧商品库' },
+  { id: 'edu_9201', name: '成人本科·高频考点精讲', lib: '教育商品库' },
+  { id: 'edu_9202', name: '考研政治·冲刺串讲', lib: '教育商品库' },
+  { id: 'edu_9203', name: '教师资格证·面试实战', lib: '教育商品库' },
+  { id: 'nov_9301', name: '知乎盐选·短篇合集', lib: '小说商品库' },
+  { id: 'nov_9302', name: '盐选专栏·悬疑推理', lib: '小说商品库' },
+  { id: 'nov_9303', name: '盐选专栏·职场成长', lib: '小说商品库' },
+]);
+/* 当前筛选命中的商品（通用版按商品库过滤；升级版无商品库概念，只按关键词） */
+const relatedFiltered = computed(() => {
+  const lib = relatedForm.library;
+  const kw = relatedForm.keyword.trim();
+  const byLib = relatedForm.version === 'COMMON';
+  return relatedProducts.value.filter((p) => {
+    if (byLib && lib && p.lib !== lib) return false;
+    if (kw && !(p.name.includes(kw) || p.id.includes(kw))) return false;
+    return true;
+  });
+});
+/* 当前页要展示的商品 */
+const relatedList = computed(() => {
+  const start = (relatedPage.value - 1) * RELATED_PAGE_SIZE;
+  return relatedFiltered.value.slice(start, start + RELATED_PAGE_SIZE);
+});
+const relatedTotal = computed(() => relatedFiltered.value.length);
+/* 线上列表为单选：picked 仍用数组存储（与 form.project.product_ids 对齐），这里做单值代理 */
+const relatedPickedSingle = computed({
+  get: () => (relatedForm.picked.length ? relatedForm.picked[0] : ''),
+  set: (v) => { relatedForm.picked = v ? [v] : []; },
+});
+/* 打开弹窗：带入已选，账户默认取第一个已选媒体账户（由 @open 触发） */
+function openRelatedDialog() {
+  relatedForm.snapshot = (form.project.product_ids || []).slice();
+  relatedForm.picked = (form.project.product_ids || []).slice();
+  /* 版本以项目抽屉里「产品版本」字段为准（UPGRADE=升级版 / GENERAL=通用版） */
+  relatedForm.version = form.project.product_version === 'UPGRADE' ? 'UPGRADE' : 'COMMON';
+  relatedForm.versionSnapshot = form.project.product_version;
+  if (!relatedForm.account && selectedAccounts.value.length) relatedForm.account = selectedAccounts.value[0].id;
+  if (!relatedForm.library) relatedForm.library = relatedLibraries.value[0] || '';
+  relatedPage.value = 1;
+}
+/* 取消 / 右上角关闭：线上不保存改动，恢复打开前的已选与产品版本 */
+function onRelatedClosed() {
+  relatedForm.picked = relatedForm.snapshot.slice();
+  form.project.product_version = relatedForm.versionSnapshot;
+  relatedForm.keyword = '';
+  relatedPage.value = 1;
+}
+/* 已选面板里按 id 回显名称 */
+function relatedNameOf(id) {
+  const p = relatedProducts.value.find((x) => String(x.id) === String(id));
+  return p ? p.name : (productOptions.value.find((x) => String(x.id) === String(id)) || {}).name || String(id);
+}
+function removeRelatedPicked(id) {
+  relatedForm.picked = relatedForm.picked.filter((x) => x !== id);
+}
+function onRelatedVersionChange() {
+  relatedPage.value = 1;
+  /* 切换版本后商品库口径不同，清掉已选避免带入另一版本的商品；并同步回项目抽屉的「产品版本」 */
+  relatedForm.picked = [];
+  form.project.product_version = relatedForm.version === 'UPGRADE' ? 'UPGRADE' : 'GENERAL';
+}
+function clearRelatedAssets() {
+  relatedForm.picked = [];
+}
+function onRelatedRefresh() {
+  relatedPage.value = 1;
+  ElMessage.success(`已刷新「${relatedForm.library || '全部'}」商品库（原型模拟）`);
+}
+function onRelatedSearch() {
+  relatedPage.value = 1;
+}
 function confirmRelated() {
   if (!relatedForm.picked.length) { ElMessage.warning('请选择产品'); return; }
   form.project.product_ids = relatedForm.picked.slice();
   form.ad.product_ids = relatedForm.picked.slice();
   ElMessage.success(`已关联 ${relatedForm.picked.length} 个产品`);
-  relatedVisible = false;
+  relatedVisible.value = false;
 }
 function confirmDeeplink() {
   if (!deeplinkForm.url.trim()) { ElMessage.warning('请输入 Deeplink'); return; }
@@ -1864,6 +1826,7 @@ const selectedTargetings = computed(() => {
 });
 const objectiveLabel = computed(() => ({
   APP: '应用推广', GAME: '游戏推广', MINI_APP: '小程序推广',
+  LINK: '销售线索', SHOP: '电商', CONTENT: '内容营销', LIVE: '直播',
 }[form.project.objective] || form.project.objective || '—'));
 /* ---- 预览区（线上：账户页签 + 项目/广告 两级表头 + 统计条） ---- */
 const previewAccountIdx = ref(0);
@@ -1892,6 +1855,9 @@ const deletedAdKeys = ref([]);
 function adAssetLines(text) {
   return String(text || '').split(/\s(?=[^\s：]{2,}：)/).map((s) => s.trim()).filter(Boolean);
 }
+/* 预览区批量改名结果（批量操作 → 修改广告名称 / 修改项目名称 真实写回预览表格） */
+const renamedAdNames = ref({});
+const renamedProjectNames = ref({});
 const previewRows = computed(() => {
   const idx = previewAccountIdx.value;
   const acc = previewAccounts.value[idx];
@@ -1900,18 +1866,22 @@ const previewRows = computed(() => {
   const n = Math.max(1, (est.value.rows[idx] || {}).ads || (acc.ads_detail || []).length || 1);
   const src = acc.ads_detail || [];
   const out = [];
+  const project = {
+    ...(acc.project || {}),
+    name: renamedProjectNames.value[idx] || (acc.project && acc.project.name) || '',
+  };
   for (let i = 0; i < n; i += 1) {
     const key = `${previewAccountIdx.value}-${i}`;
     if (deletedAdKeys.value.indexOf(key) >= 0) continue;
     const base = src[i] || src[src.length - 1] || {};
     const ad = {
-      name: base.name || `广告-${i + 1}`,
+      name: renamedAdNames.value[key] || base.name || `广告-${i + 1}`,
       materials: base.materials || '已选：10个素材',
       title_pack: base.title_pack || '红果',
       assets: base.assets || acc.project?.assets || '',
       status: base.status || '待提交',
     };
-    out.push({ g: { project: acc.project }, ad, span: n, first: out.length === 0, key });
+    out.push({ g: { project }, ad, span: n, first: out.length === 0, key });
   }
   return out;
 });
@@ -1942,29 +1912,52 @@ function toggleAllAd(val) {
 /* 批量改名：预览区勾选后经「批量操作 → 修改广告名称 / 修改项目名称」打开 */
 const renameVisible = ref(false);
 const renameRows = ref([]);
-const renameTitle = ref('');
-function onPreviewBatch(cmd) {
+const renameType = ref('ad');
+async function onPreviewBatch(cmd) {
   const picked = previewRows.value.filter((r) => previewChecked.has(r.key));
   if (!picked.length) { ElMessage.warning('请先勾选需要操作的广告'); return; }
   if (cmd === 'delAd') {
+    try {
+      await ElMessageBox.confirm(`确定删除选中的 ${picked.length} 条广告吗？`, '提示', {
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+      });
+    } catch (e) {
+      return;
+    }
     deletedAdKeys.value = [...deletedAdKeys.value, ...picked.map((r) => r.key)];
     previewChecked.clear();
     ElMessage.success(`已删除 ${picked.length} 条广告`);
     return;
   }
-  renameTitle.value = cmd === 'renameProject' ? '批量修改项目名称' : '批量修改广告名称';
+  renameType.value = cmd === 'renameProject' ? 'project' : 'ad';
   renameRows.value = picked.map((r) => ({
-    __summary: true,
-    accountName: r.account || r.g?.project?.name || '',
-    name: (r.ad && r.ad.name) || '',
-    newName: '',
-    projectName: (r.g && r.g.project && r.g.project.name) || '',
+    key: r.key,
+    oldName:
+      cmd === 'renameProject'
+        ? (r.g && r.g.project && r.g.project.name) || ''
+        : (r.ad && r.ad.name) || '',
   }));
   renameVisible.value = true;
 }
 function onRenameConfirm(payload) {
-  const n = (payload && payload.rows && payload.rows.length) || 0;
-  ElMessage.success(`已提交 ${n} 条改名（原型模拟）`);
+  const rows = (payload && payload.rows) || [];
+  if (payload && payload.type === 'project') {
+    const map = { ...renamedProjectNames.value };
+    rows.forEach((r) => {
+      map[String(r.key).split('-')[0]] = r.newName;
+    });
+    renamedProjectNames.value = map;
+  } else {
+    const map = { ...renamedAdNames.value };
+    rows.forEach((r) => {
+      map[r.key] = r.newName;
+    });
+    renamedAdNames.value = map;
+  }
+  const unit = payload && payload.type === 'project' ? '个项目' : '条广告';
+  ElMessage.success(`已修改 ${rows.length} ${unit}名称`);
   renameVisible.value = false;
 }
 const submitting = ref(false);
@@ -1978,6 +1971,17 @@ const acctVisible = ref(false);
 const ruleVisible = ref(false);
 const projVisible = ref(false);
 const adVisible = ref(false);
+/* R115：能力按钮 → 打开主抽屉并定位到对应分区（线上行为） */
+const projFocus = ref('');
+const adFocus = ref('');
+function openProjSection(key) {
+  projFocus.value = key;
+  projVisible.value = true;
+}
+function openAdSection(key) {
+  adFocus.value = key;
+  adVisible.value = true;
+}
 const awemeVisible = ref(false);
 const productVisible = ref(false);
 const adSettingVisible = ref(false);
@@ -2414,6 +2418,34 @@ const form = reactive({
   },
 });
 
+/* 页面默认态快照：顶部「已选「策略」/「任务」」末尾 × 点击后回到该状态（清空所有已填内容） */
+const FORM_SNAPSHOT = JSON.parse(JSON.stringify(form));
+function resetPage() {
+  /* 保留已选的媒体账户，其余内容回到默认态 */
+  const keepAccounts = [...form.account_ids];
+  Object.assign(form, JSON.parse(JSON.stringify(FORM_SNAPSHOT)));
+  form.account_ids = keepAccounts;
+  strategyGroup.value = null;
+  taskSelectedId.value = '';
+  pickedKind.value = '';
+  preview.value = null;
+  deletedAdKeys.value = [];
+  renamedAdNames.value = {};
+  renamedProjectNames.value = {};
+  previewChecked.clear();
+  previewAccountIdx.value = 0;
+  estOpen.value = false;
+  activeTab.value = 'task';
+  taskVisible.value = false;
+  strategyVisible.value = false;
+  if (route.query.strategy) {
+    const q = { ...route.query };
+    delete q.strategy;
+    router.replace({ query: q });
+  }
+  ElMessage.success('已清除当前配置，恢复默认状态');
+}
+
 // ---- 摘要 ----
 // 当前媒体类型下的媒体账户（选择媒体账户弹窗只展示本媒体的账户）
 const mediaAccounts = computed(() => accounts.value.filter((a) => (a.media || 'upgrade') === media.value));
@@ -2611,6 +2643,41 @@ const taskFiltered = computed(() => {
   });
 });
 const taskPageRows = computed(() => taskFiltered.value.slice((taskPage.value - 1) * taskPageSize, taskPage.value * taskPageSize));
+/**
+ * 模拟数据：把搭建页各板块一次性填满。
+ * 口径与「勾选任务 → 确定」的回显完全一致（媒体账户 / 规则 / 新建项目 / 广告信息 / 创意素材 / 标题包 / 落地页），
+ * 「使用已有策略新建」确定后也走同一套，保证两种入口回显形态相同。
+ */
+function fillMockPlan(baseName) {
+  const accs = (mockDb.accounts || []).slice(0, 3);
+  const vids = (mockDb.videos || []).slice(0, 5);
+  const imgs = (mockDb.images || []).slice(0, 1);
+  const tps = (mockDb.titlePacks || []).slice(0, 2);
+  const lps = (mockDb.landingPages || []).slice(0, 2);
+  form.account_ids = accs.map((a) => a.id);
+  form.ad_rule = 'BY_CREATIVE';   // 线上回显口径：广告规则 = 按创意组数
+  form.project.name = `${baseName}-新建项目`;
+  form.project.budget = 999999;
+  form.project.bid = 39.5;
+  form.project.group_name = `${baseName}-项目组`;
+  form.project.group_price = 999999;
+  form.project.group_bid = 39.5;
+  form.project.app_name = '红果急漫跑剧';
+  form.project.targeting_ids = ['t_1'];
+  /* 线上回显：已选创意组 5（4 个视频组 + 1 个图片组） */
+  form.materials.creative_groups = [
+    ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [], text_images: [] })),
+    ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id], text_images: [] })),
+  ];
+  form.ad.video_ids = vids.map((v) => v.id);
+  form.ad.image_ids = [];
+  form.ad.title_packs = tps.map((p) => p.id);
+  form.ad.landing_page_id = lps[0] ? lps[0].id : '';
+  form.landing.landing_page_name = lps[0] ? lps[0].title : '';
+  form.landing.landing_pages = lps.map((l) => l.id);
+  if (typeof syncMaterials === 'function') syncMaterials();
+}
+
 const taskSelected = computed(() => (mockDb.tasks || []).find((t) => String(t.id) === String(taskSelectedId.value)) || null);
 
 function resetTaskFilter() {
@@ -2623,33 +2690,8 @@ function confirmTask() {
   /* 线上：勾选任务并确定后，直接回显该任务的策略
    * （媒体账户 / 新建项目 / 创意素材 / 标题包 / 落地页），与「使用已有策略」回显同形态 */
   const t = taskSelected.value;
-  const accs = (mockDb.accounts || []).slice(0, 2);
-  const vids = (mockDb.videos || []).slice(0, 5);
-  const tps = (mockDb.titlePacks || []).slice(0, 2);
-  const lps = (mockDb.landingPages || []).slice(0, 2);
-  form.account_ids = accs.map((a) => a.id);
-  form.ad_rule = 'BY_CREATIVE';   // 线上回显口径：广告规则 = 按创意组数
-  form.project.name = `${t.name}-新建项目`;
-  form.project.budget = 999999;
-  form.project.bid = 39.5;
-  form.project.group_name = `${t.name}-项目组`;
-  form.project.group_price = 999999;
-  form.project.group_bid = 39.5;
-  form.project.app_name = '红果急漫跑剧';
-  form.project.targeting_ids = ['t_1'];
-  /* 线上回显：已选创意组 5（4 个视频组 + 1 个图片组） */
-  const imgs = (mockDb.images || []).slice(0, 1);
-  form.materials.creative_groups = [
-    ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [], text_images: [] })),
-    ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id], text_images: [] })),
-  ];
-  form.ad.video_ids = vids.map((v) => v.id);
-  form.ad.image_ids = [];
-  form.ad.title_packs = tps.map((p) => p.id);
-  form.ad.landing_page_id = lps[0] ? lps[0].id : '';
-  form.landing.landing_page_name = lps[0] ? lps[0].title : '';
-  form.landing.landing_pages = lps.map((l) => l.id);
-  if (typeof syncMaterials === 'function') syncMaterials();
+  pickedKind.value = 'task';
+  fillMockPlan(t.name);
   ElMessage.success(`已选择任务「${t.name}」`);
   taskVisible.value = false;
 }
@@ -3027,7 +3069,7 @@ const PICKER_DATA = {
   ],
   monitorLink: [
     { id: 'ml_1', name: 'https://ugapk.com/YG9EX', type: '巨量后台监测链接组', projects: 7 },
-    { id: 'ml_2', name: 'YG9EX-安卓-短剧-单激活-50户', type: '创量导入监测活动', projects: 7 },
+    { id: 'ml_2', name: 'YG9EX-安卓-短剧-单激活-50户', type: '智投导入监测活动', projects: 7 },
   ],
   deeplink: [
     { id: 'dl_1', name: 'https://ugapk.com/DEEPLINK-1', type: 'Deeplink直达链接', creator: '央广智投' },
@@ -3102,14 +3144,13 @@ const projectBidSummary = computed(() => {
 });
 /* ================= 各「选择…」按钮的真实交互 ================= */
 function pickEventAsset() {
-  openPicker({
-    title: '选择事件资产', columns: PICKER_COLUMNS.event, rows: PICKER_DATA.event, limit: 10,
-    onConfirm: (rows) => {
-      if (!rows.length) return;
-      form.project.asset_ids = rows.map((r) => r.id);
-      ElMessage.success(`已选择 ${rows.length} 个事件资产`);
-    },
-  });
+  if (!selectedAccounts.value.length) { ElMessage.warning('请先选择媒体账户'); return; }
+  eventAssetVisible.value = true;
+}
+function onEventAssetConfirm(rows) {
+  eventAssetPicked.value = rows;
+  form.project.asset_ids = rows.map((r) => r.assetId);
+  if (rows.length) ElMessage.success(`已选择 ${rows.length} 个事件资产`);
 }
 function pickLinkGroup() {
   openPicker({
@@ -3285,28 +3326,14 @@ function addSellPoint() {
   if (input) input.value = '';
   ElMessage.success('已添加卖点');
 }
-/* 监测链接组面板：真实操作 */
-function onMonitorRefreshAll() {
-  monitorGroupForm.projectCount = selectedAccounts.value.length || 1;
-  ElMessage.success('已刷新全部账户的监测链接组');
+/* 监测链接组抽屉确认 */
+function onLinkGroupConfirm(rows) {
+  linkGroupPicked.value = rows;
+  form.project.link_group_ids = rows.map((r) => r.key);
+  if (rows.length) ElMessage.success(`已选择 ${rows.length} 个监测链接组`);
 }
-function onMonitorClearAll() {
-  monitorGroupForm.picked = [];
-  monitorGroupForm.pickedDetail = [];
-  monitorGroupForm.accountId = '';
-  ElMessage.success('已清空所有资产');
-}
-function onMonitorQuickSelectAll() {
-  monitorGroupForm.picked = monitorGroupRows.value.map((r) => r.name);
-  monitorGroupForm.pickedDetail = monitorGroupRows.value.map((r) => r.name).slice(1);
-  monitorGroupForm.pickedTotal = monitorGroupForm.picked.length;
-  ElMessage.success(`已为 ${selectedAccounts.value.length || 1} 个账户各选择 ${monitorGroupRows.value.length} 个链接组`);
-}
-function onMonitorQuickSelect() {
-  monitorGroupForm.picked = monitorGroupRows.value.map((r) => r.name);
-  monitorGroupForm.pickedDetail = monitorGroupRows.value.map((r) => r.name).slice(1);
-  monitorGroupForm.pickedTotal = monitorGroupForm.picked.length;
-  ElMessage.success(`已快速选择 ${monitorGroupRows.value.length} 个链接组`);
+function removeLinkGroup(accountId) {
+  linkGroupPicked.value = linkGroupPicked.value.filter((p) => String(p.accountId) !== String(accountId));
 }
 /* 通配符 / 指引 / 标题包 / 最新定向 */
 const MORE_WILDCARDS = ['落地页名称', '定向包名称', '账户名称', '创意组名', '素材名'];
@@ -3649,7 +3676,7 @@ function buildPlan() { return JSON.parse(JSON.stringify(form)); }
 // 策略组由账户列表「使用已有策略新建」带入（route.query.strategy），
 // 回填范围：新建项目 / 广告信息 / 创意素材 / 标题包 / 落地页。
 const strategyGroup = ref(null);
-/* R110：线上「创量项目」框——回显所选任务所属的创量项目（只读，线上无「更改」按钮）。
+/* R110：线上「智投项目」框——回显所选任务所属的智投项目（只读，线上无「更改」按钮）。
  * 任务数据无该字段时回落到策略组里的项目名。 */
 const taskProjectName = computed(() => {
   const p = taskSelected.value && taskSelected.value.project;
@@ -3658,22 +3685,55 @@ const taskProjectName = computed(() => {
   return (sg && (sg.cl_project || sg.project_name)) || '';
 });
 
+/* 顶部「已选「策略」/「已选「任务」」回显：记录最近一次套用的来源，策略套用后优先展示策略 */
+const pickedKind = ref('');
+const pickedSource = computed(() => {
+  if (pickedKind.value === 'strategy' && strategyGroup.value) return { kind: '策略', name: strategyGroup.value.name };
+  if (pickedKind.value === 'task' && taskSelected.value) return { kind: '任务', name: taskSelected.value.name };
+  if (strategyGroup.value) return { kind: '策略', name: strategyGroup.value.name };
+  if (taskSelected.value) return { kind: '任务', name: taskSelected.value.name };
+  return null;
+});
+
+/** 策略组带来的创意组是否过于稀疏（< 2 组） */
+function sectionHasThinMaterials() {
+  const groups = (form.materials && form.materials.creative_groups) || [];
+  return groups.filter((g) => (g.videos || []).length || (g.images || []).length).length < 2;
+}
+
 function applyStrategyGroup(id) {
   const sg = findStrategyGroup(id);
   if (!sg) return;
   strategyGroup.value = sg;
+  pickedKind.value = 'strategy';
   // 来自「使用已有策略新建」/ 顶部「选择策略」
   activeTab.value = 'strategy';
-  // 搭建模式决定「新建项目 / 已有项目」
-  form.create_mode = sg.build_mode === '已有项目' ? 'EXIST' : 'NEW';
+  /* 回显形态与「勾选任务」一致：统一落到「新建项目」（策略组自带的数据本身就是一套可搭建的新项目），
+   * 这样 8 个能力按钮（依赖 projectConfigured）会一起出现 */
+  form.create_mode = 'NEW';
+  form.existing_projects = [];
+  /* 先用模拟数据把各板块填满（与「勾选任务」回显同一口径），
+   * 再由策略组 payload 覆盖，保证既有策略组特征、又不留空板块 */
+  fillMockPlan(sg.name);
   const payload = sg.payload || {};
   Object.keys(payload).forEach((section) => {
     const target = form[section];
     if (!target || typeof target !== 'object') return;
     Object.assign(target, payload[section]);
   });
+  /* 素材区保持「勾选任务」的丰满度：策略组素材少于 2 组时补到 5 组（4 视频 + 1 图片） */
+  if (sectionHasThinMaterials()) {
+    const vids = (mockDb.videos || []).slice(0, 4);
+    const imgs = (mockDb.images || []).slice(0, 1);
+    form.materials.creative_groups = [
+      ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [], text_images: [] })),
+      ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id], text_images: [] })),
+    ];
+    form.ad.video_ids = vids.map((v) => v.id);
+  }
   // 派生字段：项目名称 / 落地页名称
   if (!form.project.name) form.project.name = `${sg.name}-新建项目`;
+  if (!form.project.group_name) form.project.group_name = `${sg.name}-项目组`;
   if (form.ad.landing_page_id && !form.landing.landing_page_name) {
     const lp = landingPages.value.find((l) => l.id === form.ad.landing_page_id);
     form.landing.landing_page_name = lp ? lp.title : '';
@@ -3716,6 +3776,16 @@ async function onSubmit() {
   if (!form.account_ids.length) { ElMessage.warning('请至少选择一个媒体账户'); return; }
   if (!form.project.name) { ElMessage.warning('请填写项目名称'); return; }
   if (!form.ad.video_ids.length && !form.ad.image_ids.length) { ElMessage.warning('请至少选择一个视频或图片素材'); return; }
+  const adCount = previewStats.value.ad_count || est.value.total || 0;
+  try {
+    await ElMessageBox.confirm(
+      `本次将提交 ${adCount} 条广告，确定提交审核吗？`,
+      '提示',
+      { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' },
+    );
+  } catch (e) {
+    return;
+  }
   submitting.value = true;
   try {
     const res = await buildApi.submit({ plan: buildPlan(), idempotency_key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
@@ -3730,7 +3800,10 @@ async function onSubmit() {
       detail: `项目「${form.project.name || '未命名'}」`,
     });
     ElMessage.success(`任务已提交，共 ${total} 条`);
-    router.push({ name: 'tasks' });
+    /* R111：提交后跳「任务 → 巨量新建任务(新版) → 巨量广告」任务列表
+       （线上语义：批量提交审核后到巨量广告任务列表看执行状态；
+         原先跳「批量操作任务」/build/tasks 是错的落地页） */
+    router.push({ name: 'task-adtask' });
   } finally {
     submitting.value = false;
   }
@@ -3794,20 +3867,23 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     customTargetingOpen,
     projProductRows,
     projLinkRows,
+    linkGroupRows,
+    linkGroupPicked,
+    linkGroupVisible,
+    linkGroupTitle,
+    linkGroupInitialAccount,
+    openMonitorGroup,
+    onLinkGroupConfirm,
+    removeLinkGroup,
     projAudienceRows,
     projEventRows,
+    eventAssetRows,
+    eventAssetPicked,
+    eventAssetVisible,
     relatedVisible,
     adBudgetVisible,
     searchForm,
     adBudgetSummary,
-    monitorGroupVisible,
-    monitorGroupTitle,
-    openMonitorGroup,
-    monitorGroups,
-    monitorGroupForm,
-    monitorGroupRows,
-    onMonitorGroupSearch,
-    confirmMonitorGroup,
     extraComponentOptions,
     onLinkSourceChange,
     onExtraComponentChange,
@@ -3823,17 +3899,29 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     adBudget,
     openAdPanel,
     monitorLinkVisible,
-    targetingVisible,
+    targetPackageVisible,
+    targetPackageTitle,
+    targetPackageInitialAccount,
+    openTargetPackage,
+    targetPackageRows,
+    targetPackagePicked,
+    onTargetPackageConfirm,
+    removeTargetPackage,
     monitorLink,
-    targetingFilter,
-    targetingRows,
-    clearTargetingPicked,
     confirmMonitorLink,
-    confirmTargeting,
     deeplinkVisible,
     relatedForm,
+    relatedPage,
+    RELATED_PAGE_SIZE,
+    relatedLibraries,
+    relatedList,
+    relatedTotal,
+    relatedPickedSingle,
+    relatedNameOf,
+    removeRelatedPicked,
+    onRelatedVersionChange,
+    onRelatedClosed,
     deeplinkForm,
-    relatedCategories,
     clearRelatedAssets,
     onRelatedRefresh,
     onRelatedSearch,
@@ -3871,7 +3959,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     toggleAllAd,
     renameVisible,
     renameRows,
-    renameTitle,
+    renameType,
     onPreviewBatch,
     onRenameConfirm,
     submitting,
@@ -4069,6 +4157,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     PICKER_COLUMNS,
     projectBidSummary,
     pickEventAsset,
+    onEventAssetConfirm,
     pickLinkGroup,
     pickTargeting,
     pickMonitorLink,
@@ -4088,10 +4177,6 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     pickGuideVideo,
     pickCover,
     addSellPoint,
-    onMonitorRefreshAll,
-    onMonitorClearAll,
-    onMonitorQuickSelectAll,
-    onMonitorQuickSelect,
     MORE_WILDCARDS,
     appendWildcard,
     appendAdWildcard,
@@ -4239,13 +4324,16 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .pick-row__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-row__url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #86909c; }
 .pick-row__x { cursor: pointer; color: #86909c; }
-.tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; border-radius: 50%; background: #00b42a; color: #fff; font-style: normal; font-size: 10px; font-weight: 700; line-height: 1; vertical-align: -2px; cursor: help; }
+/* 线上 8 个能力按钮的图标是 iconfont .mg-icon-tips-green：16×13、色 rgb(0,182,151)。
+   本地无该 iconfont，用同样形状/尺寸/颜色的圆底白勾复刻。 */
+.tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 13px; margin-right: 6px; border-radius: 50%; background: #00b697; color: #fff; font-style: normal; font-size: 9px; font-weight: 700; line-height: 1; vertical-align: -1px; cursor: help; }
 .action-bar { display: flex; justify-content: center; gap: 12px; background: #fff; border-radius: 6px; padding: 16px; }
 /* R110：线上「保存策略组」「生成广告预览」实测 120×32（mw120） */
 .action-bar :deep(.el-button) { min-width: 120px; }
 .preview-card { min-height: 280px; }
 .preview-title { font-size: 15px; font-weight: 600; }
 .picked-task { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #4e5969; margin-left: 4px; }
+.picked-task__name { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picked-task__x { cursor: pointer; color: #86909c; }
 .picked-task__edit { font-size: 13px; }
 .rule-box__count { padding: 0 12px; font-size: 12px; color: #86909c; border-left: 1px solid #e5e6eb; align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
@@ -4253,7 +4341,17 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 /* R112：已有项目列表（对齐线上 show-body / exist-project / select-data-item）
  * 线上实测：列体 360 宽，条目区 344 宽（左右各 8px 内边距）；
  * 账户名 14px #333 / 18px 行高；项目名 12px #666 单行省略；右侧 × 移除。 */
-.exist-list { width: 100%; }
+/* 已选已有项目较多时不撑高整列：框内约展示 3 条，超出部分垂直滚动查看 */
+.exist-list {
+  width: 100%;
+  max-height: 162px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+.exist-list::-webkit-scrollbar { width: 6px; }
+.exist-list::-webkit-scrollbar-thumb { background: #d9dbe1; border-radius: 3px; }
+.exist-list::-webkit-scrollbar-thumb:hover { background: #c0c4cc; }
 .exist-project { margin-bottom: 4px; }
 .exist-project-account {
   font-size: 14px; color: #333; line-height: 18px;
@@ -4417,20 +4515,64 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .ml-row__input { flex: 1; }
 .targeting-tips { font-size: 12px; color: #86909c; line-height: 1.7; margin: 6px 0 10px; }
 .targeting-ops { display: flex; gap: 10px; flex-wrap: wrap; }
-.related-tips { font-size: 12px; color: #e6a23c; line-height: 1.7; margin-bottom: 10px; }
+/* ---- 选择头条产品（线上 744px 弹窗，按线上截图还原；外壳规则在文件末尾全局块） ---- */
+.related-head { display: flex; align-items: center; gap: 12px; padding-right: 20px; }
+.related-head__title { font-size: 16px; font-weight: 600; color: #1d2129; line-height: 24px; }
+.related-head__link { font-size: 13px; color: #197afb; text-decoration: none; }
+.related-head__link:hover { text-decoration: underline; }
+.related-tips { font-size: 12px; color: #f7aa47; line-height: 20px; margin-bottom: 12px; }
 .related-tips p { margin: 0; }
-.related-ver { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; color: #4e5969; }
-.related-ver__hint { color: #86909c; font-size: 12px; }
-.related-ver__clear { margin-left: auto; }
-.related-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.related-filters__sel { width: 300px; }
-.related-filters__kw { width: 200px; }
-.related-body { display: flex; gap: 12px; height: 320px; }
-.related-list { flex: 1; overflow: auto; border: 1px solid #e5e6eb; border-radius: 4px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-.related-picked { width: 240px; border: 1px solid #e5e6eb; border-radius: 4px; padding: 10px; }
-.related-picked__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #4e5969; margin-bottom: 8px; }
-.related-picked__item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #1d2129; padding: 4px 0; }
-.related-picked__x { cursor: pointer; color: #86909c; }
+.related-ver { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 14px; color: #1d2129; }
+.related-ver__label { margin-right: 12px; }
+/* 线上版本切换：两个描边按钮，选中态浅蓝底 + 蓝字 */
+.related-ver__group :deep(.el-radio-button__inner) {
+  padding: 7px 18px; font-size: 13px; color: #1d2129; border-color: #dcdfe6; box-shadow: none; background: #fff;
+}
+.related-ver__group :deep(.el-radio-button:first-child .el-radio-button__inner) { border-radius: 4px 0 0 4px; }
+.related-ver__group :deep(.el-radio-button:last-child .el-radio-button__inner) { border-radius: 0 4px 4px 0; border-left: 0; }
+.related-ver__group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  color: #197afb; background: #e8f1ff; border-color: #197afb; font-weight: 500;
+}
+.related-ver__hint { color: #86909c; font-size: 13px; }
+.related-ver__clear { margin-left: auto; width: 120px; height: 32px; padding: 0; font-size: 13px; }
+.related-body { display: flex; gap: 12px; height: 360px; }
+.related-main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 12px; border: 1px solid #e5e6eb; border-radius: 4px; background: #f7f8fa; }
+.related-main__account { width: 100%; margin-bottom: 8px; }
+.related-main__row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.related-main__lib { flex: 1; }
+.related-main__kw { flex: 1; }
+.related-main__search { width: 56px; padding: 0; }
+.related-main__count { font-size: 13px; color: #1d2129; margin: 2px 0 8px; }
+.related-list { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid #e5e6eb; border-radius: 4px; background: #fff; overflow: hidden; }
+/* 线上：表头「商品名称」(56px / #f8f9fa)，下面是单选 radio 行 */
+.related-list__head { flex: none; height: 48px; line-height: 48px; padding: 0 14px; font-size: 13px; color: #1d2129; background: #f8f9fa; border-bottom: 1px solid #e5e6eb; }
+.related-list__body { flex: 1; min-height: 0; overflow: auto; padding: 6px 14px; }
+.related-list__group { display: flex; flex-direction: column; gap: 0; width: 100%; }
+.related-list__item { height: 32px; margin-right: 0; width: 100%; justify-content: flex-start; }
+.related-list__item :deep(.el-radio__input) { flex: none; }
+.related-list__item :deep(.el-radio__label) { font-size: 13px; color: #1d2129; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; padding-left: 8px; }
+.related-list :deep(.el-empty) { padding: 24px 0; }
+.related-list :deep(.el-empty__description) { margin-top: 4px; }
+.related-list :deep(.el-empty__description p) { font-size: 13px; color: #86909c; }
+.related-main__pager { display: flex; justify-content: flex-start; margin-top: 10px; }
+.related-main__pager :deep(.el-pagination) { --el-pagination-button-bg-color: #fff; }
+.related-picked { width: 196px; flex: none; display: flex; flex-direction: column; padding: 12px; border: 1px solid #e5e6eb; border-radius: 4px; background: #f7f8fa; }
+.related-picked__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #1d2129; margin-bottom: 8px; }
+/* 线上「清空 ◌」：文字 + 右侧圆圈刷新图标 */
+.related-picked__clear { padding: 0; height: auto; font-size: 13px; }
+.related-picked__refresh {
+  display: inline-block; width: 12px; height: 12px; margin-left: 4px; vertical-align: -1px;
+  border: 1.5px solid currentColor; border-radius: 50%; position: relative;
+}
+.related-picked__refresh::after {
+  content: ''; position: absolute; left: 3px; top: 1px; width: 3px; height: 3px;
+  background: currentColor; border-radius: 50%;
+}
+.related-picked__body { flex: 1; overflow: auto; background: #fff; border: 1px solid #ebeef5; border-radius: 4px; padding: 6px 10px; }
+.related-picked__item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #1d2129; padding: 6px 0; gap: 8px; }
+.related-picked__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.related-picked__x { cursor: pointer; color: #86909c; flex: none; }
+.related-picked__x:hover { color: #197afb; }
 .dl-form__row { display: flex; align-items: center; gap: 12px; }
 .dl-form__label { font-size: 13px; color: #4e5969; white-space: nowrap; }
 .mode-split--links { display: flex; flex-direction: row; align-items: center; gap: 10px; width: 100%; flex-wrap: nowrap; }
@@ -4647,7 +4789,8 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .mode-split__text { font-size: 14px; color: inherit; }
 .mode-split__cell:not(.active) .mode-split__text { color: #606266; }
 /* 抖音号 / 产品信息 / 广告设置 按钮行 */
-.cfg-btns { display: flex; gap: 12px; margin-top: 0; padding: 8px 16px; border: 1px solid #e5e6eb; border-top: none; border-radius: 0 0 4px 4px; }
+/* 线上实测：8 按钮从 x=37 起左对齐铺开，间距 16px（关联产品 x=37 / 分包 x=153 / 定向包 x=304 …） */
+.cfg-btns { display: flex; justify-content: flex-start; gap: 16px; margin-top: 0; padding: 8px 16px; border: 1px solid #e5e6eb; border-top: none; border-radius: 0 0 4px 4px; }
 .cfg-btns .el-button { font-size: 12px; color: #666; background: #fff; border-color: #d0d0d0; border-radius: 3px; padding: 9px 15px; }
 /* 规则配置：卡片式 */
 .rule-form :deep(.el-form-item__label) { font-size: 14px; color: #1d2129; white-space: nowrap; word-break: keep-all; }
@@ -4806,4 +4949,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 /* 批量搜索浮层外壳（teleport 到 body，需全局样式） */
 .acct-batch-pop.el-popover { --el-popover-padding: 0; border-radius: 6px; }
 .task-dialog .el-dialog__body { padding-top: 12px; }
+/* 选择头条产品弹窗外壳（teleport 到 body，需全局样式） */
+.related-dialog { max-width: calc(100vw - 40px); padding: 0; }
+.related-dialog .el-dialog__header { padding: 18px 24px 8px; margin-right: 0; }
+.related-dialog .el-dialog__body { padding: 0 24px 10px; }
+.related-dialog .el-dialog__footer { padding: 10px 24px 20px; }
 </style>

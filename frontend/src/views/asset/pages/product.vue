@@ -822,7 +822,7 @@ import { ElMessage } from 'element-plus';
 import { ArrowDown, Close, InfoFilled, MoreFilled, Refresh, Search } from '@element-plus/icons-vue';
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 巨量商品库」
+ * 智投标准版「巨量广告·标准 → 资产 → 巨量商品库」
  * 线上：https://cl.mobgi.com/property/toutiao/product/product-platform-universal
  *
  * 采集自线上 DOM / 线上构建产物（2026-11-18 实测）：
@@ -876,7 +876,7 @@ const CATEGORY_OPTIONS = [
   { value: '单剧目-漫剧', label: '单剧目-漫剧' },
 ];
 
-/** 批量操作下拉（线上顺序：创量创意云 / 万镜台 / 共享；R88 按用户要求只保留「共享」） */
+/** 批量操作下拉（线上顺序：智投创意云 / 万镜台 / 共享；R88 按用户要求只保留「共享」） */
 const BATCH_ITEMS = [
   { command: 'share', icon: '共', title: '共享', subtitle: '' },
 ];
@@ -1426,7 +1426,7 @@ async function onSync() {
   }
 }
 
-/** 批量操作：推送到创量创意云 / 万镜台 / 共享 */
+/** 批量操作：推送到智投创意云 / 万镜台 / 共享 */
 function onBatchCommand(command) {
   const n = selectedRows.value.length;
   if (!n) {

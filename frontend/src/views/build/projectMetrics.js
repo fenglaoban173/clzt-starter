@@ -1,5 +1,5 @@
 // 项目列表「自定义指标」指标目录
-// 对齐创量项目页「自定义指标」弹窗的左侧分类与中间可选指标：
+// 对齐智投项目页「自定义指标」弹窗的左侧分类与中间可选指标：
 // 基本信息 / 展现数据 / 转化数据 / 转化数据（计费时间）/ 应用推广 / 电商行业 /
 // 游戏行业 / 小程序/小游戏 / APP下载数据 / 视频数据 / 落地页及门店 / 附加创意
 
@@ -19,7 +19,7 @@ export const PROJECT_METRIC_GROUPS = [
       t('subject', '账户主体', { type: 'text', prop: 'subject', width: 200 }),
       t('account', '账户', { type: 'text', prop: 'account_name', width: 190 }),
       t('status', '项目状态', { type: 'status', width: 110 }),
-      t('product', '创量产品', { type: 'text', prop: 'product', width: 130 }),
+      t('product', '智投产品', { type: 'text', prop: 'product', width: 130 }),
       t('optimizer', '优化师', { type: 'text', prop: 'optimizer', width: 110 }),
       t('purpose', '推广目的', { type: 'text', prop: 'purpose', width: 130 }),
       t('project_type', '项目类型', { type: 'text', prop: 'delivery_mode', width: 130 }),

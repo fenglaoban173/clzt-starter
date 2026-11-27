@@ -8,7 +8,7 @@
     <!-- ① 查询条件（线上 form.filter-search-input） -->
     <div class="filter-row">
       <div class="filter-left">
-        <!-- 创量项目 -->
+        <!-- 智投项目 -->
         <div class="filter-cell">
           <label class="filter-label">智投项目：</label>
           <el-select
@@ -380,7 +380,7 @@ import ProjectSelectField from '../components/ProjectSelectField.vue';
 defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------------------------------------------ *
- * 线上选项（来源：创量线上「直达链接」页 DOM 快照）
+ * 线上选项（来源：智投线上「直达链接」页 DOM 快照）
  * ------------------------------------------------------------------ */
 /** 智投项目（线上 el-select 下拉：知乎小说 / 漫剧端原生 / soul / 百度文库） */
 const PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];

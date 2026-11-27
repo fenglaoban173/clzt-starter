@@ -308,7 +308,7 @@
                   累计关联广告数 <el-icon class="mp-help"><QuestionFilled /></el-icon>：{{ m.ad_count }}
                 </div>
                 <div class="mp-line">
-                  今日创量关联广告数 <el-icon class="mp-help"><QuestionFilled /></el-icon>：{{ m.today_ad_count }}
+                  今日智投关联广告数 <el-icon class="mp-help"><QuestionFilled /></el-icon>：{{ m.today_ad_count }}
                 </div>
                 <div class="mp-foot">
                   <span class="mp-badge" :class="{ used: m.status !== '未使用' }">{{ m.status }}</span>
@@ -324,7 +324,7 @@
             <el-table-column label="MID" prop="mid" width="150" />
             <el-table-column label="上传时间" prop="upload_time" width="170" />
             <el-table-column label="累计关联广告数" prop="ad_count" width="130" align="right" />
-            <el-table-column label="今日创量关联广告数" prop="today_ad_count" width="150" align="right" />
+            <el-table-column label="今日智投关联广告数" prop="today_ad_count" width="150" align="right" />
             <el-table-column label="状态" prop="status" width="90" />
           </el-table>
         </template>

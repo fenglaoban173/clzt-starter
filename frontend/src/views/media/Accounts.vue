@@ -115,7 +115,6 @@
       <!-- 操作行 -->
       <div class="op-row">
         <div class="op-left">
-          <el-button @click="onAddAccount"><el-icon><Plus /></el-icon>添加账户</el-button>
           <el-dropdown trigger="click" :disabled="!selected.length" @command="onBatchOp">
             <el-button :disabled="!selected.length">批量操作<el-icon class="el-icon--right"><CaretBottom /></el-icon></el-button>
             <template #dropdown>
@@ -334,7 +333,7 @@
 import { onMounted, ref, reactive, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { CaretBottom, Close, Delete, Operation, Plus, Search } from '@element-plus/icons-vue';
+import { CaretBottom, Close, Delete, Operation, Search } from '@element-plus/icons-vue';
 import { mediaApi } from '@/api/media';
 import dayjs from 'dayjs';
 import BatchRenameDialog from './components/BatchRenameDialog.vue';
@@ -655,8 +654,8 @@ const tableColumns = computed(() => (metricSel[media.value] || [])
   .map((k) => {
     const m = METRIC_MAP[k];
     if (!m) return null;
-    // 智擎页沿用「创量商品」列名
-    const label = (media.value === 'oc' && m.key === 'product') ? '创量商品' : m.label;
+    // 智擎页沿用「智投商品」列名
+    const label = (media.value === 'oc' && m.key === 'product') ? '智投商品' : m.label;
     return { ...m, label };
   })
   .filter(Boolean)
@@ -698,7 +697,6 @@ function delTemplate(tpl) {
 }
 
 // 以下均为原型占位：不触发真实增删改
-function onAddAccount() { ElMessage.info('原型：对接巨量 OAuth 添加账户'); }
 function onBatchOp(cmd) {
   // 与线上一致：必须先勾选至少一条账户才能执行批量操作
   if (!selected.value.length) {

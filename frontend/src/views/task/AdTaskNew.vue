@@ -134,12 +134,11 @@
         </i>
       </div>
 
-      <div class="at-toolbar">
-        <el-button type="primary" size="large" class="at-new-btn" @click="openCreate">
-          <el-icon class="at-new-btn__icon"><Plus /></el-icon>
-          <span>新建广告</span>
-        </el-button>
-      </div>
+      <!-- R110：线上此处的「+ 新建广告」按钮已按用户要求整块移除。
+           线上点击它走的是**外部建广告流程**（POST /Batch/Ad/getCreateAdsSmartAssistantTaskList
+           + window.open 新标签页），离线复刻不了，所以按钮与其对应的虚构表单弹窗一并删除。
+           这里保留一个等高（58px）的空白条，使表格起始 y 值仍与线上一致（线上表格 y=330）。 -->
+      <div class="at-toolbar at-toolbar--empty" aria-hidden="true"></div>
 
       <el-table
         :key="tableKey"
@@ -152,7 +151,7 @@
           <template #default="{ row }">
             <div class="at-name-cell">
               <a class="at-task-name" @click="openDetail(row)">{{ row.name }}</a>
-              <i class="at-edit-icon" title="编辑" @click="openEdit(row)">
+              <i class="at-edit-icon" title="编辑" @click="renameTask(row)">
                 <el-icon><EditPen /></el-icon>
               </i>
             </div>
@@ -164,45 +163,61 @@
           <template #default="{ row }">
             <el-button link class="at-op-btn" @click="openDetail(row)">详情</el-button>
             <el-button link class="at-op-btn" @click="copyRow(row)">复制</el-button>
-            <!-- 已终止的任务可以删除（点击后二次确认） -->
-            <el-button v-if="canDelete(row)" link class="at-op-btn" @click="deleteRow(row)">删除</el-button>
-            <!-- 其余状态：执行中的任务不可删除（hover 提示） -->
+            <!-- 删除：线上 task_status==='processing'（提交中）时按钮置灰，
+                 并 hover 提示「执行中的任务不可删除」；其余状态可点 -->
+            <el-button
+              v-if="!isProcessing(row)"
+              link
+              class="at-op-btn"
+              @click="deleteRow(row)"
+            >删除</el-button>
             <el-popover v-else content="执行中的任务不可删除" placement="top" trigger="hover">
               <template #reference>
                 <span class="at-op-wrap">
-                  <el-button link class="at-op-btn at-op-btn--disabled">删除</el-button>
+                  <el-button link class="at-op-btn" disabled>删除</el-button>
                 </span>
               </template>
             </el-popover>
-            <!-- 有失败广告的任务：可重提（线上失败行多出的第 4 个按钮） -->
-            <el-button v-if="row.fail > 0" link class="at-op-btn at-op-btn--resubmit" @click="resubmitRow(row)">重提</el-button>
+            <!-- 终止：线上仅在任务「未结束」（非 finish / 非 termination）时出现 -->
+            <el-button v-if="canTerminate(row)" link class="at-op-btn" @click="terminateRow(row)">终止</el-button>
+            <!-- 重提：线上 canReSubmit = task_status==='finish'（提交完成）且失败数 > 0 -->
+            <el-button
+              v-if="row.status === '提交完成' && row.fail > 0"
+              link
+              class="at-op-btn at-op-btn--resubmit"
+              @click="resubmitRow(row)"
+            >重提</el-button>
           </template>
         </el-table-column>
 
-        <el-table-column label="推广目的" prop="purpose" width="100" show-overflow-tooltip />
-        <el-table-column label="投放模式" prop="mode" width="100" show-overflow-tooltip />
-        <el-table-column label="营销场景" prop="scene" width="100" show-overflow-tooltip />
-        <el-table-column label="广告类型" prop="adType" width="100" show-overflow-tooltip />
-        <el-table-column label="投放类型" prop="deliveryType" width="100" show-overflow-tooltip />
-        <el-table-column label="项目/广告出价(元)" prop="bid" width="100" show-overflow-tooltip />
-        <el-table-column label="项目/广告深度出价(元)" prop="deepBid" width="100" show-overflow-tooltip />
-        <el-table-column label="项目/广告ROI" prop="roi" width="100" show-overflow-tooltip />
+        <!-- 以下列用 min-width（而非固定 width）：
+             线上表格是自适应铺满容器的，列宽随窗口拉伸而等比放大，
+             固定 width 会导致右侧留出大片空白。所有列 min-width 之和 > 容器宽度时，
+             Element Plus 会按比例分配剩余空间，表格始终铺满。 -->
+        <el-table-column label="推广目的" prop="purpose" min-width="100" show-overflow-tooltip />
+        <el-table-column label="投放模式" prop="mode" min-width="100" show-overflow-tooltip />
+        <el-table-column label="营销场景" prop="scene" min-width="100" show-overflow-tooltip />
+        <el-table-column label="广告类型" prop="adType" min-width="100" show-overflow-tooltip />
+        <el-table-column label="投放类型" prop="deliveryType" min-width="100" show-overflow-tooltip />
+        <el-table-column label="项目/广告出价(元)" prop="bid" min-width="100" show-overflow-tooltip />
+        <el-table-column label="项目/广告深度出价(元)" prop="deepBid" min-width="100" show-overflow-tooltip />
+        <el-table-column label="项目/广告ROI" prop="roi" min-width="100" show-overflow-tooltip />
 
-        <el-table-column label="媒体账户" prop="accounts" width="100" show-overflow-tooltip>
+        <el-table-column label="媒体账户" prop="accounts" min-width="100" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="at-ellipsis"><span>{{ row.accounts }}</span></div>
           </template>
         </el-table-column>
 
-        <el-table-column label="提交规则" prop="submitRule" width="100" show-overflow-tooltip />
-        <el-table-column label="创建人" prop="creator" width="160" />
-        <el-table-column label="创建时间" prop="createdAt" width="160" />
+        <el-table-column label="提交规则" prop="submitRule" min-width="100" show-overflow-tooltip />
+        <el-table-column label="创建人" prop="creator" min-width="120" />
+        <el-table-column label="创建时间" prop="createdAt" min-width="140" />
 
-        <el-table-column label="执行状态" width="100">
+        <el-table-column label="执行状态" min-width="120">
           <template #header>
             <span>执行状态</span>
             <span class="at-header-tip">
-              <el-popover placement="top" :width="370" trigger="hover">
+              <el-popover placement="top-start" :width="370" trigger="hover" popper-class="at-status-tip">
                 <template #reference>
                   <i class="at-header-tip__icon"><el-icon><QuestionFilled /></el-icon></i>
                 </template>
@@ -213,13 +228,13 @@
           </template>
           <template #default="{ row }">
             <div class="at-status">
-              <span>{{ row.status }}</span>
               <i class="at-status__dot" :style="{ background: statusDotColor(row) }"></i>
+              <span>{{ row.status }}</span>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="任务详情" width="150">
+        <el-table-column label="任务详情" min-width="130">
           <template #default="{ row }">
             <span class="at-detail__ok">成功：{{ row.success }}</span>
             <span>失败：{{ row.fail }}</span>
@@ -242,74 +257,15 @@
     <!-- ================= 详情抽屉 ================= -->
     <TaskDetailDrawer v-model="detailVisible" :row="currentRow" />
 
-    <!-- ================= 新建 / 编辑广告 ================= -->
-    <el-dialog
-      v-model="formVisible"
-      :title="formMode === 'create' ? '新建广告' : '编辑广告'"
-      width="620px"
-      :close-on-click-modal="false"
-      append-to-body
-      class="at-dialog"
-    >
-      <el-form ref="formRef" :model="form" :rules="formRules" label-width="110px" size="small">
-        <el-form-item label="任务名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入任务名称" />
-        </el-form-item>
-        <el-form-item label="媒体账户" prop="account">
-          <el-select v-model="form.account" class="at-dialog-select" placeholder="请选择媒体账户" filterable>
-            <el-option v-for="o in accountOptions" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="推广目的" prop="purpose">
-          <el-select v-model="form.purpose" class="at-dialog-select" placeholder="请选择推广目的">
-            <el-option v-for="o in PURPOSE_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="投放模式" prop="mode">
-          <el-select v-model="form.mode" class="at-dialog-select" placeholder="请选择投放模式">
-            <el-option v-for="o in MODE_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="营销场景" prop="scene">
-          <el-select v-model="form.scene" class="at-dialog-select" placeholder="请选择营销场景">
-            <el-option v-for="o in SCENE_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="广告类型" prop="adType">
-          <el-select v-model="form.adType" class="at-dialog-select" placeholder="请选择广告类型">
-            <el-option v-for="o in AD_TYPE_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="投放类型" prop="deliveryType">
-          <el-select v-model="form.deliveryType" class="at-dialog-select" placeholder="请选择投放类型">
-            <el-option v-for="o in DELIVERY_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="提交规则" prop="submitRule">
-          <el-select v-model="form.submitRule" class="at-dialog-select" placeholder="请选择提交规则">
-            <el-option v-for="o in SUBMIT_RULE_OPTIONS" :key="o" :label="o" :value="o" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="提交广告数" prop="adCount">
-          <el-input-number v-model="form.adCount" :min="1" :max="100" controls-position="right" class="at-dialog-number" />
-        </el-form-item>
-        <el-form-item label="开始执行时间" prop="createdAt">
-          <el-input v-model="form.createdAt" placeholder="2026-11-25 12:00:00" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button size="small" @click="formVisible = false">取 消</el-button>
-        <el-button type="primary" size="small" @click="submitForm">确 定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Close, EditPen, Plus, QuestionFilled, Search, Warning } from '@element-plus/icons-vue';
+import { Close, EditPen, QuestionFilled, Search, Warning } from '@element-plus/icons-vue';
 import TaskDetailDrawer from './TaskDetailDrawer.vue';
+import { listBatchTasks } from '@/mock/batchStore';
 
 /* ------------------------------------------------------------------ *
  * 线上枚举（C:/tmp/nw/taskOptions.js 原样抄录）
@@ -415,7 +371,10 @@ const SEED = [
 
 const TOTAL = 416; // 与线上一致：共 416 条
 
-/** 线上失败任务样例（操作列带「重提」，删除为不可用态） */
+/** 线上失败任务样例（操作列带「重提」）
+ *  线上执行状态列没有「失败」这一态：含失败项的任务仍显示「提交完成」，
+ *  只是圆点与文字变成橙红（.task-status.hasfail #ec5f2e），
+ *  且 canReSubmit 成立（task_status==='finish' && fail_promotion_count>0）。 */
 const FAILED_ROW = {
   id: '2167888567',
   name: '失败重提_内部互推-and-短剧-纯内容-江先生，别太野-直下-启用-ubm-<项目创建日期>1',
@@ -431,7 +390,7 @@ const FAILED_ROW = {
   submitRule: '立即提交',
   creator: '杨浩蒙',
   createdAt: '2026-11-24 10:02:35',
-  status: '失败',
+  status: '提交完成',
   success: 0,
   fail: 6,
 };
@@ -440,8 +399,51 @@ function pad(n) {
   return n < 10 ? '0' + n : '' + n;
 }
 
+/**
+ * R111：本地「批量搭建」页点「全部提交审核」后提交的任务（落在 localStorage），
+ * 要能在本页「巨量广告」任务列表里看到 —— 与线上语义一致
+ * （提交审核 → 出现在巨量广告任务列表里看执行状态）。
+ *
+ * 一次批量提交 = 一个任务（含 N 条广告）→ 按 batchId 聚合成一行，
+ * 任务详情显示「成功 N / 失败 0」，与线上样例行口径一致。
+ * 记录结构见 mock/batchStore.js：status 用的是本页词汇之外的「执行完成」，这里映射成「提交完成」。
+ */
+function buildLocalRows() {
+  const groups = new Map();
+  listBatchTasks().forEach((r) => {
+    const key = r.batchId || `${r.name}|${r.createdAt}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  });
+  return Array.from(groups.values()).map((rs) => {
+    const r = rs[0];
+    return {
+      id: String(r.id),
+      name: r.name,
+      purpose: '应用推广',
+      mode: '手动投放',
+      scene: '短视频/图片',
+      adType: '通投广告',
+      deliveryType: '常规投放',
+      bid: '--',
+      deepBid: '--',
+      roi: '--',
+      accounts: (r.accounts && r.accounts.length) ? r.accounts.join('、') : (r.account || '-'),
+      submitRule: '立即提交',
+      creator: r.creator,
+      createdAt: r.createdAt,
+      status: '提交完成',
+      success: rs.reduce((n, x) => n + (Number(x.success) || 0), 0),
+      fail: rs.reduce((n, x) => n + (Number(x.fail) || 0), 0),
+      local: true,
+    };
+  });
+}
+
 function buildRows() {
-  const rows = SEED.map((s) => ({
+  /* 本地刚提交的任务置顶（最新在前），其余保持线上样例顺序 */
+  const localRows = buildLocalRows();
+  const rows = localRows.concat(SEED.map((s) => ({
     id: s[1],
     name: s[0],
     purpose: '应用推广',
@@ -459,9 +461,9 @@ function buildRows() {
     status: '提交完成',
     success: s[5],
     fail: 0,
-  }));
+  })));
   // 失败任务（线上真实样例），紧跟在前 8 条真实数据之后
-  rows.splice(8, 0, { ...FAILED_ROW });
+  rows.splice(8 + localRows.length, 0, { ...FAILED_ROW });
 
   // 补齐到 416 条（保持线上首屏 20 行逐字一致）
   const creators = ['刘松涵', '杨浩蒙', '李倩', '王春雷', '汪玲丽', '张瑞凯', '孙诗源', '李玉玲'];
@@ -577,8 +579,13 @@ const filteredRows = computed(() => {
     if (filters.deliveryType && r.deliveryType !== filters.deliveryType) return false;
     if (filters.submitStatus && filters.submitStatus !== '不限' && r.status !== filters.submitStatus) return false;
     if (filters.submitRule && filters.submitRule !== '不限' && r.submitRule !== filters.submitRule) return false;
-    if (start && r.createdAt.slice(0, 10) < start) return false;
-    if (end && r.createdAt.slice(0, 10) > end) return false;
+    /* 本地刚提交的任务（local）不参与创建时间区间过滤：
+       默认区间是线上样例的固定区间（2026-11-18 ~ 2026-11-25），
+       今天提交的任务会被它挡掉，导致「提交后跳转过来却看不到自己刚提交的那条」。 */
+    if (!r.local) {
+      if (start && r.createdAt.slice(0, 10) < start) return false;
+      if (end && r.createdAt.slice(0, 10) > end) return false;
+    }
     return true;
   });
 });
@@ -633,21 +640,32 @@ function refreshList() {
 
 /* ------------------------------------------------------------------ *
  * 状态色
+ *
+ * 线上（cl.mobgi.com/task/adtask）用 ClStatus 组件渲染「文字 + 6px 圆点」，
+ * 圆点颜色由组件按 type 决定（cl-status chunk）：
+ *   init #9d9d9d / success #23c23f / warning #fb1919
+ *   primary #197afb / danger #fbca19 / info #c6c6c6
+ * 组件里的 task_status → type 映射（ad-task chunk getList）：
+ *   init→init  queueing→(未定义→primary)  processing→danger
+ *   finish→success  finish 且有失败项→warning  termination→info
+ *   material_processing→(未定义→primary)
+ * 文字颜色线上是继承的 #333，只有圆点带色。
  * ------------------------------------------------------------------ */
+const STATUS_COLOR = {
+  等待提交: '#9d9d9d',   // init
+  提交中: '#fbca19',     // processing → danger
+  提交完成: '#23c23f',   // finish → success
+  已终止: '#c6c6c6',     // termination → info
+  素材上传中: '#197afb', // material_processing → primary
+};
+
 function statusColor(status) {
-  return {
-    提交完成: 'rgb(35,194,63)',
-    提交中: 'rgb(64,158,255)',
-    素材上传中: 'rgb(64,158,255)',
-    等待提交: 'rgb(230,162,60)',
-    已终止: 'rgb(245,108,108)',
-    失败: 'rgb(245,108,108)',
-  }[status] || 'rgb(153,153,153)';
+  return STATUS_COLOR[status] || '#197afb';
 }
 
-/** 线上规则：状态文字为「提交完成」但含失败项时，圆点为红色 */
+/** 线上规则：提交完成但含失败项时圆点变红（warning #fb1919） */
 function statusDotColor(row) {
-  if (row.fail > 0) return 'rgb(245,108,108)';
+  if (row.status === '提交完成' && row.fail > 0) return '#fb1919';
   return statusColor(row.status);
 }
 
@@ -662,8 +680,44 @@ function openDetail(row) {
   detailVisible.value = true;
 }
 
-function canDelete(row) {
-  return row.status === '已终止';
+/**
+ * 线上（ad-task chunk）规则：
+ *   删除按钮 disabled ⟺ task_status === 'processing'（提交中），此时 hover 提示
+ *     「执行中的任务不可删除」
+ *   终止按钮      ⟺ task_status ∉ ['finish','termination']（任务尚未结束）
+ *   重提按钮      ⟺ task_status === 'finish' && fail_promotion_count > 0
+ */
+function isProcessing(row) {
+  return row.status === '提交中';
+}
+
+function canTerminate(row) {
+  return !['提交完成', '已终止'].includes(row.status);
+}
+
+/**
+ * R110：任务名后的铅笔 → 线上 el-message-box「修改任务名称」
+ * 线上原始实现（ad-task chunk modifyTaskName）：
+ *   this.$prompt('任务名称', '修改任务名称', {
+ *     closeOnClickModal: false, confirmButtonText: '确定', cancelButtonText: '取消',
+ *     inputValidator: v => v ? true : '请输入任务名称',
+ *   })
+ * 这里按用户要求用 inputValue 预填该行原任务名称，确定后真实改写表格里的名称。
+ */
+async function renameTask(row) {
+  try {
+    const { value } = await ElMessageBox.prompt('任务名称', '修改任务名称', {
+      inputValue: row.name,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      closeOnClickModal: false,
+      inputValidator: (v) => (v && v.trim() ? true : '请输入任务名称'),
+    });
+    row.name = value.trim();
+    ElMessage.success('更新成功');
+  } catch {
+    /* 取消 */
+  }
 }
 
 /** 重提：二次确认后把执行状态改为「提交中」 */
@@ -682,9 +736,14 @@ async function resubmitRow(row) {
   ElMessage.success('重提成功');
 }
 
+/**
+ * 删除：线上是一个自绘 el-dialog（标题「删除任务」/ 文案
+ * 「删除任务将终止执行进程，您确定要继续吗？」），按用户要求改为
+ * Element Plus **系统默认** ElMessageBox.confirm（warning 型）。
+ */
 async function deleteRow(row) {
   try {
-    await ElMessageBox.confirm('确认删除该任务？', '提示', {
+    await ElMessageBox.confirm('删除任务将终止执行进程，您确定要继续吗？', '删除任务', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
@@ -694,7 +753,30 @@ async function deleteRow(row) {
   }
   const idx = rows.value.findIndex((r) => r.id === row.id);
   if (idx > -1) rows.value.splice(idx, 1);
-  ElMessage.success('已删除该任务');
+  ElMessage.success('删除成功!');
+}
+
+/**
+ * 终止：线上原文
+ *   this.$confirm('任务已创建的项目和素材结果不可逆，且任务无法再次开启，是否继续？',
+ *                 '终止任务', {type:'warning', ...})
+ */
+async function terminateRow(row) {
+  try {
+    await ElMessageBox.confirm(
+      '任务已创建的项目和素材结果不可逆，且任务无法再次开启，是否继续？',
+      '终止任务',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+  } catch {
+    return;
+  }
+  row.status = '已终止';
+  ElMessage.success('任务终止成功!');
 }
 
 async function copyRow(row) {
@@ -726,106 +808,6 @@ function nowText() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-/* ------------------------------------------------------------------ *
- * 新建 / 编辑弹窗
- * ------------------------------------------------------------------ */
-const formVisible = ref(false);
-const formMode = ref('create');
-const formRef = ref(null);
-const form = reactive({
-  name: '',
-  account: '',
-  purpose: '应用推广',
-  mode: '手动投放',
-  scene: '短视频/图片',
-  adType: '通投广告',
-  deliveryType: '常规投放',
-  submitRule: '立即提交',
-  adCount: 1,
-  createdAt: '',
-});
-
-const formRules = {
-  name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
-  account: [{ required: true, message: '请选择媒体账户', trigger: 'change' }],
-};
-
-function openCreate() {
-  formMode.value = 'create';
-  Object.assign(form, {
-    name: '',
-    account: '',
-    purpose: '应用推广',
-    mode: '手动投放',
-    scene: '短视频/图片',
-    adType: '通投广告',
-    deliveryType: '常规投放',
-    submitRule: '立即提交',
-    adCount: 1,
-    createdAt: nowText(),
-  });
-  formVisible.value = true;
-}
-
-function openEdit(row) {
-  formMode.value = 'edit';
-  Object.assign(form, {
-    name: row.name,
-    account: row.accounts.split('、')[0],
-    purpose: row.purpose,
-    mode: row.mode,
-    scene: row.scene,
-    adType: row.adType,
-    deliveryType: row.deliveryType,
-    submitRule: row.submitRule,
-    adCount: row.success || 1,
-    createdAt: row.createdAt,
-  });
-  formVisible.value = true;
-}
-
-function submitForm() {
-  formRef.value?.validate((valid) => {
-    if (!valid) return;
-    if (formMode.value === 'create') {
-      const maxId = rows.value.reduce((m, r) => Math.max(m, Number(r.id)), 2167900472);
-      rows.value.unshift({
-        id: String(maxId + 1),
-        name: form.name,
-        purpose: form.purpose,
-        mode: form.mode,
-        scene: form.scene,
-        adType: form.adType,
-        deliveryType: form.deliveryType,
-        bid: '--',
-        deepBid: '--',
-        roi: '--',
-        accounts: form.account,
-        submitRule: form.submitRule,
-        creator: '刘松涵',
-        createdAt: form.createdAt || nowText(),
-        status: '等待提交',
-        success: 0,
-        fail: 0,
-      });
-      page.value = 1;
-      ElMessage.success('新建成功');
-    } else {
-      const target = rows.value.find((r) => r.name === form.name);
-      if (target) {
-        target.purpose = form.purpose;
-        target.mode = form.mode;
-        target.scene = form.scene;
-        target.adType = form.adType;
-        target.deliveryType = form.deliveryType;
-        target.submitRule = form.submitRule;
-        target.createdAt = form.createdAt || target.createdAt;
-      }
-      ElMessage.success('保存成功');
-    }
-    formVisible.value = false;
-  });
-}
 </script>
 
 <style scoped>
@@ -966,7 +948,7 @@ body.app-scope .app-page.at-page .app-tab {
   text-decoration: underline;
 }
 .at-clearall {
-  margin-left: 8px;
+  margin-left: 12px;
 }
 .at-reset {
   margin-left: 12px;
@@ -978,9 +960,17 @@ body.app-scope .app-page.at-page .app-tab {
   flex: 1;
   min-height: 0;
 }
-/* 告警条：线上字色实测 rgb(255,179,116) */
+/* 告警条：线上（scope data-v-07fc4db6）实测
+   padding 6px 16px / border 1px solid rgb(255,221,193) / bg #fff6ee /
+   color #ffb374 / radius 2px / 文案 16px / 总高 34px */
 body.app-scope .app-page.at-page .at-alert {
   color: #ffb374;
+  font-size: 16px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 16px;
+  border: 1px solid #ffddc1;
+  background: #fff6ee;
 }
 .at-alert {
   margin-bottom: 0;
@@ -988,32 +978,30 @@ body.app-scope .app-page.at-page .at-alert {
 .at-alert__text {
   flex: 1;
 }
+/* R110：「+ 新建广告」按钮已移除，仅保留等高空白条，使表格起始 y 与线上一致 */
 .at-toolbar {
   padding: 18px 0 8px 17px;
 }
-/* 线上实测 120×32、圆角 4px（appPage.css 全局把按钮圆角压成 3px，这里改回线上值） */
-body.app-scope .app-page.at-page .at-new-btn {
-  width: 120px;
-  height: 32px;
-  padding: 9px 15px;
-  font-size: 12px;
-  border-radius: 4px !important;
-  line-height: 14px;
-}
-.at-new-btn__icon {
-  margin-right: 4px;
-  font-size: 12px;
+.at-toolbar--empty {
+  height: 58px;
+  padding: 0;
 }
 
 /* ---------------- 表格 ---------------- */
 .at-table {
   --el-table-border-color: #ebeef5;
-  --el-table-header-text-color: #333;
+  --el-table-header-text-color: #909399;
   width: 100%;
 }
-/* 线上表体文字色 #606266、表头单元格 #333 */
-body.app-scope .app-page.at-page .at-table :deep(.el-table__cell) {
-  color: #606266;
+/* 线上表头底色实测 #fafafa（Element UI 2 默认），th 字色 #909399，
+   表头文字在 .cell 层是 #333 */
+body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
+  background: #fafafa;
+  color: #909399;
+}
+/* 线上表体文字：12px / #333 / line-height 18px */
+body.app-scope .app-page.at-page .at-table :deep(td.el-table__cell) {
+  color: #333;
 }
 body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell .cell) {
   color: #333;
@@ -1034,12 +1022,20 @@ body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
 .at-table :deep(.el-table__cell) {
   padding: 8px 0;
 }
+/* 线上表体单元格：12px / #333 / line-height 18px */
+.at-table :deep(.el-table__cell .cell) {
+  font-size: 12px;
+  line-height: 18px;
+  color: #333;
+}
+/* 线上 .task-name-cell 字号 14px（其余单元格 12px） */
 .at-name-cell {
   display: flex;
   align-items: center;
   overflow: hidden;
   height: 21px;
   line-height: 21px;
+  font-size: 14px;
 }
 .at-task-name {
   color: #197afb;
@@ -1102,22 +1098,18 @@ body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
 .at-table :deep(.at-op-wrap .at-op-btn) {
   margin-left: 0 !important;
 }
-.at-table :deep(.at-op-btn--disabled) {
-  color: #197afb;
-  cursor: not-allowed;
-}
-.at-table :deep(.at-op-btn--disabled:hover) {
-  color: #197afb;
-}
 .at-header-tip {
   margin-left: 8px;
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
 }
+/* 线上 .mg-icon-question2 实测 12×13，字色继承表头 #333 */
 .at-header-tip__icon {
-  font-size: 14px;
-  color: #c0c4cc;
+  width: 12px;
+  height: 13px;
+  font-size: 12px;
+  color: #333;
   cursor: pointer;
   display: inline-flex;
 }
@@ -1128,17 +1120,19 @@ body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
 .at-table :deep(.at-op-btn--resubmit) {
   margin-left: 8px;
 }
+/* 线上执行状态（ClStatus）：.status-wrapper.pl13 → 文字左移 13px，
+   6px 圆点绝对定位在 left:0（与线上一致） */
 .at-status {
   position: relative;
   padding-left: 13px;
   white-space: nowrap;
-  line-height: 23px;
+  line-height: 18px;
 }
 .at-status__dot {
   position: absolute;
-  right: 0;
+  left: 0;
   top: 50%;
-  margin-top: -3px;
+  transform: translateY(-50%);
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1148,22 +1142,104 @@ body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
 }
 
 /* ---------------- 分页（线上左对齐） ---------------- */
+/* 线上（Element UI 2）实测：分页条 1728×64 / total@200 / sizes@267(110×33) /
+   prev@387(36×32) / 页码 li 36×28 13px / jump@766 / 跳转输入框 50×28 */
 .at-pager {
-  padding: 16px 0 0 24px;
+  height: 64px;
+  margin-top: 16px;
+  padding: 0 0 0 24px;
   font-size: 13px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
 }
 .at-pager :deep(.el-pagination) {
+  width: 100%;
+  height: 100%;
   font-size: 13px;
   justify-content: flex-start;
+  align-items: center;
+}
+.at-pager :deep(.el-pagination__total) {
+  margin: 0 10px 0 0;
+  /* 线上「共 419 条」占位 57px，用来对齐后面的 sizes / 页码位置 */
+  min-width: 57px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 32px;
+}
+.at-pager :deep(.el-pagination__sizes) {
+  margin: 0 10px 0 0;
+}
+.at-pager :deep(.el-pagination__sizes .el-select) {
+  width: 110px;
+}
+.at-pager :deep(.el-pagination__sizes .el-select__wrapper) {
+  height: 33px;
+  min-height: 33px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.at-pager :deep(.el-pagination__sizes .el-select__selected-item) {
+  font-size: 13px;
+}
+.at-pager :deep(.btn-prev),
+.at-pager :deep(.btn-next) {
+  margin: 0;
+  /* 线上 Element UI 2 的按钮宽 36px */
+  min-width: 36px;
+  width: 36px;
+  height: 32px;
+  padding: 0 12px 0 6px;
+  font-size: 13px;
+  color: #606266;
+  background: transparent;
+}
+.at-pager :deep(.btn-next) {
+  padding: 0 6px 0 12px;
+}
+.at-pager :deep(.el-pager li) {
+  margin: 0;
+  min-width: 36px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 13px;
+  color: #606266;
+  background: transparent;
+}
+.at-pager :deep(.el-pager li.is-active) {
+  color: #197afb;
+  font-weight: 400;
+}
+.at-pager :deep(.el-pagination__jump) {
+  margin-left: 24px;
+  /* EP 2.14 模板在「前往」/「页」两侧带空格（font-size 0 去掉），
+     线上 Element UI 2 没有这个空格 */
+  font-size: 0;
+  color: #606266;
+}
+.at-pager :deep(.el-pagination__goto),
+.at-pager :deep(.el-pagination__jump > span:not(.el-pagination__goto)) {
+  font-size: 13px;
+}
+/* 线上「前往」与输入框之间只有 2px（EP 2.14 默认 8px） */
+.at-pager :deep(.el-pagination__goto) {
+  margin-right: 2px;
+}
+.at-pager :deep(.el-pagination__jump .el-input) {
+  width: 50px;
+}
+.at-pager :deep(.el-pagination__jump .el-input__wrapper) {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+}
+.at-pager :deep(.el-pagination__jump .el-input__inner) {
+  font-size: 14px;
+  height: 26px;
+  line-height: 26px;
 }
 
-/* ---------------- 弹窗 ---------------- */
-.at-dialog-select {
-  width: 100%;
-}
-.at-dialog-number {
-  width: 160px;
-}
 </style>
 
 <!-- R109：「提交规则」说明气泡（teleport 到 body，用非 scoped 样式块单独约束）
@@ -1184,5 +1260,12 @@ body.app-scope .app-page.at-page .at-table :deep(th.el-table__cell) {
   font-size: 14px;
   line-height: 1.4;
   white-space: nowrap;
+}
+/* 「执行状态」表头说明气泡（teleport 到 body）：
+   线上实测 370×65，<p> 外边距 0，14px / 1.4 行高 */
+.at-status-tip p {
+  margin: 0 !important;
+  font-size: 14px;
+  line-height: 1.4;
 }
 </style>

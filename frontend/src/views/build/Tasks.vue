@@ -385,7 +385,7 @@ const OP_TYPE_OPTIONS = [
   "修改托管方案项目出价",
   "修改托管方案广告出价",
   "修改托管方案执行时间",
-  "创量落地页生成",
+  "智投落地页生成",
   "同步组织素材",
 ];
 
@@ -414,7 +414,7 @@ function buildLocalRows() {
   const statuses = ['执行完成', '执行中', '等待执行', '已终止', '已超时'];
   const extraOpTypes = [
     '同步巨量通用版商品(升级版工作台)', '上传/更新账户头像', '同步巨量升级版商品(升级版工作台)',
-    '推送资产', '素材一键起量', '修改广告出价', '同步账户备注(巨量)', '创量落地页生成',
+    '推送资产', '素材一键起量', '修改广告出价', '同步账户备注(巨量)', '智投落地页生成',
   ];
   const rows = [];
   let id = 12080842611;
@@ -674,7 +674,7 @@ async function onTerminate(row) {
   color: #333;
   font-size: 14px;
 
-  /* 本地拿不到 body.app-scope 的令牌，这里显式写死线上用的创量配色 */
+  /* 本地拿不到 body.app-scope 的令牌，这里显式写死线上用的智投配色 */
   --el-color-primary: #197afb;
   --el-color-primary-rgb: 25, 122, 251;
   --el-color-primary-light-3: #5ea2fc;
@@ -1152,7 +1152,7 @@ async function onTerminate(row) {
 </style>
 
 <!-- ElMessageBox 会 teleport 到 body，scoped 样式够不到它；
-     这里用 customClass="ts-message-box" 统一成创量蓝（线上 #197afb）与 3px 圆角。 -->
+     这里用 customClass="ts-message-box" 统一成智投蓝（线上 #197afb）与 3px 圆角。 -->
 <style>
 .ts-message-box {
   --el-color-primary: #197afb;

@@ -16,19 +16,19 @@
       </div>
 
       <el-table :data="list" row-key="id" border stripe style="margin-top: 16px">
-        <el-table-column label="广告主 ID" prop="advertiser_id" :width="160" />
-        <el-table-column label="账户名称" prop="name" :width="220" />
-        <el-table-column label="登录邮箱" prop="email" :width="170" />
-        <el-table-column label="智投项目" prop="project" :width="130" />
-        <el-table-column label="产品" prop="product" :width="120" />
-        <el-table-column label="优化师" prop="optimizer" :width="100" />
-        <el-table-column label="部门" prop="dept" :width="100" />
-        <el-table-column label="状态" :width="100">
+        <el-table-column label="广告主 ID" prop="advertiser_id" :min-width="160" />
+        <el-table-column label="账户名称" prop="name" :min-width="220" />
+        <el-table-column label="登录邮箱" prop="email" :min-width="170" />
+        <el-table-column label="智投项目" prop="project" :min-width="130" />
+        <el-table-column label="产品" prop="product" :min-width="120" />
+        <el-table-column label="优化师" prop="optimizer" :min-width="100" />
+        <el-table-column label="部门" prop="dept" :min-width="100" />
+        <el-table-column label="状态" :min-width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'normal' ? 'success' : 'warning'">{{ row.status === 'normal' ? '正常' : '授权失效' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="授权时间" prop="created_at" :width="180" />
+        <el-table-column label="授权时间" prop="created_at" :min-width="180" />
         <el-table-column label="操作" :width="160" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="onAssign(row)">分配优化师</el-button>

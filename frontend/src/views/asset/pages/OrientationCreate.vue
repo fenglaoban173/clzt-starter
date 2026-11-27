@@ -3,7 +3,7 @@
     <!-- 顶部：标题 + 返回 -->
     <div class="oc-head">
       <span class="oc-title">{{ pageTitle }}</span>
-      <a class="oc-back" @click="goBack">返回定向包列表</a>
+      <a class="oc-back" @click="goBack">{{ backText }}</a>
     </div>
 
     <div class="oc-body">
@@ -113,7 +113,7 @@ import { ElMessage } from 'element-plus';
 import { ASSET_ACCOUNT_OPTIONS as ACCOUNT_OPTIONS } from './assetOptions';
 
 /* ------------------------------------------------------------------ *
- * 创量标准版「巨量广告·标准 → 资产 → 定向包 → 新建创量定向包」
+ * 智投标准版「巨量广告·标准 → 资产 → 定向包 → 新建智投定向包」
  * 线上是**整页表单**（非弹窗）：
  *   https://cl.mobgi.com/property/toutiao/audience/editor?tabType=creative
  *   左侧 28 个字段 + 右侧「预估可覆盖 / 受众信息」两块，底部「取消 / 保存」。
@@ -123,9 +123,14 @@ import { ASSET_ACCOUNT_OPTIONS as ACCOUNT_OPTIONS } from './assetOptions';
 const router = useRouter();
 const route = useRoute();
 
-/** 模式：jy = 巨量定向包（线上「新增媒体定向包」整页，23 字段）；默认 = 创量定向包（28 字段） */
+/** 模式：jy = 巨量定向包（线上「新增媒体定向包」整页，23 字段）；默认 = 智投定向包（28 字段） */
 const isJy = computed(() => route.query.mode === 'jy');
-const pageTitle = computed(() => (isJy.value ? '新增媒体定向包' : '新增智投定向包'));
+/** 编辑态：带 query.id 即为编辑（批量搭建页「智投定向包」抽屉的「编辑」入口跳这里） */
+const isEdit = computed(() => !!route.query.id);
+const pageTitle = computed(() => {
+  if (isJy.value) return isEdit.value ? '编辑媒体定向包' : '新增媒体定向包';
+  return isEdit.value ? '编辑智投定向包' : '新增智投定向包';
+});
 
 /** 企业名称（线上 12 项） */
 const COMPANY_OPTIONS = [
@@ -260,7 +265,15 @@ function toggleSub(key, o) {
   if (i > -1) arr.splice(i, 1); else arr.push(o);
 }
 
+/* 跳转来源：from=batch 表示从批量搭建「智投定向包」抽屉进入，返回要回批量搭建页 */
+const fromBatch = computed(() => route.query.from === 'batch');
+const backText = computed(() => (fromBatch.value ? '返回批量搭建' : '返回定向包列表'));
+
 function goBack() {
+  if (fromBatch.value) {
+    router.push({ name: 'build-create', query: { media: 'upgrade' } });
+    return;
+  }
   // 返回定向包列表（asset-list 按 query.kind 切换，定向包 = orientation）
   router.push({ name: 'asset-list', query: { kind: 'orientation' } });
 }
@@ -270,8 +283,20 @@ function onSave() {
   if (!form.desc) { ElMessage.warning('请输入定向包描述'); return; }
   if (!form.company) { ElMessage.warning('请选择企业名称'); return; }
   if (!form.pkgType) { ElMessage.warning('请选择定向包类型'); return; }
-  ElMessage.success('原型：已保存定向包');
+  ElMessage.success(isEdit.value ? '原型：已保存定向包修改' : '原型：已保存定向包');
   goBack();
+}
+
+/* ---------- 编辑态回填（来源：query 携带的定向包字段，缺省用名称兜底） ---------- */
+if (isEdit.value) {
+  const q = route.query;
+  form.name = String(q.name || '');
+  form.desc = String(q.desc || (q.name ? `定向包「${q.name}」` : ''));
+  form.company = String(q.company || '');
+  if (COMPANY_OPTIONS.includes(form.company) === false && form.company) COMPANY_OPTIONS.unshift(form.company);
+  if (PACKAGE_TYPES.includes(String(q.pkgType || ''))) form.pkgType = String(q.pkgType);
+  if (['不启用', '启用'].includes(String(q.crossSubject || ''))) form.crossSubject = String(q.crossSubject);
+  if (q.platform && ['不限', 'Android', 'iOS', 'PC'].includes(String(q.platform))) form.platform = String(q.platform);
 }
 
 const sideInfo = computed(() => form);

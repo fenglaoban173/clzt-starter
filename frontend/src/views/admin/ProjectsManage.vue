@@ -61,7 +61,8 @@
                     placement="top"
                     :show-after="200"
                   >
-                    <span class="proj-badge">
+                    <!-- R110：线上点「防出错」标签会打开「编辑项目」弹窗（与点「编辑」按钮同款） -->
+                    <span class="proj-badge" @click.stop="openEdit(row)">
                       <span class="proj-badge__icon" aria-hidden="true"></span>
                       <span class="proj-badge__text">防出错</span>
                     </span>
@@ -72,10 +73,13 @@
             <el-table-column label="备注" min-width="110" prop="remark" />
             <el-table-column label="项目负责人" min-width="110" prop="owner" />
             <el-table-column label="创建人" min-width="110" prop="creator" />
-            <el-table-column label="创建时间" width="160" prop="createTime" />
-            <el-table-column label="关联账户数" width="160" prop="accountCount" align="right" />
-            <el-table-column label="操作" width="160" align="center">
+            <el-table-column label="创建时间" min-width="160" prop="createTime" />
+            <el-table-column label="关联账户数" min-width="160" prop="accountCount" align="right" />
+            <el-table-column label="操作" min-width="200" align="center">
               <template #default="{ row }">
+                <el-button link type="primary" size="small" class="proj-op-btn" @click="openLinkAccount(row)">
+                  关联账户
+                </el-button>
                 <el-button link type="primary" size="small" class="proj-op-btn" @click="openEdit(row)">
                   <el-popover
                     content="企业管理员/管理员/创建人才有权限"
@@ -138,12 +142,19 @@
       :row="editingRow"
       @submit="onSubmit"
     />
+
+    <!-- ⑤ 关联账户弹窗（广告主名称 / 广告主id 批量 / 账户主体名称 + 广告主列表） -->
+    <ProjectLinkAccountDialog
+      v-model="linkAccountVisible"
+      :row="linkAccountRow"
+      @submit="onLinkAccountSubmit"
+    />
   </div>
 </template>
 
 <script setup>
 /* ------------------------------------------------------------------
- * 管理 · 智投项目（线上「创量项目管理」）
+ * 管理 · 智投项目（线上「智投项目管理」）
  * 线上：https://cl.mobgi.com/setting/cl-project/project-manage
  *
  * 采集自线上 DOM / computed style（1920×1080）：
@@ -156,24 +167,26 @@
  *     1920 下实测 60/476/237/237/237/160/160/160（合计 1727 = 表格 clientWidth），
  *     「关联账户数」右对齐、「操作」居中，表体 12px
  *   - 本页无分页
- *   - 「项目设置」：强制绑定创量项目 + ⓘ + 开关（32×16）+ 灰底面板（说明 + 示意图）
+ *   - 「项目设置」：强制绑定智投项目 + ⓘ + 开关（32×16）+ 灰底面板（说明 + 示意图）
  * ------------------------------------------------------------------ */
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import ProjectFormDialog from './ProjectFormDialog.vue';
+import ProjectLinkAccountDialog from './components/ProjectLinkAccountDialog.vue';
+import {
+  fetchProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+} from '@/mock/projectAccounts';
 
 /** 页签 */
 const tab = ref('manage');
 
 /* ------------------------------ mock 数据 ------------------------------ */
-/** 线上 4 条，逐字照抄（项目名称 + 「防出错」角标） */
-const rows = ref([
-  { id: 1, name: '知乎小说', remark: '知乎小说时报', owner: '刘松涵', creator: '杨浩蒙', createTime: '2026-09-15 11:27:27', accountCount: 71, visibility: 'all', members: [], deepRequired: false, prevent: null },
-  { id: 2, name: '漫剧端原生', remark: '', owner: '申旭阳', creator: '北京央广时代文化传播有限公司', createTime: '2026-09-07 20:34:59', accountCount: 0, visibility: 'all', members: [], deepRequired: false, prevent: null },
-  { id: 3, name: 'soul', remark: '', owner: '', creator: '北京央广时代文化传播有限公司', createTime: '2026-06-09 09:26:13', accountCount: 12, visibility: 'all', members: [], deepRequired: false, prevent: null },
-  { id: 4, name: '百度文库', remark: '1', owner: '', creator: '北京央广时代文化传播有限公司', createTime: '2026-06-09 09:09:59', accountCount: 3, visibility: 'all', members: [], deepRequired: false, prevent: null },
-]);
+/** 项目列表来自 mock 数据层（frontend/src/mock/projectAccounts.js） */
+const rows = ref([]);
 
 /* ------------------------------ 交互状态 ------------------------------ */
 const keyword = ref('');
@@ -184,7 +197,18 @@ const dialogVisible = ref(false);
 const dialogMode = ref('add');
 const editingRow = ref(null);
 
+/** 关联账户弹窗 */
+const linkAccountVisible = ref(false);
+const linkAccountRow = ref(null);
+
 let seed = 100;
+
+/** 拉取项目列表（mock 数据层） */
+async function loadProjects() {
+  const res = await fetchProjects();
+  rows.value = res.data.list || [];
+}
+onMounted(loadProjects);
 
 /** 搜索：按项目名称过滤 */
 const filteredRows = computed(() => {
@@ -211,6 +235,19 @@ function openEdit(row) {
   dialogVisible.value = true;
 }
 
+/** 关联账户：打开弹窗（回显已勾选由弹窗内部负责） */
+function openLinkAccount(row) {
+  linkAccountRow.value = { ...row };
+  linkAccountVisible.value = true;
+}
+
+/** 关联账户提交：更新该行的「关联账户数」 */
+function onLinkAccountSubmit({ projectId, count }) {
+  const target = rows.value.find((r) => r.id === projectId);
+  if (target) target.accountCount = count;
+  ElMessage.success('关联成功');
+}
+
 /** 删除项目（二次确认） */
 function removeRow(row) {
   ElMessageBox.confirm(`确定删除项目「${row.name}」吗？`, '提示', {
@@ -218,7 +255,8 @@ function removeRow(row) {
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {
+    .then(async () => {
+      await deleteProject(row.id);
       rows.value = rows.value.filter((r) => r.id !== row.id);
       ElMessage.success('删除成功');
     })
@@ -227,9 +265,10 @@ function removeRow(row) {
     });
 }
 
-/** 弹窗提交：新增一行 / 更新当前行 */
-function onSubmit(payload) {
+/** 弹窗提交：新增一行 / 更新当前行（写回 mock 数据层） */
+async function onSubmit(payload) {
   if (dialogMode.value === 'edit' && editingRow.value) {
+    await updateProject({ ...payload, id: editingRow.value.id });
     const target = rows.value.find((r) => r.id === editingRow.value.id);
     if (target) Object.assign(target, payload);
     dialogVisible.value = false;
@@ -237,29 +276,10 @@ function onSubmit(payload) {
     return;
   }
   seed += 1;
-  rows.value.unshift({
-    id: seed,
-    name: payload.name,
-    remark: payload.remark,
-    owner: payload.owner,
-    creator: '北京央广时代文化传播有限公司',
-    createTime: formatNow(),
-    accountCount: 0,
-    visibility: payload.visibility,
-    members: payload.members,
-    deepRequired: payload.deepRequired,
-    forbidOutside: payload.forbidOutside,
-    prevent: payload.prevent,
-  });
+  await createProject(payload);
+  await loadProjects();
   dialogVisible.value = false;
   ElMessage.success('新增项目成功');
-}
-
-/** 新增时的创建时间 */
-function formatNow() {
-  const d = new Date();
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 </script>
 
@@ -390,7 +410,8 @@ body.app-scope .app-page { background: #f5f6f7; }
   color: #909399;
   font-size: 12px;
   line-height: 1;
-  cursor: default;
+  /* R110：线上该标签可点（点开编辑项目弹窗），所以用 pointer */
+  cursor: pointer;
 }
 /* 线上是一个灰色实心圆 + 白色感叹号（图标字体，非文本），整体宽 70px */
 .proj-badge__icon {

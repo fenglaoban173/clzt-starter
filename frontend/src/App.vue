@@ -7,7 +7,7 @@
 
 <style>
 :root {
-  /* 贴近创量标准版主色（蓝） */
+  /* 贴近智投标准版主色（蓝） */
   --el-color-primary: #2563eb;
   --el-color-primary-light-3: #6b93f2;
   --el-color-primary-light-5: #9db8f7;

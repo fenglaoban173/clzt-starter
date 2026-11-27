@@ -1,6 +1,6 @@
 <template>
   <!--
-    顶栏右侧「消息铃铛」下拉 —— 1:1 复刻线上创量广告平台（cl.mobgi.com）
+    顶栏右侧「消息铃铛」下拉 —— 1:1 复刻线上智投广告平台（cl.mobgi.com）
     线上依据：C:/tmp/nw/X_bell3.json（面板 outerHTML）、C:/tmp/nw/W_dl_delete.png（截图）、
              线上 layout-Dt7RUnVm.css / element-wY2YVDb4.css 中的原始样式（已提取核对）。
     交互：hover 展开（线上为 svg mouseover 触发、placement top-end 被 popper 翻转成 bottom-end，
@@ -19,7 +19,7 @@
       <div class="msg-bell__ref" @click="goMessageCenter">
         <el-tooltip content="消息提醒" placement="bottom" effect="dark" :offset="11.5" popper-class="msg-bell-tip">
           <div class="msg-bell__notice">
-            <span v-if="unread > 0" class="msg-bell__notice-dot"></span>
+            <span v-if="letters.length" class="msg-bell__notice-dot"></span>
             <svg class="msg-bell__svg" viewBox="0 0 48 48" aria-hidden="true">
               <path d="M10 38V18c0-7.732 6.268-14 14-14s14 6.268 14 14v20M4 38h40M24 44a5 5 0 0 0 5-5v-1H19v1a5 5 0 0 0 5 5Z"></path>
             </svg>
@@ -29,7 +29,7 @@
     </template>
 
     <!-- 面板内容：结构照抄线上 DOM（letter-tabs → letter-list → letter-item → letter-footer） -->
-    <el-tabs v-model="activeTab" class="letter-tabs" size="small">
+    <el-tabs model-value="letter" class="letter-tabs" size="small">
       <el-tab-pane label="站内信" name="letter">
         <div class="letter">
           <div class="letter-list">
@@ -53,18 +53,12 @@
           </div>
         </div>
       </el-tab-pane>
-      <el-tab-pane name="taskNotify">
-        <template #label><span>任务通知</span></template>
-        <div class="task-notify">
-          <div class="task-notify__empty">暂无任务通知</div>
-        </div>
-      </el-tab-pane>
     </el-tabs>
   </el-popover>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 // 线上站内信数据（照抄线上 DOM：2 条「直播预告」）
@@ -73,14 +67,7 @@ const letters = ref([
   { id: 2, title: '直播预告：「大健康」AI爆款视频创作专场', time: '2026-10-13 11:30:21' },
 ]);
 
-// 任务通知未读数（线上为接口数据，本地原型恒为 0）
-const taskNotifyUnread = ref(0);
-
-// 未读红点：有站内信或任务通知未读时显示；「忽略」后消失
-const unread = computed(() => letters.value.length + taskNotifyUnread.value);
-
 const visible = ref(false);
-const activeTab = ref('letter');
 
 const router = useRouter();
 
@@ -277,11 +264,5 @@ function ignoreAll() {
 .msg-bell-popper .letter-footer-opt {
   font-size: 12px;
   color: #197afb;
-}
-.msg-bell-popper .task-notify__empty {
-  padding: 24px 0;
-  font-size: 13px;
-  color: #909399;
-  text-align: center;
 }
 </style>

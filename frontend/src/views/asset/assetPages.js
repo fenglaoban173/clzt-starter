@@ -1,8 +1,8 @@
-// 资产页注册表 —— 逐页对齐「创量标准版 → 资产」菜单下各页的：
+// 资产页注册表 —— 逐页对齐「智投标准版 → 资产」菜单下各页的：
 //   ① 查询条件（线上 form.filter-search-input）
 //   ② 功能按钮（线上 .table-toolbar）
 //   ③ 列表布局（线上 table.el-table__header 的列序 / 固定列 / 列宽 / 分页）
-// 采集方式：创量标准版线上页 DOM 快照逐页登记，本地按登记结果渲染。
+// 采集方式：智投标准版线上页 DOM 快照逐页登记，本地按登记结果渲染。
 // 字段说明：
 //   filters[]  { type:'select'|'search', key, label, placeholder, multiple, options[] }
 //   buttons[]  { text, type, action }            —— 工具栏主按钮
@@ -74,7 +74,7 @@ export const ASSET_PAGES = {
       { label: '展示监测链接', prop: 'monitor_link', width: 180 },
       { label: '落地页链接', prop: 'landing_link', width: 180 },
       { label: '端原生链接', prop: 'native_link', width: 180 },
-      { label: '创量落地页落地页模板', prop: 'cl_template', width: 180 },
+      { label: '智投落地页落地页模板', prop: 'cl_template', width: 180 },
       { label: '创建人', prop: 'creator', width: 120 },
       { label: '创建时间', prop: 'created_at', width: 180 },
       { label: '更新时间', prop: 'updated_at', width: 180 },

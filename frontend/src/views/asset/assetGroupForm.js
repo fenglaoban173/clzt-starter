@@ -1,5 +1,5 @@
 // 资产组「新建 / 编辑」抽屉表单规格
-// 来源：创量标准版 /property/toutiao/asset-group → 新建资产组 抽屉（线上 DOM 逐状态采集）
+// 来源：智投标准版 /property/toutiao/asset-group → 新建资产组 抽屉（线上 DOM 逐状态采集）
 // 采集到的字段 API 名：name / alias / asset_group_type / advertiser_id /
 //   micro_promotion_type / micro_app.micro_app_instance_id / micro_app_link /
 //   delivery_content_type / product_lib_version / product_platform_id / product_id /
@@ -47,7 +47,7 @@ export const OPEN_URL_TYPES = [
 
 export const LANDING_SOURCES = [
   { label: '直填 URL', value: 'URL' },
-  { label: '选择创量落地页模板', value: 'TEMPLATE' },
+  { label: '选择智投落地页模板', value: 'TEMPLATE' },
 ];
 
 export const MICRO_LABEL = MICRO_PROMOTION_TYPES.reduce((m, o) => { m[o.value] = o.label; return m; }, {});
@@ -198,7 +198,7 @@ export function assetGroupSections(form) {
       landing.push({ key: 'landing_source', label: '落地页方式', type: 'radio', options: LANDING_SOURCES });
       if (form.landing_source === 'TEMPLATE') {
         landing.push({
-          key: 'cl_site_template_id', label: '创量落地页模板', type: 'select-refresh',
+          key: 'cl_site_template_id', label: '智投落地页模板', type: 'select-refresh',
           placeholder: '请输入模板名称', options: [],
         });
       } else {
@@ -206,7 +206,7 @@ export function assetGroupSections(form) {
       }
     } else {
       landing.push({
-        key: 'cl_site_template_id', label: '创量落地页模板', type: 'select-refresh',
+        key: 'cl_site_template_id', label: '智投落地页模板', type: 'select-refresh',
         placeholder: '请输入模板名称', options: [],
       });
     }

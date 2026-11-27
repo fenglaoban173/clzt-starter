@@ -7,6 +7,7 @@ import 'element-plus/dist/index.css';
 import './views/asset/pages/assetPage.css';
 import './views/report/reportPage.css';
 import './views/common/appPage.css';
+import './views/build/components/batch/batchDialog.css';
 import App from './App.vue';
 import router from './router';
 

@@ -98,7 +98,7 @@
           </div>
         </div>
         <div class="panel-sub">
-          <el-select v-model="distMetric" size="small" class="tool-select tool-select-sm">
+          <el-select v-model="projectMetric" size="small" class="tool-select tool-select-sm">
             <el-option v-for="o in distMetricOptions" :key="o.key" :label="o.label" :value="o.key" />
           </el-select>
         </div>
@@ -134,7 +134,7 @@
           </div>
         </div>
         <div class="panel-sub">
-          <el-select v-model="distMetric" size="small" class="tool-select tool-select-sm">
+          <el-select v-model="mediaMetric" size="small" class="tool-select tool-select-sm">
             <el-option v-for="o in distMetricOptions" :key="o.key" :label="o.label" :value="o.key" />
           </el-select>
         </div>
@@ -275,7 +275,9 @@ const media = ref('all');
 const date = ref('today');
 const metric = ref('cost');
 const project = ref('all');
-const distMetric = ref('cost');
+// R110：项目分布 / 媒体分布 是两个独立板块，指标互不影响
+const projectMetric = ref('cost');
+const mediaMetric = ref('cost');
 const projectDate = ref('lastWeek');
 const mediaDate = ref('today');
 const optimizerDate = ref('yesterday');
@@ -544,20 +546,22 @@ function resizeCharts() {
 async function load() {
   loading.value = true;
   try {
-    const [main, dist, optimizer, editor] = await Promise.all([
+    const [main, projectDistData, mediaDistData, optimizer, editor] = await Promise.all([
       dashboardApi.load({
         media: media.value,
         date: date.value,
         metric: metric.value,
         project: project.value,
       }),
-      dashboardApi.load({
-        media: media.value,
-        date: date.value,
-        metric: distMetric.value,
-        project: 'all',
-        projectDate: projectDate.value,
-        mediaDate: mediaDate.value,
+      dashboardApi.distribution({
+        type: 'project',
+        metric: projectMetric.value,
+        date: projectDate.value,
+      }),
+      dashboardApi.distribution({
+        type: 'media',
+        metric: mediaMetric.value,
+        date: mediaDate.value,
       }),
       dashboardApi.distribution({
         type: 'optimizer',
@@ -576,8 +580,8 @@ async function load() {
     projectOptions.value = d.projectOptions || [];
     metricOptions.value = d.metricOptions || [];
     trend.value = d.trend || null;
-    projectDist.value = dist.data?.projectDist || { total: 0, items: [] };
-    mediaDist.value = dist.data?.mediaDist || { total: 0, items: [] };
+    projectDist.value = projectDistData.data || { total: 0, items: [] };
+    mediaDist.value = mediaDistData.data || { total: 0, items: [] };
     optimizerDist.value = optimizer.data || { total: 0, items: [] };
     editorDist.value = editor.data || { total: 0, items: [] };
     await nextTick();
@@ -587,7 +591,7 @@ async function load() {
   }
 }
 
-watch([media, date, metric, project, distMetric, projectDate, mediaDate, optimizerDate, optimizerMetric, editorDate, editorMetric], load);
+watch([media, date, metric, project, projectMetric, mediaMetric, projectDate, mediaDate, optimizerDate, optimizerMetric, editorDate, editorMetric], load);
 
 onMounted(() => {
   load();

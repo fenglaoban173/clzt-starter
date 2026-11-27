@@ -89,7 +89,7 @@ const extraAccounts = accountSeed.map((s, i) => {
     register_cost: register_cnt ? +(stat_cost / register_cnt).toFixed(2) : 0,
     auto_fix: i % 4,
     auto_fix_on: false,
-    remark_cy: `${project}-${name}-创量`,
+    remark_cy: `${project}-${name}-智投`,
     remark_jl: `${name}-巨量`,
     media: 'upgrade',
     created_at: fmt(now - 86400000 * (i + 1)),
@@ -125,7 +125,7 @@ const accounts = [
     subject: SUBJECTS[i % SUBJECTS.length],
     auto_fix_on: false,
     media: 'upgrade',
-    remark_cy: `${a.project}-${a.name}-创量`,
+    remark_cy: `${a.project}-${a.name}-智投`,
     remark_jl: `${a.name}-巨量`,
     ...a,
   })),
@@ -262,7 +262,7 @@ const users = [
   { id: 3, username: 'viewer', real_name: '只读账号', role: 'viewer', status: 'active', last_login_at: fmt(now - 86400000 * 4) },
 ];
 
-// ---------- 项目（项目层级，对齐创量项目报表列头） ----------
+// ---------- 项目（项目层级，对齐智投项目报表列头） ----------
 const projects = [
   {
     id: 701, name: '漫剧竖版起量-0112', account_name: accounts[0].name, campaign_id: '187900000111',
@@ -368,7 +368,7 @@ upgradeAccounts.forEach((acc, ai) => {
 });
 projects.push(...generatedProjects);
 
-// 项目行补齐账户维度字段（创量项目 / 创量产品 / 优化师 / 账户主体 / 推广目的 …）
+// 项目行补齐账户维度字段（智投项目 / 智投产品 / 优化师 / 账户主体 / 推广目的 …）
 const accByName = {};
 accounts.forEach((a) => { accByName[a.name] = a; });
 projects.forEach((p) => {
@@ -393,7 +393,7 @@ projects.forEach((p) => {
   p.star = pseudo(seed + 14) > 0.5 ? 'yes' : 'no';
 });
 
-// ---------- 广告（营销/计划层级，对齐创量广告报表列头） ----------
+// ---------- 广告（营销/计划层级，对齐智投广告报表列头） ----------
 const ads = [
   {
     id: 901, name: '1112_153012_01_漫剧开场-竖版-01', account_name: accounts[0].name, campaign_id: '187900000111', ad_id: '187910002221',
@@ -633,7 +633,7 @@ const monitorActivities = [
 ];
 
 // ---------- 巨量资产补充类型（对照资产菜单清单） ----------
-// 资产组：列口径对齐创量标准版「资产组」页（固定列：资产组名称/资产组别名/操作）
+// 资产组：列口径对齐智投标准版「资产组」页（固定列：资产组名称/资产组别名/操作）
 const assetGroups = [
   {
     id: 1, name: '漫剧小游戏资产组-01', alias: '漫剧01组', use_status: '已使用',
@@ -693,7 +693,7 @@ const miniLinks = [
   { url: 'snssdk1128://dl/business/?t=tt8821004', name: '答题闯关-字节' },
 ];
 
-// 创量落地页模板（抽屉「创量落地页模板」下拉）
+// 智投落地页模板（抽屉「智投落地页模板」下拉）
 const siteTemplates = [
   { id: 'TPL001', name: '橙子模板-短剧落地页-01' },
   { id: 'TPL002', name: '橙子模板-线索表单-02' },
@@ -1146,7 +1146,7 @@ export const AWEME_SETTING_TYPES = [
   { value: 'AUTO', label: '自动绑定' },
 ];
 
-// ===== 创量批量搭建 · 补充枚举（对齐创量搭建页表单） =====
+// ===== 智投批量搭建 · 补充枚举（对齐智投搭建页表单） =====
 
 // 推广目的 objective（value 对齐官方 landing_type 枚举）
 export const OBJECTIVES = [
@@ -1159,7 +1159,7 @@ export const OBJECTIVES = [
   { value: 'NATIVE_ACTION', label: '内容营销', img: '/assets/obj_7.svg', desc: '提升投放视频或直播的互动、涨粉、种草效果' },
 ];
 
-// 投放类型 delivery_type（创量口径）
+// 投放类型 delivery_type（智投口径）
 export const AD_DELIVERY_TYPES = [
   { value: 'NORMAL', label: '常规投放' },
   { value: 'CYCLE_STABLE', label: '周期稳投' },
@@ -1207,7 +1207,7 @@ export const PLATFORM_TYPES = [
 // 监测链接来源
 export const TRACK_LINK_SOURCES = [
   { value: 'EXIST', label: '巨量后台监测链接组' },
-  { value: 'LOCATION', label: '创量导入监测活动' },
+  { value: 'LOCATION', label: '智投导入监测活动' },
   { value: 'DYNAMIC', label: '动态选取监测活动' },
   { value: 'MANUAL', label: '手动输入' },
 ];
@@ -1221,7 +1221,7 @@ export const EVENT_CALLBACK_TYPES = [
 // 定向包来源
 export const TARGET_PACKAGE_SOURCES = [
   { value: 'ACCOUNT', label: '账户已有定向包' },
-  { value: 'CL', label: '创量定向包' },
+  { value: 'CL', label: '智投定向包' },
 ];
 
 // 竞价策略
@@ -1328,7 +1328,7 @@ export const TITLE_SOURCES = [
 export const LANDING_PAGE_TYPES = [
   { value: 'ORANGE', label: '橙子落地页' },
   { value: 'ORANGE_SITE', label: '橙子建站模板' },
-  { value: 'CL_TEMPLATE', label: '创量落地页模板' },
+  { value: 'CL_TEMPLATE', label: '智投落地页模板' },
   { value: 'THIRDPARTY', label: '第三方落地页' },
   { value: 'DYNAMIC', label: '动态链接生成' },
   { value: 'MANUAL', label: '手动填写' },

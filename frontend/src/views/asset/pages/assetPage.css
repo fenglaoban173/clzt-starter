@@ -1,17 +1,17 @@
-/* 资产页通用样式 —— 与创量标准版「巨量广告·标准 → 资产」各页一致
+/* 资产页通用样式 —— 与智投标准版「巨量广告·标准 → 资产」各页一致
  * 全局引入（main.js），供 pages/<kind>.vue 各资产页直接使用，
  * 保证并行开发的各页面视觉统一。
- * 采集依据：创量线上 DOM + computed style（表头 #fafafa / 14px #909399 / 700、工具栏 50px、
+ * 采集依据：智投线上 DOM + computed style（表头 #fafafa / 14px #909399 / 700、工具栏 50px、
  * 筛选格 28px、抽屉 1016px、抽屉表单 label 144px、输入 360×32 等）。
  */
 
 /* ============================================================
- * 资产模块 · 创量设计令牌（线上 computed style 实测值）
+ * 资产模块 · 智投设计令牌（线上 computed style 实测值）
  * 作用域：body.asset-scope —— 由 AppLayout 在进入 asset-list 路由时挂载，
  * 用 body 承载是为了让 teleport 到 body 的弹窗/抽屉也能继承令牌。
  * ============================================================ */
 body.asset-scope {
-  /* 主色：创量蓝（线上 el-button--primary 实测 #197afb） */
+  /* 主色：智投蓝（线上 el-button--primary 实测 #197afb） */
   --el-color-primary: #197afb;
   --el-color-primary-rgb: 25, 122, 251;
   --el-color-primary-light-3: #5ea2fc;

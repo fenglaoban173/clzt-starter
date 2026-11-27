@@ -75,12 +75,17 @@ export function submitBatchTasks(payload = {}) {
   const total = Number(payload.total || 0);
   const rows = [];
   let id = 12081360000 + list.length * 7;
+  /* 同一次「全部提交审核」产生的多条记录共用一个 batchId：
+     「批量操作任务」按条展示，「巨量广告」按任务聚合（成功 N / 失败 0）。 */
+  const batchId = `bt_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
   for (let i = 0; i < Math.max(total, 1); i += 1) {
     id += 3;
     rows.push({
       id: String(id),
+      batchId,
       name: payload.name || `批量新建-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
       account: (payload.accounts || [])[0] || '-',
+      accounts: payload.accounts || [],
       submitCount: 1,
       media: '巨量广告2.0',
       opType: payload.opType || '同步巨量通用版商品(升级版工作台)',

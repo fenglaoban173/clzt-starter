@@ -350,7 +350,7 @@ import { Search, MoreFilled, ArrowDown, InfoFilled } from '@element-plus/icons-v
 
 const props = defineProps({ kind: { type: String, default: '' } });
 
-/* ---------------- 线上枚举（取自创量 /property/toutiao/comments 前端产物） ---------------- */
+/* ---------------- 线上枚举（取自智投 /property/toutiao/comments 前端产物） ---------------- */
 const HIDE_STATUS = [
   { label: '不限', value: 'ALL' },
   { label: '已隐藏', value: 'HIDE' },

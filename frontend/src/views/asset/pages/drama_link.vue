@@ -336,7 +336,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Plus, Refresh, Search } from '@element-plus/icons-vue';
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 短剧推广链接」（常读档）
+ * 智投标准版「巨量广告·标准 → 资产 → 短剧推广链接」（常读档）
  * 线上：https://cl.mobgi.com/property/toutiao/playlet-promotion-link/chang-du
  *
  * 线上结构（采集自 DOM）：

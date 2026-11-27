@@ -151,7 +151,7 @@ const routes = [
         meta: { title: '账户管理', group: '管理', roles: ['admin'] },
       },
       {
-        // 管理 · 智投项目（线上「创量项目管理」，本地按产品术语改为「智投项目」）
+        // 管理 · 智投项目（线上「智投项目管理」，本地按产品术语改为「智投项目」）
         path: 'admin/projects',
         name: 'admin-projects',
         component: () => import('@/views/admin/ProjectsManage.vue'),

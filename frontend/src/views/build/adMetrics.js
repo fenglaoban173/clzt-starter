@@ -1,5 +1,5 @@
 // 广告列表「自定义指标」指标目录
-// 对齐创量广告页「自定义指标」弹窗：左侧 16 个分类、中间全部可选指标（2026-11 线上抓取）。
+// 对齐智投广告页「自定义指标」弹窗：左侧 16 个分类、中间全部可选指标（2026-11 线上抓取）。
 // 基本信息 / 展现数据 / 转化数据 / 转化数据（计费时间）/ 应用推广 / 电商行业 / 游戏行业 /
 // 小程序/小游戏 / APP下载数据 / 视频数据 / 落地页及门店 / 互动数据 / 直播间数据 / 线索收集 / 金融行业 / 种草效果
 
@@ -25,7 +25,7 @@ const BASE = [
   t('account', '账户', { type: 'text', prop: 'account_name', width: 200 }),
   t('campaign', '项目', { type: 'text', prop: 'campaign_name', width: 220 }),
   t('ad_status', '广告状态', { type: 'status', prop: 'status', width: 120 }),
-  t('product', '创量产品', { type: 'text', prop: 'product', width: 140 }),
+  t('product', '智投产品', { type: 'text', prop: 'product', width: 140 }),
   t('optimizer', '优化师', { type: 'text', prop: 'optimizer', width: 120 }),
   t('reject_note', '拒绝建议', { type: 'text', prop: 'reject_note', width: 150 }),
   t('audit_note', '审核建议', { type: 'text', prop: 'audit_note', width: 150 }),

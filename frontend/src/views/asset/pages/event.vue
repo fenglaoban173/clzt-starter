@@ -123,7 +123,7 @@ import { ElMessage } from 'element-plus';
 import { Box, Close, Search } from '@element-plus/icons-vue';
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 事件管理」
+ * 智投标准版「巨量广告·标准 → 资产 → 事件管理」
  * 线上：https://cl.mobgi.com/property/toutiao/eventmanagement/index
  * 采集自线上 DOM / 线上构建产物（assets/event-management-*.js）：
  *   - 页面由「查询条件条 + 左资产列表 + 右事件列表」三块组成

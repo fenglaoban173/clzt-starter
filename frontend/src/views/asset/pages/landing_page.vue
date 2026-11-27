@@ -1,6 +1,6 @@
 <template>
   <div class="lp-page">
-    <!-- ① 二级页签（线上 cl-minor-nav：橙子落地页模板 / 创量落地页模板 / 橙子落地页 / 程序化落地页组 / 第三方落地页） -->
+    <!-- ① 二级页签（线上 cl-minor-nav：橙子落地页模板 / 智投落地页模板 / 橙子落地页 / 程序化落地页组 / 第三方落地页） -->
     <div class="asset-sub-tabs lp-tabs">
       <div
         v-for="t in TABS"
@@ -150,7 +150,7 @@
         <el-icon class="lp-create-btn__icon"><Plus /></el-icon>{{ b.text }}
       </el-button>
 
-      <!-- 批量操作（线上：第三方落地页为 批量删除 / 生成直达链接 / 修改关联账户 / 修改创量项目） -->
+      <!-- 批量操作（线上：第三方落地页为 批量删除 / 生成直达链接 / 修改关联账户 / 修改智投项目） -->
       <el-select
         v-if="batchOptions.length"
         v-model="batchOp"
@@ -292,8 +292,8 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="创量项目（选填）" prop="project">
-              <el-select v-model="createForm.project" class="lp-dialog-select" size="small" clearable placeholder="请选择创量项目">
+            <el-form-item label="智投项目（选填）" prop="project">
+              <el-select v-model="createForm.project" class="lp-dialog-select" size="small" clearable placeholder="请选择智投项目">
                 <el-option v-for="p in LP_PROJECT_OPTIONS" :key="p" :label="p" :value="p" />
               </el-select>
             </el-form-item>
@@ -541,14 +541,14 @@
           <span class="lp-sync__name">小牛电商</span>
           <a class="lp-sync__auth" @click="onSyncAuth">去授权</a>
         </div>
-        <p class="lp-sync__desc">同步小牛电商落地页到创量，可以直接选用CID链接搭建广告</p>
+        <p class="lp-sync__desc">同步小牛电商落地页到智投，可以直接选用CID链接搭建广告</p>
         <p class="lp-sync__note">
           只能同步2月1号后新建的链接，仅支持同步拼多多商品的巨量广告链接，包括一跳落地页链接、直达链接、监测链接；已经同步的链接，不会重复同步
         </p>
       </div>
       <template #footer>
         <div class="dialog-footer lp-dialog-footer-ops">
-          <el-checkbox v-model="syncAuto" class="lp-sync__auto">若小牛电商上新，自动同步链接到创量</el-checkbox>
+          <el-checkbox v-model="syncAuto" class="lp-sync__auto">若小牛电商上新，自动同步链接到智投</el-checkbox>
           <el-button plain @click="syncVisible = false">取 消</el-button>
           <el-button type="primary" disabled>开始同步</el-button>
         </div>
@@ -582,10 +582,10 @@
       </template>
     </el-dialog>
 
-    <!-- ⑨ 批量修改创量项目 弹窗 -->
+    <!-- ⑨ 批量修改智投项目 弹窗 -->
     <el-dialog
       v-model="batchProjectVisible"
-      title="修改创量项目"
+      title="修改智投项目"
       width="480px"
       top="18vh"
       :close-on-click-modal="false"
@@ -594,8 +594,8 @@
       <div class="lp-batch-edit">
         <p class="lp-batch-edit__count">已选落地页：{{ selectedRows.length }}</p>
         <el-form label-width="90px" label-position="left">
-          <el-form-item label="创量项目">
-            <ProjectSelectField v-model="batchProject" :options="batchProjectOptions" placeholder="请选择创量项目" />
+          <el-form-item label="智投项目">
+            <ProjectSelectField v-model="batchProject" :options="batchProjectOptions" placeholder="请选择智投项目" />
           </el-form-item>
         </el-form>
       </div>
@@ -617,7 +617,7 @@ import ProjectSelectField from '../components/ProjectSelectField.vue';
 import './landing_page.css';
 
 /* ------------------------------------------------------------------ *
- * 创量标准版「巨量广告·标准 → 资产 → 落地页」
+ * 智投标准版「巨量广告·标准 → 资产 → 落地页」
  * 线上：https://cl.mobgi.com/property/toutiao/landingpage/toutiaoTemplate
  *   - 页面无标题条，直接是 5 个二级页签
  *   - 筛选：媒体账户（占位「所有账户」）、所属人员（占位「全部」），右侧「设置」
@@ -643,10 +643,10 @@ const LP_LEGAL_OPTIONS = ['不限', '不合法', '合法'];
 const GROUP_STATUS_OPTIONS = ['可用', '不可用'];
 /** 第三方落地页「产品」（线上 2 项） */
 const LP_PRODUCT_OPTIONS = ['测试商品', '测试安卓应用(android)'];
-/** 第三方落地页「创量项目」（线上 4 项） */
+/** 第三方落地页「智投项目」（线上 4 项） */
 const LP_PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];
 
-/** 修改创量项目弹窗候选：含「不限」（清空项目），供 ProjectSelectField 使用 */
+/** 修改智投项目弹窗候选：含「不限」（清空项目），供 ProjectSelectField 使用 */
 const batchProjectOptions = [
   { label: '不限', value: '' },
   ...LP_PROJECT_OPTIONS.map((p) => ({ label: p, value: p })),
@@ -750,7 +750,7 @@ const TAB_FILTERS = {
     { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ACCOUNT_OPTIONS },
     { key: 'owner', label: '所属人员', placeholder: '全部', options: OWNER_OPTIONS },
   ],
-  创量落地页模板: [
+  智投落地页模板: [
     { key: 'templateType', label: '模板类型', placeholder: '所有模板类型', options: TEMPLATE_TYPES },
     { key: 'owner', label: '所属人员', placeholder: '全部', options: OWNER_OPTIONS },
   ],
@@ -767,14 +767,14 @@ const TAB_FILTERS = {
     { key: 'account', label: '媒体账户', placeholder: '所有账户', options: ['不限', ...ACCOUNT_OPTIONS] },
     { key: 'creator', label: '创建人员', placeholder: '全部', options: OWNER_OPTIONS },
     { key: 'product', label: '产品', placeholder: '不限', options: LP_PRODUCT_OPTIONS },
-    { key: 'project', label: '创量项目', placeholder: '全部', options: LP_PROJECT_OPTIONS },
+    { key: 'project', label: '智投项目', placeholder: '全部', options: LP_PROJECT_OPTIONS },
   ],
 };
 
 /** 各页签的搜索「字段类型」下拉（线上实测） */
 const TAB_SEARCH_FIELDS = {
   橙子落地页模板: ['名称', 'ID'],
-  创量落地页模板: ['名称', 'ID'],
+  智投落地页模板: ['名称', 'ID'],
   橙子落地页: ['名称', 'ID', '路径参数', '备注'],
   程序化落地页组: ['名称', '组ID'],
   第三方落地页: ['名称', 'ID'],
@@ -783,7 +783,7 @@ const TAB_SEARCH_FIELDS = {
 /** 各页签的工具栏按钮（线上实测）：随页签切换 */
 const TAB_BUTTONS = {
   橙子落地页模板: [{ key: 'create', text: '新建模板', width: 120 }],
-  创量落地页模板: [{ key: 'create', text: '新建模板', width: 120 }],
+  智投落地页模板: [{ key: 'create', text: '新建模板', width: 120 }],
   橙子落地页: [
     { key: 'syncAsset', text: '同步落地页资产', plain: true, width: 116 },
     { key: 'create', text: '新建落地页', width: 120 },
@@ -803,7 +803,7 @@ const TAB_BATCH = {
     { label: '批量删除', value: 'batchDelete' },
     { label: '生成直达链接', value: 'genDeepLink' },
     { label: '修改关联账户', value: 'editAccount' },
-    { label: '修改创量项目', value: 'editProject' },
+    { label: '修改智投项目', value: 'editProject' },
   ],
 };
 
@@ -822,7 +822,7 @@ const TAB_CONFIG = {
       { prop: 'action', label: '操作', width: 135, align: 'center' },
     ],
   },
-  创量落地页模板: {
+  智投落地页模板: {
     createText: '新建模板',
     selection: true,
     selectionFixed: false,
@@ -917,7 +917,7 @@ function buildRows(tab) {
       lpCount: 3 + i * 2,
       status: i % 3 === 0 ? '已上线' : '审核中',
       useStatus: i % 2 === 0 ? '已使用' : '未使用',
-      source: i % 2 === 0 ? '橙子建站' : '创量建站',
+      source: i % 2 === 0 ? '橙子建站' : '智投建站',
       remark: `落地页备注${String(i + 1).padStart(2, '0')}`,
       pathParams: `?id=${lpId}&from=clzt`,
       assignType: i % 2 === 0 ? '手动分配' : '自动分配',
@@ -999,7 +999,7 @@ const batchAccount = ref('');
 const batchProjectVisible = ref(false);
 const batchProject = ref('');
 
-/** 批量操作四分支：批量删除 / 生成直达链接 / 修改关联账户 / 修改创量项目 */
+/** 批量操作四分支：批量删除 / 生成直达链接 / 修改关联账户 / 修改智投项目 */
 function onBatchOp(v) {
   if (!v) return;
   batchOp.value = '';
@@ -1034,7 +1034,7 @@ function submitBatchAccount() {
 }
 function submitBatchProject() {
   batchProjectVisible.value = false;
-  ElMessage.success('已修改创量项目');
+  ElMessage.success('已修改智投项目');
 }
 
 /** 清空勾选 */

@@ -420,7 +420,7 @@ import { ArrowDown, Close, MoreFilled, Search, WarningFilled } from '@element-pl
 const props = defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 监测活动」
+ * 智投标准版「巨量广告·标准 → 资产 → 监测活动」
  * 线上：https://cl.mobgi.com/property/toutiao/activity/index
  *
  * 线上 DOM 实测要点（本次已用线上只读探查逐项核对）：

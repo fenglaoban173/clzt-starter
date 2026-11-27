@@ -260,19 +260,19 @@ import { ElMessage } from 'element-plus';
 import { DocumentCopy, Search } from '@element-plus/icons-vue';
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 巨量应用」
+ * 智投标准版「巨量广告·标准 → 资产 → 巨量应用」
  * 线上：https://cl.mobgi.com/property/toutiao/subcontractor/index
  *
  * 采集自线上 DOM / computed style：
  *   - 二级页签 .cl-minor-nav：巨量应用 / 应用分包 / 鸿蒙应用 / 监测活动管理
  *     （48px 高、16px 粗体、选中 #197afb + 3px 下划线、间距 32px）
- *   - 筛选区 .cl-filter-area：工作台(124px) / 媒体账户(192px) / 创量应用(192px)
+ *   - 筛选区 .cl-filter-area：工作台(124px) / 媒体账户(192px) / 智投应用(192px)
  *     + 关键词搜索(字段类型 80px + 关键词 + 批量搜索 + 🔍) + 清空链接
  *   - 工具栏 .table-toolbar：同步巨量应用(120px) / 同步巨量游戏预约(128px)
  *   - 表格 10 列，最后一列表头为「共享账户」（线上 operate-column，内容是行内「查看」）
  *   - 分页：共 26 条 / 10条每页 / 123 页 / 前往页
  *   - 「工作台」默认选中「旧版」（spec: hasValue=true / selectedText=旧版）；
- *     切到「新版」后线上会换成「工作台 + 组织账户」两档筛选、8 列（去掉创量应用/共享账户），
+ *     切到「新版」后线上会换成「工作台 + 组织账户」两档筛选、8 列（去掉智投应用/共享账户），
  *     且该账号下暂无数据、不渲染分页
  *   - 本页无批量操作、无新建抽屉
  * ------------------------------------------------------------------ */
@@ -284,7 +284,7 @@ const props = defineProps({ kind: { type: String, default: '' } });
 const TABS = [
   { key: 'app', label: '巨量应用' },
   { key: 'subpackage', label: '应用分包' },
-  { key: 'harmony', label: '鸿蒙应用' },
+  // R110：按用户要求移除「鸿蒙应用」页签（功能暂不需要）
   { key: 'monitor', label: '监测活动管理' },
 ];
 
@@ -321,11 +321,11 @@ const ACCOUNT_OPTIONS_SUB = [
   ...ACCOUNT_LIST.slice(0, 19),
 ];
 
-/** 创量应用（线上仅 1 条） */
+/** 智投应用（线上仅 1 条） */
 const CL_APP_OPTIONS = [{ value: '测试安卓应用(android)', label: '测试安卓应用(android)' }];
 
 /** 组织账户（线上「新版」工作台下的筛选项，共 10 条） */
-/** 创量项目（线上 4 项：知乎小说 / 漫剧端原生 / soul / 百度文库） */
+/** 智投项目（线上 4 项：知乎小说 / 漫剧端原生 / soul / 百度文库） */
 const PROJECT_OPTIONS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'].map((v) => ({ value: v, label: v }));
 
 const ORG_ACCOUNT_OPTIONS = [
@@ -436,7 +436,7 @@ const TAB_CONFIG = {
     filters: [
       { key: 'platform', prop: 'platform', label: '工作台', placeholder: '请选择工作台', width: 180, selWidth: 124, options: PLATFORM_OPTIONS },
       { key: 'account', prop: 'account', label: '媒体账户', placeholder: '不限', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS, filterable: true, remote: true, more: '搜索更多(315)...' },
-      { key: 'clApp', prop: 'clApp', label: '创量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: CL_APP_OPTIONS },
+      { key: 'clApp', prop: 'clApp', label: '智投应用', placeholder: '所有应用', width: 260, selWidth: 192, options: CL_APP_OPTIONS },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'appId' } },
     buttons: [
@@ -446,7 +446,7 @@ const TAB_CONFIG = {
     columns: [
       { label: '巨量应用名称', prop: 'name', width: 120 },
       { label: '应用ID', prop: 'appId', width: 120 },
-      { label: '创量应用', prop: 'clApp', width: 120 },
+      { label: '智投应用', prop: 'clApp', width: 120 },
       { label: '应用包名', prop: 'packageName', width: 120 },
       { label: '下载链接', prop: 'downloadUrl', width: 250, link: true },
       { label: '状态', prop: 'status', width: 80 },
@@ -458,7 +458,7 @@ const TAB_CONFIG = {
     detail: [
       { key: 'name', label: '巨量应用名称' },
       { key: 'appId', label: '应用ID' },
-      { key: 'clApp', label: '创量应用' },
+      { key: 'clApp', label: '智投应用' },
       { key: 'packageName', label: '应用包名' },
       { key: 'downloadUrl', label: '下载链接' },
       { key: 'status', label: '状态' },
@@ -469,7 +469,7 @@ const TAB_CONFIG = {
     ],
     /* 工作台切到「新版」时，线上会整体换成另一套筛选项与列：
      *   筛选：工作台 + 组织账户（280px，占位「请选择组织账户」）
-     *   列  ：去掉「创量应用」与「共享账户」，共 8 列
+     *   列  ：去掉「智投应用」与「共享账户」，共 8 列
      *   数据：线上该账号下为空（暂无数据）
      */
     newVersion: {
@@ -578,7 +578,7 @@ const TAB_CONFIG = {
       { key: 'appName', prop: 'appName', label: '巨量应用', placeholder: '所有应用', width: 260, selWidth: 192, options: APP_ROWS.map((a) => ({ value: a.name, label: `${a.name}(${a.packageName})` })) },
       { key: 'creator', prop: 'creator', label: '创建人员', placeholder: '全选', width: 260, selWidth: 192, options: CREATOR_OPTIONS },
       { key: 'account', prop: 'account', label: '媒体账户', placeholder: '全选', width: 260, selWidth: 192, options: ACCOUNT_OPTIONS_SUB, filterable: true, remote: true, more: '搜索更多(316)...' },
-      { key: 'project', prop: 'project', label: '创量项目', placeholder: '全部', width: 260, selWidth: 192, options: PROJECT_OPTIONS },
+      { key: 'project', prop: 'project', label: '智投项目', placeholder: '全部', width: 260, selWidth: 192, options: PROJECT_OPTIONS },
     ],
     search: { fields: ['名称', 'ID'], props: { 名称: 'name', ID: 'channelNo' } },
     buttons: [
@@ -860,7 +860,7 @@ async function onButton(b) {
     openForm('新建监测活动', '720px', [
       { key: 'name', label: '活动名称', type: 'input', required: true, placeholder: '活动名称不超过50个字' },
       { key: 'account', label: '媒体账户', type: 'select', placeholder: '不限', options: ACCOUNT_OPTIONS },
-      { key: 'project', label: '创量项目（选填）', type: 'select', placeholder: '不限', options: PROJECT_OPTIONS },
+      { key: 'project', label: '智投项目（选填）', type: 'select', placeholder: '不限', options: PROJECT_OPTIONS },
       { key: 'appType', label: '应用类型', type: 'radio', required: true, options: [{ value: '安卓', label: '安卓' }, { value: 'iOS', label: 'iOS' }, { value: '鸿蒙', label: '鸿蒙' }] },
       { key: 'showLink', label: '展示链接', type: 'input', placeholder: '请输入展示链接' },
       { key: 'validLink', label: '有效触点链接', type: 'input', placeholder: '请输入有效触点链接' },

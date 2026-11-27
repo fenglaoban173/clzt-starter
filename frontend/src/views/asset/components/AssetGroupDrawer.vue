@@ -37,7 +37,7 @@
                 </el-radio-button>
               </el-radio-group>
 
-              <!-- 下拉选择（媒体账户 / 创量落地页模板） -->
+              <!-- 下拉选择（媒体账户 / 智投落地页模板） -->
               <el-select
                 v-else-if="f.type === 'select'"
                 v-model="form[f.key]"
@@ -56,7 +56,7 @@
                 />
               </el-select>
 
-              <!-- 下拉 + 刷新（创量落地页模板） -->
+              <!-- 下拉 + 刷新（智投落地页模板） -->
               <template v-else-if="f.type === 'select-refresh'">
                 <el-select
                   v-model="form[f.key]"
@@ -291,7 +291,7 @@ function onChange(f, val) {
 }
 
 function onRefreshTemplate() {
-  ElMessage.success('已刷新创量落地页模板');
+  ElMessage.success('已刷新智投落地页模板');
 }
 
 function onSideButton(f) {

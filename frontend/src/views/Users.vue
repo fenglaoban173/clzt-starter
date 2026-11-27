@@ -5,18 +5,18 @@
     </div>
 
     <el-table :data="rows" v-loading="loading" border stripe>
-      <el-table-column label="ID" prop="id" :width="70" />
+      <el-table-column label="ID" prop="id" :min-width="70" />
       <el-table-column label="用户名" prop="username" />
       <el-table-column label="姓名" prop="real_name" />
-      <el-table-column label="角色" prop="role" :width="100" />
-      <el-table-column label="状态" prop="status" :width="90">
+      <el-table-column label="角色" prop="role" :min-width="100" />
+      <el-table-column label="状态" prop="status" :min-width="90">
         <template #default="{ row }">
           <el-tag :type="row.status === 'active' ? 'success' : 'danger'">
             {{ row.status === 'active' ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="最近登录" prop="last_login_at" :width="170" />
+      <el-table-column label="最近登录" prop="last_login_at" :min-width="170" />
     </el-table>
 
     <el-pagination

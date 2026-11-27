@@ -16,7 +16,7 @@
       >{{ t }}</div>
     </div>
 
-    <!-- ① 查询条件（对齐创量标准版 form.filter-search-input） -->
+    <!-- ① 查询条件（对齐智投标准版 form.filter-search-input） -->
     <div v-if="page.filters && page.filters.length" class="filter-row">
       <div class="filter-left">
         <div v-for="(f, fi) in page.filters" :key="fi" class="filter-cell">
@@ -84,7 +84,7 @@
       </div>
     </div>
 
-    <!-- ② 功能按钮（对齐创量标准版 .table-toolbar / .toolbar-operate） -->
+    <!-- ② 功能按钮（对齐智投标准版 .table-toolbar / .toolbar-operate） -->
     <div class="table-toolbar">
       <el-button
         v-for="(b, bi) in page.buttons"
@@ -129,7 +129,7 @@
       </el-select>
     </div>
 
-    <!-- ③ 列表（对齐创量标准版 table.el-table__header 的列序 / 固定列） -->
+    <!-- ③ 列表（对齐智投标准版 table.el-table__header 的列序 / 固定列） -->
     <el-table
       :data="pagedList"
       row-key="id"
@@ -621,7 +621,7 @@ onMounted(async () => {
 .asset-title-bar { padding: 0 0 12px; }
 .asset-title { font-size: 16px; font-weight: 600; color: #1d2129; }
 
-/* 查询条件：与创量标准版一致（白底细边框、28px 高、12px 字号） */
+/* 查询条件：与智投标准版一致（白底细边框、28px 高、12px 字号） */
 .filter-row { display: flex; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
 .filter-left { display: flex; align-items: center; flex-wrap: wrap; }
 .filter-cell {
@@ -652,7 +652,7 @@ onMounted(async () => {
 .batch-select { width: 120px; margin-left: 4px; }
 .batch-select :deep(.el-input__inner) { height: 32px; font-size: 12px; }
 
-/* 列表：与创量标准版一致（边框表格、表头 #fafafa、12px 字号） */
+/* 列表：与智投标准版一致（边框表格、表头 #fafafa、12px 字号） */
 .asset-table { font-size: 12px; }
 .asset-table :deep(.el-table__header th) { background: #fafafa; color: #909399; font-size: 12px; height: 56px; padding: 0; }
 .asset-table :deep(.el-table__cell) { font-size: 12px; color: #606266; padding: 8px 0; }

@@ -1,132 +1,104 @@
 <template>
   <!--
-    规则配置弹窗（1:1 复刻线上 cl.mobgi.com「程序化批量/巨量广告」→ 配置行「规则配置 / 更改」）
-    线上基准：el-dialog.assign-rule-config--dialog.cl-modal 1140×653，垂直居中（align-center）
-    线上分区：创建方式 / 项目生成规则(仅新建项目) / 广告生成规则 / 每个项目广告数上限
-    线上卡片三态：选中=蓝框(#197afb)+蓝字 / 常规=白底+#333 标题+#999 说明 / 置灰=浅灰底(#eee)
+    规则配置弹窗（1:1 复刻线上 cl.mobgi.com「批量新建（巨量）」→ 配置行「规则配置 / 更改」）
+    结构/文案/依赖全部来自 spec/rule.spec.js；线上基准 1140×653 垂直居中。
   -->
   <el-dialog
     :model-value="modelValue"
-    title="规则配置"
-    width="1140px"
+    :title="spec.title"
+    :width="spec.width + 'px'"
     class="rule-dialog"
     align-center
     :close-on-click-modal="false"
     @update:model-value="(v) => emit('update:modelValue', v)"
+    @open="onOpen"
   >
-    <el-form label-position="left" label-width="160px" class="rule-form">
-      <!-- 创建方式 -->
-      <el-form-item label="创建方式">
-        <el-radio-group v-model="form.create_mode" size="small" class="rule-mode">
-          <el-radio-button value="NEW">新建项目</el-radio-button>
-          <el-radio-button value="EXIST">已有项目</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
+    <el-form
+      label-position="left"
+      :label-width="formSpec.labelWidth + 'px'"
+      class="rule-form"
+      :style="{ minHeight: formSpec.minHeight + 'px' }"
+    >
+      <template v-for="field in formSpec.fields" :key="field.key">
+        <!-- 依赖求值：不满足 visibleWhen 的字段整块不渲染 -->
+        <el-form-item
+          v-if="isVisible(field, values)"
+          :label-width="formSpec.labelWidth + 'px'"
+          class="rule-form__item"
+        >
+          <template #label>
+            <span class="rule-label">{{ field.label }}</span>
+            <!-- 线上 label 右侧是 ⓘ 图标（不是文字） -->
+            <el-tooltip v-if="field.tip" :content="field.tip" placement="top">
+              <el-icon class="label-tips"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
 
-      <!-- 项目生成规则（仅「新建项目」时线上才露出） -->
-      <template v-if="form.create_mode === 'NEW'">
-        <el-form-item label="项目生成规则">
-          <div class="custom-radio-group">
+          <!-- 创建方式：按钮型单选 -->
+          <el-radio-group
+            v-if="field.type === 'radio'"
+            :model-value="form[field.key]"
+            size="small"
+            class="rule-mode"
+            @update:model-value="(v) => pick(field, v)"
+          >
+            <el-radio-button
+              v-for="opt in field.options"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </el-radio-button>
+          </el-radio-group>
+
+          <!-- 卡片型规则：项目生成规则 / 广告生成规则 -->
+          <div v-else-if="field.type === 'cards'" class="custom-radio-group">
             <div
-              v-for="r in PROJECT_RULES"
-              :key="r.value"
+              v-for="opt in field.options"
+              :key="opt.value"
               class="custom-radio-button"
               :class="{
-                'custom-radio-button--active': form.project_rule === r.value,
-                'custom-radio-button--disabled': r.disabled,
+                'custom-radio-button--active': form[field.key] === opt.value,
+                'custom-radio-button--disabled': isDisabled(opt, values),
               }"
-              @click="pickRule('project_rule', r)"
+              @click="pick(field, opt.value, opt)"
             >
-              <p class="title"><span>{{ r.label }}</span></p>
-              <p class="desc">{{ r.desc }}</p>
+              <p class="title"><span>{{ opt.label }}</span></p>
+              <p class="desc">{{ descOf(opt) }}</p>
             </div>
           </div>
-        </el-form-item>
 
-        <!-- 项目生成规则 = 指定数量 → 每个账户指定项目数 -->
-        <el-form-item v-if="form.project_rule === 'BY_COUNT'" label="每个账户指定项目数">
-          <el-input-number
-            v-model="form.projects_per_account"
+          <!-- 数字输入：线上是普通 el-input.w160（无步进器） -->
+          <el-input
+            v-else-if="field.type === 'input'"
+            :model-value="form[field.key]"
             class="rule-num"
-            :controls="false"
-            :min="1"
-            :max="500"
+            size="small"
+            @update:model-value="(v) => (form[field.key] = v === '' ? '' : Number(v))"
           />
         </el-form-item>
       </template>
-
-      <!-- 广告生成规则 -->
-      <el-form-item label="广告生成规则">
-        <div class="custom-radio-group">
-          <div
-            v-for="r in AD_RULES"
-            :key="r.value"
-            class="custom-radio-button"
-            :class="{
-              'custom-radio-button--active': form.ad_rule === r.value,
-              'custom-radio-button--disabled': isAdRuleDisabled(r),
-            }"
-            @click="pickRule('ad_rule', r)"
-          >
-            <p class="title"><span>{{ r.label }}</span></p>
-            <p class="desc">{{ adRuleText(r) }}</p>
-          </div>
-        </div>
-      </el-form-item>
-
-      <!-- 项目生成规则 = 按总广告数/每项目广告数 → 每个项目广告数上限（线上 label 内带 ⓘ tooltip） -->
-      <el-form-item
-        v-if="form.create_mode === 'NEW' && form.project_rule === 'BY_TOTAL'"
-        label="每个项目广告数上限"
-      >
-        <template #label>
-          <span class="rule-label">每个项目广告数上限</span>
-          <el-tooltip
-            content="已生成的广告数，超过项目内广告数上限时，自动填充到新的项目内；广告数未达上限时则不生成新项目"
-            placement="top"
-          >
-            <span class="label-tips">ⓘ</span>
-          </el-tooltip>
-        </template>
-        <el-input-number
-          v-model="form.ads_limit_per_project"
-          class="rule-num"
-          :controls="false"
-          :min="1"
-          :max="500"
-        />
-      </el-form-item>
-
-      <!-- 广告生成规则 = 指定数量 → 每个项目指定广告数 -->
-      <el-form-item v-if="form.ad_rule === 'BY_COUNT'" label="每个项目指定广告数">
-        <template #label>
-          <span class="rule-label">每个项目指定广告数</span>
-          <el-tooltip
-            content="指定每个项目内包含的广告数量，广告数量不足时重复使用广告"
-            placement="top"
-          >
-            <span class="label-tips">ⓘ</span>
-          </el-tooltip>
-        </template>
-        <el-input-number
-          v-model="form.ads_per_project"
-          class="rule-num"
-          :controls="false"
-          :min="1"
-          :max="500"
-        />
-      </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="close">取消</el-button>
-      <el-button type="primary" @click="close">确定</el-button>
+      <el-button
+        v-for="btn in spec.footer.buttons"
+        :key="btn.key"
+        :type="btn.type"
+        :plain="!!btn.plain"
+        @click="btn.key === 'cancel' ? cancel() : ok()"
+      >
+        {{ btn.text }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { computed, inject } from 'vue';
+import { QuestionFilled } from '@element-plus/icons-vue';
+import spec from './spec/rule.spec.js';
+import { isVisible, isDisabled } from './spec/resolve.js';
 
 const props = defineProps({
   /** v-model：弹窗显隐；不传时直接用 Create.vue provide 的 ruleVisible */
@@ -136,15 +108,17 @@ const emit = defineEmits(['update:modelValue']);
 
 /* R110：整个 setup 作用域由 Create.vue 通过 provide('batch') 暴露，这里直接取用，不重复声明 */
 const batch = inject('batch');
-const {
-  form,
-  ruleVisible,
-  PROJECT_RULES,
-  AD_RULES,
-  isAdRuleDisabled,
-  adRuleDesc,
-  pickRule,
-} = batch;
+const { form, ruleVisible, ensureAdRuleAvailable } = batch;
+
+/** spec 的表单分区 */
+const formSpec = spec.sections.find((s) => s.type === 'form');
+
+/** 依赖求值用的当前值集合 */
+const values = computed(() => ({
+  create_mode: form.create_mode,
+  project_rule: form.project_rule,
+  ad_rule: form.ad_rule,
+}));
 
 /** 显隐：外部 v-model 优先；未传时回落 batch 内部状态 */
 const visible = computed({
@@ -160,12 +134,59 @@ function close() {
 }
 
 /**
- * 广告规则说明文案。
- * 线上原文为「先指定广告数量，自动循环使用素材和标题，多退少补」，
- * Create.vue 里的 adRuleDesc 写成了「多选少补」，此处按线上原文纠正。
+ * 线上行为：规则配置弹窗每次打开都回显「已保存」的规则（配置行那行文字），
+ * 点「取消」会丢弃本次改动，下次打开仍是上一次「确定」的值。
+ * 本地表单是共享状态，故组件内保存一份「已确定」的配置，打开时回显、取消时还原。
+ * 注意：创建方式（新建/已有项目）由页面上的「切换」控制，不纳入这份快照。
  */
-function adRuleText(rule) {
-  return String(adRuleDesc(rule) || rule.desc || '').replace('多选少补', '多退少补');
+const RULE_KEYS = ['project_rule', 'ad_rule', 'ads_limit_per_project', 'ads_per_project', 'projects_per_account'];
+const saved = {};
+RULE_KEYS.forEach((k) => { saved[k] = form[k]; });
+
+function onOpen() {
+  RULE_KEYS.forEach((k) => { form[k] = saved[k]; });
+  if (ensureAdRuleAvailable) ensureAdRuleAvailable();
+}
+
+/** 取消：还原为上一次「确定」的配置 */
+function cancel() {
+  RULE_KEYS.forEach((k) => { form[k] = saved[k]; });
+  close();
+}
+
+/** 确定：保存当前配置并关闭 */
+function ok() {
+  RULE_KEYS.forEach((k) => { saved[k] = form[k]; });
+  close();
+}
+
+/**
+ * 选项说明文案：线上「指定数量」随「创建方式 / 项目生成规则」切换两种表述。
+ * spec 里用 descWhenAny + descWhenAnyText 表达。
+ */
+function descOf(opt) {
+  if (opt.descWhenAny) {
+    const hit = opt.descWhenAny.some((c) => {
+      const v = values.value[c.field];
+      if ('eq' in c) return v === c.eq;
+      if ('neq' in c) return v !== c.neq;
+      if ('in' in c) return Array.isArray(c.in) && c.in.indexOf(v) >= 0;
+      if ('notIn' in c) return Array.isArray(c.notIn) && c.notIn.indexOf(v) < 0;
+      return true;
+    });
+    if (hit) return opt.descWhenAnyText;
+  }
+  return opt.desc || '';
+}
+
+/**
+ * 点击选项：置灰的忽略；其余直接写回表单。
+ * 「项目生成规则」变化后若当前广告规则变为不可用，自动回退到第一个可用规则（线上同款联动）。
+ */
+function pick(field, value, opt) {
+  if (opt && isDisabled(opt, values.value)) return;
+  form[field.key] = value;
+  if (ensureAdRuleAvailable) ensureAdRuleAvailable();
 }
 </script>
 
@@ -185,21 +206,23 @@ function adRuleText(rule) {
   text-align: left;
 }
 .rule-label { flex: none; }
+/* 线上是 mg-icon-question2 图标（14×14，#999），不是文字 */
 .label-tips {
   flex: none;
   font-size: 14px;
-  font-style: normal;
   line-height: 1;
-  color: #86909c;
+  color: #999;
   cursor: help;
 }
 
 /* 创建方式：线上 mc-check-group--button，选中态 #d6eaff 底 + #197afb 字 */
 .rule-mode :deep(.el-radio-button__inner) {
   width: 80px;
+  height: 32px;
   padding: 9px 12px;
   font-size: 12px;
   font-weight: 500;
+  line-height: 12px;
   color: #606266;
   background: #fff;
   border-color: #dcdfe6;
@@ -215,21 +238,24 @@ function adRuleText(rule) {
   box-shadow: -1px 0 0 0 #197afb;
 }
 
-/* 卡片组：线上 4 列 × 220px，间距 16px，卡片高 84px */
+/* 卡片组：线上 flex + gap 16px，卡片 220×84 */
 .custom-radio-group {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 16px;
-  width: 100%;
+  width: 932px;
 }
 .custom-radio-button {
   box-sizing: border-box;
-  min-height: 84px;
+  flex: 0 0 220px;
+  width: 220px;
+  height: 84px;
   padding: 8px 12px;
   cursor: pointer;
   background: transparent;
   border: 1px solid #ddd;
   border-radius: 4px;
+  overflow: hidden;
   transition: border-color .15s, background .15s;
 }
 .custom-radio-button:hover { border-color: #94bfff; }
@@ -253,20 +279,23 @@ function adRuleText(rule) {
   line-height: 18px;
   color: #999;
 }
+/* 置灰态：标题 #333、说明 #999（线上实测） */
+.custom-radio-button--disabled .title { color: #333; }
+.custom-radio-button--disabled .desc { color: #999; }
 
 /* 数字输入：线上 w160（160×32）纯文本框 */
 .rule-num { width: 160px; }
-.rule-num :deep(.el-input__wrapper) { padding: 0 12px; }
-.rule-num :deep(.el-input__inner) { text-align: left; }
+.rule-num :deep(.el-input__wrapper) { padding: 0 8px; }
+.rule-num :deep(.el-input__inner) { text-align: left; font-size: 13px; }
 </style>
 
 <style>
 /* 弹窗外壳（teleport 到 body，需全局样式）
    线上实测：header padding 14px 24px + 下边线 #e8eaec；body padding 20px 24px；footer padding 14px 24px + 上边线 */
-.el-dialog.rule-dialog { max-width: calc(100vw - 40px); padding: 0; }
+.el-dialog.rule-dialog { max-width: calc(100vw - 40px); padding: 0; height: 653px; display: flex; flex-direction: column; }
 .el-dialog.rule-dialog .el-dialog__header { margin-right: 0; padding: 14px 24px; line-height: 18px; border-bottom: 1px solid #e8eaec; }
 .el-dialog.rule-dialog .el-dialog__title { font-size: 16px; font-weight: 700; line-height: 18px; color: #333; }
-.el-dialog.rule-dialog .el-dialog__body { padding: 20px 24px; color: #606266; }
+.el-dialog.rule-dialog .el-dialog__body { flex: 1; min-height: 0; overflow: auto; padding: 20px 24px; color: #606266; }
 .el-dialog.rule-dialog .el-dialog__footer { padding: 14px 24px; border-top: 1px solid #e8eaec; }
 /* 线上页脚按钮 80×32（12px/500，圆角 3px） */
 .el-dialog.rule-dialog .el-dialog__footer .el-button {
@@ -284,7 +313,5 @@ function adRuleText(rule) {
 .el-dialog.rule-dialog .el-button--small { height: 32px; }
 .el-dialog.rule-dialog .el-radio-button--small .el-radio-button__inner { height: 32px; }
 .el-dialog.rule-dialog .el-input--small .el-input__wrapper { min-height: 32px; }
-.el-dialog.rule-dialog .el-input-number--small { width: 160px; }
-.el-dialog.rule-dialog .el-input-number--small .el-input__inner { height: 30px; font-size: 12px; text-align: left; }
-.el-dialog.rule-dialog .el-input-number--small .el-input__wrapper { min-height: 32px; }
+.el-dialog.rule-dialog .el-input--small .el-input__inner { height: 32px; font-size: 13px; line-height: 32px; }
 </style>

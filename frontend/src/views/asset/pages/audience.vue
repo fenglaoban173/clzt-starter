@@ -392,7 +392,7 @@ import { Search } from '@element-plus/icons-vue';
 defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------------------------------------------ *
- * 线上状态字典（来源：创量 dmp-list chunk）
+ * 线上状态字典（来源：智投 dmp-list chunk）
  * ------------------------------------------------------------------ */
 const DELIVERY_STATUS = {
   CUSTOM_AUDIENCE_DELIVERY_STATUS_AVAILABLE: {

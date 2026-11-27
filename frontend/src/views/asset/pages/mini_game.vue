@@ -233,7 +233,7 @@ import { ArrowDown, Plus, Search } from '@element-plus/icons-vue';
 const props = defineProps({ kind: { type: String, default: '' } });
 
 /* ------------------------------------------------------------------
- * 创量标准版「巨量广告·标准 → 资产 → 小程序/小游戏」
+ * 智投标准版「巨量广告·标准 → 资产 → 小程序/小游戏」
  * 线上：https://cl.mobgi.com/property/toutiao/micro-asset/wechat-micro-app
  *
  * 5 个二级页签（逐个线上采集，筛选 / 列 / 按钮 / 弹窗各不相同）：

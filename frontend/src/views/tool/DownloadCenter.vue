@@ -11,6 +11,7 @@
         @keyup.enter="onSearch"
       >
         <template #suffix>
+          <!-- 线上是 .el-input__icon.mg-icon-search1（32×28 块、#333），此处用同尺寸的图标块还原 -->
           <span class="dl-search__icon" title="搜索" @click="onSearch">
             <el-icon><Search /></el-icon>
           </span>
@@ -26,7 +27,7 @@
       <el-table :data="pagedRows" row-key="id" border class="app-table dl-table">
         <el-table-column prop="name" label="任务名称" min-width="300" />
         <el-table-column prop="status" label="状态" min-width="100" />
-        <el-table-column prop="createdAt" label="创建时间" width="160" />
+        <el-table-column prop="createdAt" label="创建时间" min-width="160" />
         <el-table-column label="操作" min-width="100">
           <template #default="{ row }">
             <el-button link size="small" class="dl-op" @click="onDownload(row)">下载</el-button>
@@ -54,11 +55,16 @@
  * 工具 · 系统工具 · 下载中心
  * 线上：https://cl.mobgi.com/assist/systemtools/download
  *
- * 采集自线上 DOM / computed style（C:/tmp/nw/T2_下载中心.json、线上探针）：
- *   - 工具条：关键词输入 188×29（13px，后缀放大镜 32px）+ 清空（12px #197afb，间隔 12px）
- *   - 表格：4 列 941 / 313 / 160 / 313，表头 #fafafa #909399 700 14px，行高 56px，单元格 12px #333
- *   - 操作列：el-button--text 12px #197afb，padding 9px 0（26×32），两按钮间隔 8px
- *   - 分页：total+sizes+prev+pager+next+jumper，整体靠左，「共 2 条」「10条/页」
+ * 采集自线上 DOM / computed style（C:/tmp/nw/T2_下载中心.json、线上探针 + 逐项对拍）：
+ *   - 工具条 .mg-filter-wrapper.cl-filter：padding 12px 16px、高 53px、背景 #fff
+ *     关键词输入 188×29（内层 12px #606266，左内边距 15px）+ 后缀放大镜 32×28 块 #333
+ *     + 清空（12px #197afb，左外边距 12px）
+ *   - 表格：4 列 941 / 313 / 160 / 313，表头底 #fafafa，th 14px #909399 700，
+ *     th>.cell 12px #333 700；行高 56px；td 14px #606266，td>.cell 12px #333
+ *     表格边框 #e8eaec
+ *   - 操作列：el-button--text 12px #197afb / 400，padding 9px 0（26×32），两按钮间隔 8px
+ *   - 分页：整块 1728×64 白底、margin-top 16px、padding 2px 5px 2px 24px、16px；
+ *     共 2 条 → x=200，10条/页 110px，prev/pager/next 35.5px，页码 13px #487ee0（选中）
  * ------------------------------------------------------------------ */
 import { ref, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -126,11 +132,14 @@ function onDownload(row) {
   ElMessage.success('下载任务已提交，文件开始下载');
 }
 
-/** 删除：二次确认 → 从表格移除 → 「共 N 条」同步减少 */
+/** 删除：二次确认 → 从表格移除 → 「共 N 条」同步减少
+ *  线上二次确认弹窗（el-message-box custom-confirm）：标题「提示」、
+ *  正文「确认删除此任务吗?」、按钮「取消 / 确定」。此处用 Element Plus 默认
+ *  ElMessageBox.confirm（系统默认样式），只对齐文案。 */
 async function onDelete(row) {
   try {
     await ElMessageBox.confirm(
-      '确定要删除该下载任务吗？删除后将无法恢复。',
+      '确认删除此任务吗?',
       '提示',
       {
         confirmButtonText: '确定',
@@ -151,40 +160,69 @@ async function onDelete(row) {
 </script>
 
 <style scoped>
-/* ---------- 页面骨架（线上整页白底，无卡片外壳） ---------- */
-.app-page.dl-page { background: #fff; }
+/* ---------- 页面骨架（线上 .cl-container-main 底色 #f5f6f7，内容块各自白底） ---------- */
+/* 线上站点字体栈：App.vue 用的是 Vite 默认栈（Segoe UI 优先），
+   这里按线上覆盖，保证数字/字母（时间戳、分页数字）与线上一致 */
+.app-page.dl-page {
+  background: #f5f6f7;
+  font-family: 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Helvetica Neue',
+    Helvetica, 'Hiragino Sans GB', Arial, sans-serif;
+}
 
-/* ---------- 工具条 ---------- */
+/* ---------- 工具条 ----------
+   线上 .mg-filter-wrapper.cl-filter：padding 12px 16px、高 53px、背景 #fff */
 .dl-filter {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 16px 0;
+  padding: 12px 16px;
+  background: #fff;
 }
 .dl-search { width: 188px; flex: none; }
-/* 线上 el-input--small 高 29px、圆角 3px（EP 2.14 的 wrapper 默认 content-box 会多出 2px 边框） */
+/* 线上 el-input--small 高 29px、圆角 3px；内层左边距 15px + 1px 边框 → 文字起点 192 */
 .dl-page .dl-search :deep(.el-input__wrapper) {
   height: 29px;
   min-height: 29px;
   box-sizing: border-box;
   border-radius: 3px;
+  padding: 1px 0 1px 16px;
 }
 .dl-search :deep(.el-input__inner) { font-size: 12px; }
-.dl-search :deep(.el-input__suffix) { padding: 0 9px; }
+/* 线上后缀图标块 .el-input__icon：宽 32px，贴在输入框右端 */
+.dl-search :deep(.el-input__suffix) {
+  padding: 0;
+  width: 32px;
+  height: 28px;
+}
 .dl-search__icon {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
   cursor: pointer;
-  color: #909399;
-  font-size: 14px;
+  color: #333;
+  font-size: 13px;
 }
+/* EP 2.14 给 .el-input__suffix-inner 首个元素加了 8px 左边距，线上没有，这里去掉 */
+.dl-search :deep(.el-input__suffix-inner > .dl-search__icon) { margin-left: 0; }
 .dl-search__icon:hover { color: #197afb; }
 .dl-clear { line-height: 29px; }
 
 /* ---------- 表格 ---------- */
 .dl-table-wrap { padding: 0 16px; }
-/* 线上 el-table 根节点 clientWidth=1727（表头 colgroup 合计 941+313+160+313=1727） */
-.dl-page .dl-table { width: calc(100% - 1px); margin-top: 28px; }
+/* 线上 el-table：border-box 1728×169，左/上各 1px #ebeef5 描边，
+   内部表头/表体 1727（colgroup 合计 941+313+160+313=1727）。
+   这里用 content-box + 左/上 1px 描边复刻 EP2.14 与线上 1px 的差异。 */
+.dl-page .dl-table {
+  box-sizing: content-box;
+  width: calc(100% - 1px);
+  margin-top: 16px;
+  border-top: 1px solid #ebeef5;
+  border-left: 1px solid #ebeef5;
+  /* 线上单元格边框 #e8eaec（EP 2.14 在 .el-table 上重定义了该变量，需在表格上覆盖） */
+  --el-table-border-color: #e8eaec;
+}
 .dl-page .dl-table :deep(th.el-table__cell) {
   height: 56px;
   background: #fafafa;
@@ -192,34 +230,90 @@ async function onDelete(row) {
   font-size: 14px;
   font-weight: 700;
   padding: 0;
+  border-color: #e8eaec;
+}
+/* 线上表头文字：th>.cell 12px #333 700（th 本身仍是 14px #909399） */
+.dl-page .dl-table :deep(th.el-table__cell > .cell) {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
 }
 .dl-page .dl-table :deep(td.el-table__cell) {
   height: 56px;
   padding: 0;
+  font-size: 14px;
+  color: #606266;
+  border-color: #e8eaec;
+}
+/* 线上正文文字：td>.cell 12px #333 */
+.dl-page .dl-table :deep(td.el-table__cell > .cell) {
   font-size: 12px;
   color: #333;
+  line-height: 18px;
 }
 .dl-page .dl-table :deep(.el-table__cell .cell) { line-height: 18px; }
-/* 行内文字按钮：线上 el-button--text el-button--small（26×32，padding 9px 0，间隔 8px） */
+/* 行内文字按钮：线上 el-button--text el-button--small（26×32，padding 9px 0，间隔 8px，font-weight 400） */
 .dl-page .dl-table :deep(.el-button.is-link) {
   height: auto;
   padding: 9px 0;
   border: 1px solid transparent;
   font-size: 12px;
+  font-weight: 400;
   line-height: 1;
   color: #197afb;
 }
 .dl-page .dl-table :deep(.el-button.is-link + .el-button.is-link) { margin-left: 8px; }
 .dl-page .dl-table :deep(.el-button.is-link:hover) { color: #1462c9; }
 
-/* ---------- 分页（线上整体靠左：共 2 条 → x=200） ---------- */
-.dl-page .dl-pager { justify-content: flex-start; padding: 16px 0; }
-.dl-page .dl-pager :deep(.el-pagination) { padding: 2px 5px 2px 24px; }
+/* ---------- 分页 ----------
+   线上 .el-pagination 整块：x=176 w=1728 h=64、白底、margin-top 16px、
+   padding 2px 5px 2px 24px、font-size 16px，内容整体靠左（共 2 条 → x=200） */
+.dl-page .dl-pager {
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 16px;
+  padding: 0;
+  height: 64px;
+  background: #fff;
+}
+.dl-page .dl-pager :deep(.el-pagination) {
+  width: 100%;
+  height: 64px;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 2px 5px 2px 24px;
+  margin: 0;
+  font-size: 16px;
+  background-color: #fff;
+}
 /* 线上 Element UI 2 的间距：total→sizes 10px、sizes→prev 10px、next→jump 24px；EP 2.14 默认 16px */
-.dl-page .dl-pager :deep(.el-pagination__sizes) { margin: 0 10px; width: 110px; }
+/* 线上分页根节点 16px，但子元素（总数/条数/跳页）均为 13px */
+.dl-page .dl-pager :deep(.el-pagination__total) { margin: 0 10px 0 0; line-height: 32px; font-size: 13px; }
+.dl-page .dl-pager :deep(.el-pagination__sizes) { margin: 0 10px 0 0; width: 110px; font-size: 13px; }
 .dl-page .dl-pager :deep(.el-pagination__sizes .el-select) { width: 110px; }
-.dl-page .dl-pager :deep(.el-pagination button) { margin-left: 0; min-width: 35.5px; }
-.dl-page .dl-pager :deep(.el-pager li) { margin: 0; min-width: 35.5px; height: 28px; line-height: 28px; }
-.dl-page .dl-pager :deep(.el-pagination__jump) { margin-left: 24px; }
+/* 线上 prev/next：13px #c0c4cc、padding 0 12px 0 6px、圆角 0、宽 35.5px */
+.dl-page .dl-pager :deep(.el-pagination button) {
+  margin-left: 0;
+  min-width: 35.5px;
+  border-radius: 0;
+  font-size: 13px;
+  color: #c0c4cc;
+}
+.dl-page .dl-pager :deep(.btn-prev) { padding: 0 12px 0 6px; }
+.dl-page .dl-pager :deep(.btn-next) { padding: 0 6px 0 12px; }
+.dl-page .dl-pager :deep(.el-pagination button:disabled) { color: #c0c4cc; }
+/* 线上页码：13px / 400 / 圆角 0 / 宽 35.5px / 行高 28px；选中色 #487ee0 */
+.dl-page .dl-pager :deep(.el-pager li) {
+  margin: 0;
+  min-width: 35.5px;
+  height: 28px;
+  line-height: 28px;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: #606266;
+}
+.dl-page .dl-pager :deep(.el-pager li.is-active) { color: #487ee0; }
+.dl-page .dl-pager :deep(.el-pagination__jump) { margin-left: 24px; font-size: 13px; }
 .dl-page .dl-pager :deep(.el-pagination__jump .el-input) { width: 32px; }
 </style>

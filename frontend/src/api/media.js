@@ -520,7 +520,9 @@ export const dashboardApi = {
     });
   },
 
-  // 分布类看板（优化师 / 剪辑）：type=optimizer|editor
+  // 分布类看板：type=optimizer|editor|project|media
+  // R110：首页「项目分布」「媒体分布」是两个独立板块，指标/日期各自独立，
+  //      所以这里拆成两个 type 单独取数（原来 load() 用同一个 metric 算两个分布，会联动）。
   async distribution(params = {}) {
     const { type = 'optimizer', metric = 'cost', date = 'yesterday' } = params;
     // 基线均为「昨天」（1 天）口径，按所选周期覆盖天数折算
@@ -529,6 +531,21 @@ export const dashboardApi = {
       const items = dashEditorList.map((it) => ({
         name: it.name,
         value: +(it[metric] * period).toFixed(2),
+      }));
+      return mockOk(dashDist(items, metric));
+    }
+    if (type === 'project') {
+      const factor = dashProjectPeriodFactor(date) * dashMetricRatio(metric);
+      const items = dashProjectList.map((p2) => ({
+        name: p2.name,
+        value: +(p2.cost * factor).toFixed(2),
+      }));
+      return mockOk(dashDist(items, metric));
+    }
+    if (type === 'media') {
+      const items = dashMediaList.map((mm) => ({
+        name: mm.label,
+        value: +((dashMetricsOf(dashMediaBase[mm.key] || {})[metric] || 0) * period).toFixed(2),
       }));
       return mockOk(dashDist(items, metric));
     }

@@ -21,7 +21,7 @@
       </div>
 
       <el-table :data="list" row-key="id" border stripe style="margin-top: 16px">
-        <el-table-column v-if="isMainKind" label="类型" :width="110">
+        <el-table-column v-if="isMainKind" label="类型" :min-width="110">
           <template #default="{ row }"><el-tag>{{ typeText(row.type) }}</el-tag></template>
         </el-table-column>
         <el-table-column v-if="isMainKind" label="名称 / 标题" :min-width="200">
@@ -30,8 +30,8 @@
             <span v-else>{{ row.title || row.video_title || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="isMainKind" label="素材 ID" prop="material_id" :width="140" />
-        <el-table-column v-if="!isMainKind" label="名称" :width="220">
+        <el-table-column v-if="isMainKind" label="素材 ID" prop="material_id" :min-width="140" />
+        <el-table-column v-if="!isMainKind" label="名称" :min-width="220">
           <template #default="{ row }">
             <span v-if="row.titles">{{ formatTitles(row.titles) }}</span>
             <span v-else>{{ row.title || row.video_title || '-' }}</span>
@@ -40,12 +40,12 @@
         <el-table-column v-if="!isMainKind" label="内容 / 链接" :min-width="220">
           <template #default="{ row }">{{ row.content || row.url || row.rule || '-' }}</template>
         </el-table-column>
-        <el-table-column label="状态" :width="110">
+        <el-table-column label="状态" :min-width="110">
           <template #default="{ row }">
             <el-tag :type="statusColor(row.platform_status || row.status)">{{ statusText(row.platform_status || row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="created_at" :width="180" />
+        <el-table-column label="创建时间" prop="created_at" :min-width="180" />
         <el-table-column label="操作" :width="130" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="onDetail(row)">查看</el-button>

@@ -1,5 +1,5 @@
 // 自定义指标：指标目录（左侧分类 / 中间可选指标）+ 默认指标 + 本地模板存储
-// 目录对齐创量「自定义指标」弹窗（图3）：基础信息 / 财务流水 / 展现数据 / 转化数据 …
+// 目录对齐智投「自定义指标」弹窗（图3）：基础信息 / 财务流水 / 展现数据 / 转化数据 …
 
 // 固定指标：始终选中、始终排在最前、不可移除（表格中横向固定）
 export const FIXED_METRICS = [
@@ -18,7 +18,7 @@ export const METRIC_GROUPS = [
       t('advertiser_id', '账户ID', { fixed: true }),
       t('email', '登录邮箱', { type: 'text', prop: 'email', width: 190 }),
       t('subject', '账户主体', { type: 'text', prop: 'subject', width: 200 }),
-      t('remark_cy', '账户备注(创量)', { type: 'text', prop: 'remark_cy', width: 190 }),
+      t('remark_cy', '账户备注(智投)', { type: 'text', prop: 'remark_cy', width: 190 }),
       t('remark_jl', '账户备注(巨量)', { type: 'text', prop: 'remark_jl', width: 190 }),
       t('project', '项目', { type: 'text', prop: 'project', width: 140 }),
       t('product', '产品', { type: 'text', prop: 'product', width: 130 }),

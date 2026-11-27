@@ -421,7 +421,7 @@ const sortState = reactive({ prop: '', order: '' });
 // kind: select 单选下拉 / multi 多选下拉 / cascader 级联 / remote 远程搜索多选
 //       / account 媒体账户选择器 / material 素材选择器 / daterange 日期区间 / input 输入框
 // def：未选择时的默认展示文案（与线上一致，如「所有产品」「不限」）
-// options：候选项（与创量项目列表页下拉内容一致）；缺省时从当前列表数据中去重取值
+// options：候选项（与智投项目列表页下拉内容一致）；缺省时从当前列表数据中去重取值
 const FILTER_DEFS = [
   { key: 'clProject', label: '智投项目', kind: 'multi', def: '全部', width: 200, source: 'project', options: CL_PROJECTS },
   { key: 'optimizer', label: '优化师', kind: 'multi', def: '所有', width: 180, source: 'optimizer', options: OPTIMIZERS },

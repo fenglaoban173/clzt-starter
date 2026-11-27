@@ -19,9 +19,9 @@
       <!-- ① 查询条件（线上 form.filter-search-input） -->
       <div class="filter-row">
         <div class="filter-left">
-          <!-- 创量项目 -->
+          <!-- 智投项目 -->
           <div class="filter-cell">
-            <label class="filter-label">创量项目：</label>
+            <label class="filter-label">智投项目：</label>
             <el-select
               v-model="query.project"
               class="filter-select"
@@ -184,7 +184,7 @@
           @change="onBatchOp"
         >
           <el-option label="修改产品" value="editProduct" />
-          <el-option label="修改创量项目" value="editProject" />
+          <el-option label="修改智投项目" value="editProject" />
         </el-select>
 
         <span v-if="selectedRows.length" class="ori-count">
@@ -218,7 +218,7 @@
         <el-table-column prop="package_type" label="定向包类型" min-width="120" show-overflow-tooltip />
         <el-table-column prop="delivery_range" label="投放范围" min-width="100" />
         <el-table-column prop="product" label="产品" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="project" label="创量项目" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="project" label="智投项目" min-width="120" show-overflow-tooltip />
         <el-table-column prop="company" label="主体" min-width="210" show-overflow-tooltip />
         <el-table-column prop="creator" label="创建人员" min-width="100" />
         <el-table-column prop="related_count" label="关联项目数" min-width="100" />
@@ -410,7 +410,7 @@
                   </el-popover>
                 </el-form-item>
 
-                <el-form-item label="创量项目（选填）">
+                <el-form-item label="智投项目（选填）">
                   <el-select v-model="form.project" class="ag-select" placeholder="不限">
                     <el-option label="不限" value="" />
                     <el-option v-for="o in PROJECTS" :key="o" :label="o" :value="o" />
@@ -607,7 +607,7 @@
       </template>
     </el-dialog>
 
-    <!-- ⑦ 共享定向包 弹窗（线上：已选定向包 + 橙提示 + 左创量账户人员 / 右已选0/20） -->
+    <!-- ⑦ 共享定向包 弹窗（线上：已选定向包 + 橙提示 + 左智投账户人员 / 右已选0/20） -->
     <el-dialog
       v-model="shareVisible"
       title="共享定向包"
@@ -620,9 +620,9 @@
         <i class="ori-share__warn-dot"></i>穿山甲媒体包、人群包内容不支持共享
       </div>
       <div class="ori-share__panels">
-        <!-- 左：创量账户人员列表 -->
+        <!-- 左：智投账户人员列表 -->
         <div class="ori-share__left">
-          <div class="ori-share__panel-title">创量账户</div>
+          <div class="ori-share__panel-title">智投账户</div>
           <div class="ori-share__search">
             <el-input
               v-model="shareKeyword"
@@ -719,16 +719,16 @@
       </template>
     </el-dialog>
 
-    <!-- ⑩ 批量修改创量项目 弹窗 -->
+    <!-- ⑩ 批量修改智投项目 弹窗 -->
     <el-dialog
       v-model="batchProjectVisible"
-      title="修改创量项目"
+      title="修改智投项目"
       width="520px"
       :close-on-click-modal="false"
       append-to-body
     >
-      <div class="ori-dialog__label">已选 <b>{{ batchRows.length }}</b> 条定向包，请选择目标创量项目：</div>
-      <ProjectSelectField v-model="batchProject" :options="PROJECTS" placeholder="请选择创量项目" />
+      <div class="ori-dialog__label">已选 <b>{{ batchRows.length }}</b> 条定向包，请选择目标智投项目：</div>
+      <ProjectSelectField v-model="batchProject" :options="PROJECTS" placeholder="请选择智投项目" />
       <template #footer>
         <div class="dialog-footer">
           <div class="operate-button">
@@ -778,7 +778,7 @@ const props = defineProps({ kind: { type: String, default: '' } });
 const router = useRouter();
 
 /* ------------------------------------------------------------------ *
- * 线上固定选项（来源：创量线上「定向包」页采集规格 + 实页 DOM）
+ * 线上固定选项（来源：智投线上「定向包」页采集规格 + 实页 DOM）
  * ------------------------------------------------------------------ */
 const PROJECTS = ['知乎小说', '漫剧端原生', 'soul', '百度文库'];
 
@@ -823,7 +823,7 @@ const ACCOUNTS = ASSET_ACCOUNT_OPTIONS_LINK;
 
 /* ------------------------------------------------------------------ *
  * 组件内 mock 列表（线上 total_count = 25）
- * [名称, 描述, 定向包类型, 投放范围, 产品, 创量项目, 主体, 创建人员, 关联项目数, 创建时间]
+ * [名称, 描述, 定向包类型, 投放范围, 产品, 智投项目, 主体, 创建人员, 关联项目数, 创建时间]
  * ------------------------------------------------------------------ */
 const RAW = [
   ['红果短剧-定向', '通投', '应用推广-Android', '通投智选', '测试安卓应用(android)', '', '北京笔墨留香科技有限公司海淀第一分公司', '申旭阳', 0, '2026-11-18 15:36:41'],
