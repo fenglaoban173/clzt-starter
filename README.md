@@ -1,77 +1,89 @@
-# 智投 · 批量广告搭建平台（前端原型）
+# 创量智投前端原型
 
-> **当前交付：纯前端可交互原型，本地模拟数据。** 所有列表、下拉、筛选、提交、预览、明细均由前端 `src/mock/data.js` 提供模拟数据，**不连接后端、不请求巨量真实接口**；表单字段与枚举对齐巨量广告升级版「创建项目 / 创建营销」官方文档。界面布局与交互对照智投标准版（仅巨量相关，其他媒体不做）。
+这是一个基于 Vue 3 的前端交互原型，界面和流程用于演示广告投放管理平台。应用通过本地模拟数据展示页面与交互，**不是生产投放系统**：不连接业务后端，不调用巨量引擎等媒体平台的真实接口，也不会创建或修改真实广告。
 
-对接巨量引擎开放平台的批量广告搭建与投放看板原型。覆盖：**登录 → 工作台 → 推广（账户 / 项目 / 广告 / 托管方案 / 铺剧助手 / 批量搭建）→ 素材库 → 资产库 → 任务中心 → 数据看板 → 管理** 全链路页面。
+## 功能范围
 
-- 前端：Vue 3 + Vite 6 + Element Plus + @element-plus/icons-vue + Pinia + Vue Router + dayjs + Less
-- 无后端、无数据库、无真实网络请求；API 封装在 `src/api/media.js`，方法签名预留，后续接真实后端时把该层换回 HTTP 调用即可。
+当前前端包含以下页面模块，具体入口以应用中的导航为准：
 
-## 启动
+- **首页**：广告数据、项目和素材概览。
+- **推广**：账户、项目、广告、托管方案、铺剧助手和批量搭建。
+- **报表**：账户、项目、广告、组件、素材报表，以及报表订阅、人效管理、财务管理和资金使用率。
+- **素材**：素材库及其筛选、管理交互。
+- **资产**：巨量商品、应用、事件、人群包、定向包、落地页和直达链接等资产页面。
+- **任务**：巨量新建任务和批量操作任务。
+- **工具**：下载中心和消息中心。
+- **管理**：智投项目；管理员还可进入账户管理和用户管理。
+
+部分页面或按钮仍为演示交互，可能只显示提示，不会执行真实的媒体操作。标记为待开发或待开通的入口不代表功能已经接通。
+
+## 技术栈
+
+Vue 3、Vite、Vue Router、Pinia、Element Plus、ECharts、Day.js 和 Less。依赖及命令定义在 `frontend/package.json`，锁文件为 `frontend/package-lock.json`。
+
+## 本地运行
+
+需要安装 Node.js 和 npm。在仓库根目录执行：
 
 ```bash
 cd frontend
-npm install
-npm run dev      # 默认 http://localhost:5173（端口占用时自动顺延）
-npm run build    # 产出 dist/
+npm ci
+npm run dev
 ```
 
-原型本地账号（密码任意 ≥6 位即可登录）：
+开发服务器默认地址为 <http://localhost:5173>。Vite 默认端口被占用时会尝试使用其他端口，请以终端输出为准。
 
-| 用户名 | 角色 | 说明 |
+常用命令（均在 `frontend/` 目录执行）：
+
+```bash
+npm run build    # 生成生产静态文件到 frontend/dist/
+npm run preview  # 本地预览已生成的静态文件，默认端口 4173
+```
+
+## 原型登录
+
+登录页使用前端内置的演示用户，不会向服务器验证身份：
+
+| 用户名 | 原型角色 | 说明 |
 | --- | --- | --- |
-| admin | admin | 管理员，可见管理菜单 |
-| op_test | operator | 优化师 |
-| viewer | viewer | 只读 |
+| `admin` | 管理员 | 可访问受管理员角色限制的账户管理和用户管理页面。 |
+| `op_test` | 优化师 | 普通演示角色。 |
+| `viewer` | 只读用户 | 普通演示角色。 |
 
-## 打包与部署
+以上任一用户名使用长度不少于 6 位的任意密码即可登录。**这些账号和密码规则仅用于本地演示，不构成安全认证；不要用于真实业务或存放真实凭据。**登录状态保存在浏览器的 `localStorage` 中。部分原型偏好和自定义指标模板也使用浏览器本地存储；清理浏览器站点数据会清除这些本地状态。
 
-```bash
-cd frontend
-npm run build     # 产出 frontend/dist/
-npm run preview   # 以静态站点方式预览产物，默认 http://localhost:4173
-```
+## 数据与接口边界
 
-**GitHub**：仓库 <https://github.com/fenglaoban173/clzt-starter>（公开）。`.github/workflows/deploy.yml` 在每次推送 `main` 时自动构建并发布到 GitHub Pages：
+- 主要模拟数据位于 `frontend/src/mock/`；前端 API 外观封装位于 `frontend/src/api/`。目前这些封装直接从本地模拟数据返回结果，不代表已接入后端。
+- 登录、角色判断和页面操作均由浏览器端代码完成，仅供界面演示。客户端角色判断不能保护真实数据或替代服务端权限校验。
+- 页面中出现的账户、人员、项目、指标和投放数据是演示数据，不应作为真实业务数据使用。
 
-- 构建时注入 `VITE_BASE=/<仓库名>/`，`vite.config.js` 的 `base` 与 `router` 的 `createWebHistory(import.meta.env.BASE_URL)` 同步跟随该前缀；本地不注入时保持 `/`，行为不变。
-- GitHub Pages 不支持 history 路由回退，CI 会把 `dist/index.html` 复制为 `dist/404.html` 兜底深链。
-- 线上地址：<https://fenglaoban173.github.io/clzt-starter/>
+## GitHub Pages 部署
+
+仓库的 `.github/workflows/deploy.yml` 会在 `main` 分支收到推送，或手动触发工作流时，安装前端依赖、运行生产构建并发布到 GitHub Pages。
+
+- 在线预览：<https://fenglaoban173.github.io/clzt-starter/>
+- 构建时通过 `VITE_BASE` 配置仓库子路径；Vue Router 使用 Vite 的 `BASE_URL`。
+- 工作流会生成 `404.html`，用于 GitHub Pages 上的单页应用路由回退。
+- GitHub Actions 的部署状态和日志可在仓库的 **Actions** 页面查看。
 
 ## 目录结构
 
-```
+```text
 clzt-starter/
-└── frontend/
-    ├── vite.config.js        # Vite + Vue 插件，@ 别名指向 /src（无后端代理）
-    └── src/
-        ├── api/media.js      # 授权 / 素材 / 搭建 / 运营 / 报表 / 资产 / 任务 mock 封装
-        ├── mock/data.js      # 全部模拟数据与巨量枚举口径
-        ├── store/auth.js     # Pinia 会话态（localStorage 持久化）
-        ├── router/index.js   # 登录守卫 + 角色守卫
-        ├── layout/AppLayout.vue  # 顶部横向导航 + 悬停下拉
-        └── views/            # Login / Dashboard / media/* / build/* / asset/* / admin/*
+├── .github/workflows/deploy.yml  # GitHub Pages 自动构建与部署
+├── capture/                      # 页面采集资料和实现对照截图，不参与应用运行
+├── frontend/
+│   ├── public/                   # 静态资源和下载模板
+│   ├── src/
+│   │   ├── api/                  # 本地模拟 API 封装
+│   │   ├── layout/               # 全局导航与页面布局
+│   │   ├── mock/                 # 演示数据和筛选选项
+│   │   ├── router/               # 路由和前端登录守卫
+│   │   ├── store/                # Pinia 状态（含本地演示会话）
+│   │   └── views/                # 各业务页面
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+└── README.md
 ```
-
-## 导航结构（对照智投标准版）
-
-顶部一级导航，鼠标移入展开二级下拉：
-
-- **首页**：工作台概览
-- **推广**：账户、项目、广告、托管方案、铺剧助手、批量搭建
-- **报表**：账户 / 项目 / 广告 / 素材 / 组件报表（页内页签切换）、报表订阅与经营分析（原型占位）
-- **素材**：素材库（视频 / 图片 / 标题包 / 落地页等）
-- **资产**：资产总览、巨量商品库、巨量应用、小程序/小游戏、短剧推广链接、人群包、定向包、落地页、事件管理（部分占位）
-- **任务**：任务中心
-- **管理**：账户管理、用户管理（仅 admin）
-
-## 巨量字段与规则口径（按开放平台文档落地于 mock）
-
-- **项目层级**：`advertiser_id`、`operation`、`delivery_mode`、`landing_type`、`app_promotion_type`、`marketing_goal`、`ad_type`、`delivery_type`、`name`、`asset_type`、`micro_promotion_type`、`download_url/app_name/download_type/launch_type/open_url/subscribe_url`、`optimize_goal{asset_ids,external_action,deep_external_action,deep_bid_type}`、`delivery_range{inventory_catalog,inventory_type,union_video_type}`、`audience{audience_package_id,district,geolocation,city,location_type,gender,age,retargeting_tags_include/exclude,interest_action_mode,action_days,action_categories,action_words,hide_if_converted}`。
-- **单元层级**：`advertiser_id`、`project_id`、`name`（1-50 字不可重复）、`operation`、`promotion_materials{video_material_list,image_material_list,title_material_list,external_url_material_list}`、`native_setting{aweme_setting_type,aweme_id,anchor_related_type}`、`source`、`is_comment_disable`、`ad_download_status`、`budget_mode`、`budget`、`bid`、`cpa_bid`、`deep_cpabid`、`roi_goal`、`first_roi_goal`、`auto_extend_traffic`、`keywords[{word,match_type,bid}]`。
-- **预算出价区间**：日预算 CPM/CPC ≥100、oCPM/oCPC ≥300；bid CPM 4-100、CPC 0.1-100；`cpa_bid` 0.01-10000；`deep_cpabid` 0.1-10000；`roi_goal` (0,5]。
-- **枚举联动**：落地页类型（APP/LINK/MICRO_GAME/SHOP/QUICK_APP/NATIVE_ACTION/DPA）联动投放载体、优化目标、深度目标；计费方式联动预算下限与出价字段。
-
-## 已知边界（原型占位，未独立成页）
-
-报表订阅、经营分析 / 人效 / 财务 / 资金使用率；巨量商品库、巨量应用、小程序/小游戏、短剧推广链接、试玩/直玩素材、原生锚点模板、专辑链接、组图管理、标签管理、穿山甲媒体包、定向模板、微信生态类落地页与资产组管理等，在顶部下拉中以占位项呈现，点击给出「原型暂未开放」提示。
