@@ -14,7 +14,7 @@
           <h4 class="dr-card__title">素材文件属性</h4>
           <div class="dr-card__body">
             <div class="dr-row">
-              <label class="dr-label">创量项目</label>
+              <label class="dr-label">智投项目</label>
               <el-select v-model="f.project" placeholder="不限" class="dr-ctl">
                 <el-option value="ALL" label="不限" />
                 <el-option value="ZHIHU" label="知乎小说" />
