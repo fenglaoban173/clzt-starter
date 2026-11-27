@@ -142,10 +142,16 @@ export default {
     layout_video: false,
     layout_image: false,
     per_account_config: false,
-    group_counts: { VIDEO: '10', IMAGE: '1', TEXT_IMAGE: '1' },
+    group_counts: {
+      VIDEO: '10', IMAGE: '0', TEXT_IMAGE: '0',
+      /* 竖版视频默认上限 2，便于体验「素材卡删除」与 2/2 → 1/2 → 空态的变化 */
+      VIDEO_VERTICAL: '2', VIDEO_HORIZONTAL: '1',
+      IMAGE_VERTICAL: '1', IMAGE_HORIZONTAL: '1', IMAGE_SMALL: '1',
+    },
     group_name_template: '',
     guide_video: 'OFF',
     ad_material_count_mode: 'SAME',
+    single_rule_ad: true,
     insufficient_rule: 'TERMINATION',
     loop_limit: '2',
     guide_keyword: '',
@@ -200,12 +206,14 @@ export default {
               rowHeight: 38,
               gapAfter: 20,
               width: 300,
+              /** 只在「视频上传至 = 升级版工作台组织」时显示（上传到广告主账户时不需要组织） */
+              visibleWhen: { field: 'upload_scope', eq: 'EBP' },
               options: [
                 { value: '1873939327613259', label: '央广时代(1873939327613259)' },
                 { value: '1875663344111624', label: '央广漫剧R3(1875663344111624)' },
                 { value: '1873760026148729', label: '代理央广时代(1873760026148729)' },
               ],
-              note: '线上：始终显示（视频上传至 = 广告主账户 时也不隐藏）；必填；el-select 宽 300px',
+              note: '只在「视频上传至 = 升级版工作台组织」时显示；必填；el-select 宽 300px',
             },
             {
               key: 'org_share_tip',
@@ -271,23 +279,59 @@ export default {
               key: 'group_config',
               label: '每个创意组配置',
               type: 'groupCounts',
-              default: { VIDEO: 10, IMAGE: 1, TEXT_IMAGE: 1 },
+              default: { VIDEO: 10, IMAGE: 0, TEXT_IMAGE: 0 },
               rowHeight: 72,
               gapAfter: 20,
               itemWidth: 182,
-              itemGap: 32,
+              itemGap: 0,
               items: [
-                { value: 'VIDEO', label: '视频', max: 30, lockIcon: 'lock2', lockTip: '未锁定，锁定后所有创意组都将使用相同的视频素材组合' },
-                { value: 'IMAGE', label: '图片', max: 50, lockIcon: 'lock2', lockTip: '未锁定，锁定后所有创意组都将使用相同的图片素材组合' },
+                { value: 'VIDEO', label: '视频', max: 10, lockIcon: 'lock2', lockTip: '未锁定，锁定后所有创意组都将使用相同的视频素材组合' },
+                { value: 'IMAGE', label: '图片', max: 10, lockIcon: 'lock2', lockTip: '未锁定，锁定后所有创意组都将使用相同的图片素材组合' },
                 { value: 'TEXT_IMAGE', label: '图文', max: 10, lockIcon: 'lock2', lockTip: '未锁定，锁定后所有创意组都将使用相同的图文素材组合' },
               ],
+              /**
+               * 线上「区分素材版式」联动：勾选视频 / 图片后，视频、图片被拆成版式细分项
+               *   不启用        → 视频 / 图片 / 图文
+               *   视频          → 竖版视频 / 横版视频 / 图片 / 图文
+               *   图片          → 视频 / 竖版图片 / 横版图片 / 小图 / 图文
+               *   视频 + 图片   → 竖版视频 / 横版视频 / 竖版图片 / 横版图片 / 小图 / 图文
+               * 每列宽 182、列间无间距、行距 16（三列换行，图文落到第二行）
+               */
+              layoutItems: {
+                NONE: [
+                  { value: 'VIDEO', label: '视频', default: '10' },
+                  { value: 'IMAGE', label: '图片', default: '0' },
+                  { value: 'TEXT_IMAGE', label: '图文', default: '0' },
+                ],
+                VIDEO: [
+                  { value: 'VIDEO_VERTICAL', label: '竖版视频', default: '1' },
+                  { value: 'VIDEO_HORIZONTAL', label: '横版视频', default: '1' },
+                  { value: 'IMAGE', label: '图片', default: '0' },
+                  { value: 'TEXT_IMAGE', label: '图文', default: '0' },
+                ],
+                IMAGE: [
+                  { value: 'VIDEO', label: '视频', default: '0' },
+                  { value: 'IMAGE_VERTICAL', label: '竖版图片', default: '1' },
+                  { value: 'IMAGE_HORIZONTAL', label: '横版图片', default: '1' },
+                  { value: 'IMAGE_SMALL', label: '小图', default: '1' },
+                  { value: 'TEXT_IMAGE', label: '图文', default: '0' },
+                ],
+                BOTH: [
+                  { value: 'VIDEO_VERTICAL', label: '竖版视频', default: '1' },
+                  { value: 'VIDEO_HORIZONTAL', label: '横版视频', default: '1' },
+                  { value: 'IMAGE_VERTICAL', label: '竖版图片', default: '1' },
+                  { value: 'IMAGE_HORIZONTAL', label: '横版图片', default: '1' },
+                  { value: 'IMAGE_SMALL', label: '小图', default: '1' },
+                  { value: 'TEXT_IMAGE', label: '图文', default: '0' },
+                ],
+              },
               bubble: {
                 when: { field: 'group_config', truthy: true },
                 text: '创意组的素材配置，即为广告内的创意形式；创意组数量，影响广告最终生成数量。',
               },
-              tip: '即单个广告内的素材数量。注：因媒体限制，视频最多30个，图片最多50个，图文最多10个。',
+              tip: '即单个广告内的素材数量。注：因媒体限制，视频最多10个，图片最多10个，图文最多10个。',
               tipHeight: 32,
-              note: '线上 el-input-group（prepend 视频/图片/图文）+ 锁图标 group-config__lock mg-icon-lock2'
+              note: '线上 el-input-group（prepend 版式名）+ 锁图标 group-config__lock mg-icon-lock2'
                 + '（14×14 #197afb）；数值框 80×32；说明行 count-tips 12px #999，行高 32px（继承 form-item 的 line-height:32px）',
             },
             {
@@ -383,7 +427,7 @@ export default {
       toolbar: ['乱序', '清空', '更多菜单', '随机选择', '智能优选', '一键测新', '批量添加素材'],
       toolbarMore: ['批量添加封面', '一键指定封面'],
       /** 「批量添加素材」下拉：基础 4 项 + 按引导视频追加的 2 项 */
-      toolbarAddMaterial: ['添加本地素材', '添加冲量素材', '添加已有图文', '自动新建图文'],
+      toolbarAddMaterial: ['添加本地素材', '添加已有图文'],
       toolbarAddMaterialGuide: {
         OLD: ['添加引导视频', '自动匹配引导视频'],
         NEW: ['添加引导视频', '按素材名称分配引导视频'],
@@ -440,12 +484,13 @@ export default {
               rowHeight: 38,
               gapAfter: 20,
               width: 300,
+              visibleWhen: { field: 'upload_scope', eq: 'EBP' },
               options: [
                 { value: '1873939327613259', label: '央广时代(1873939327613259)' },
                 { value: '1875663344111624', label: '央广漫剧R3(1875663344111624)' },
                 { value: '1873760026148729', label: '代理央广时代(1873760026148729)' },
               ],
-              note: '线上：始终显示',
+              note: '只在「视频上传至 = 升级版工作台组织」时显示',
             },
             {
               key: 'org_share_tip',
@@ -484,12 +529,22 @@ export default {
                 { value: 'SAME', label: '统一设置' },
                 { value: 'RULE', label: '分规则设置' },
               ],
-              /** 分规则设置时线上追加的第三个选项 */
-              extraOptions: {
-                RULE: [{ value: 'SINGLE_RULE', label: '单规则满足时搭建广告' }],
-              },
               note: '线上为动态选取素材页签独有字段（手动页签没有）；'
-                + '选「分规则设置」后单选组追加第三个选项「单规则满足时搭建广告」',
+                + '选「分规则设置」后，单选组右侧同行出现橙色提示，并在下一行出现勾选项「单规则满足时搭建广告」',
+            },
+            {
+              key: 'single_rule_ad',
+              label: '',
+              type: 'checkbox',
+              default: true,
+              rowHeight: 30,
+              gapAfter: 16,
+              text: '单规则满足时搭建广告',
+              bubble: {
+                text: '开启后，任意规则满足所需素材数量便搭建广告',
+              },
+              visibleWhen: { field: 'ad_material_count_mode', eq: 'RULE' },
+              note: '线上：勾选框（蓝色勾 + 蓝字），其后跟灰色 ? 图标；默认勾选',
             },
             {
               key: 'separate_layout',
@@ -518,12 +573,37 @@ export default {
               default: { VIDEO: '', IMAGE: '' },
               rowHeight: 72,
               gapAfter: 20,
-              itemWidth: 160,
-              itemGap: 32,
+              itemWidth: 182,
+              itemGap: 0,
               items: [
-                { value: 'VIDEO', label: '视频', max: 30 },
-                { value: 'IMAGE', label: '图片', max: 50 },
+                { value: 'VIDEO', label: '视频', max: 10 },
+                { value: 'IMAGE', label: '图片', max: 10 },
               ],
+              /** 动态页签同样按「区分素材版式」拆分，但没有图文项 */
+              layoutItems: {
+                NONE: [
+                  { value: 'VIDEO', label: '视频', default: '0' },
+                  { value: 'IMAGE', label: '图片', default: '0' },
+                ],
+                VIDEO: [
+                  { value: 'VIDEO_VERTICAL', label: '竖版视频', default: '0' },
+                  { value: 'VIDEO_HORIZONTAL', label: '横版视频', default: '0' },
+                  { value: 'IMAGE', label: '图片', default: '0' },
+                ],
+                IMAGE: [
+                  { value: 'VIDEO', label: '视频', default: '0' },
+                  { value: 'IMAGE_VERTICAL', label: '竖版图片', default: '0' },
+                  { value: 'IMAGE_HORIZONTAL', label: '横版图片', default: '0' },
+                  { value: 'IMAGE_SMALL', label: '小图', default: '0' },
+                ],
+                BOTH: [
+                  { value: 'VIDEO_VERTICAL', label: '竖版视频', default: '0' },
+                  { value: 'VIDEO_HORIZONTAL', label: '横版视频', default: '0' },
+                  { value: 'IMAGE_VERTICAL', label: '竖版图片', default: '0' },
+                  { value: 'IMAGE_HORIZONTAL', label: '横版图片', default: '0' },
+                  { value: 'IMAGE_SMALL', label: '小图', default: '0' },
+                ],
+              },
               bubble: {
                 when: { field: 'group_config', truthy: true },
                 text: '创意组的素材配置，即为广告内的创意形式；创意组数量，影响广告最终生成数量。',
@@ -531,7 +611,7 @@ export default {
               tip: '动态选取时为每个广告使用的素材数量，不需要的素材类型请设置为0。',
               tipHeight: 32,
               visibleWhen: { field: 'ad_material_count_mode', neq: 'RULE' },
-              note: '线上：分规则设置 时「每个创意组配置」整行消失；动态页签只有视频/图片两项（无图文）',
+              note: '线上：分规则设置 时「每个创意组配置」整行消失；动态页签只有视频/图片两类（无图文）',
             },
             {
               key: 'count_mode_tip',

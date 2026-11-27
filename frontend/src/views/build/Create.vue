@@ -674,6 +674,23 @@
       @action="onPickerAction"
     />
 
+    <!-- 选择资产组（线上三筛选 + 账户单选列表 + 已选栏） -->
+    <AssetGroupPickerDrawer
+      v-model="assetPickerVisible"
+      :accounts="selectedAccounts"
+      :rows="PICKER_DATA.assetGroup"
+      :limit="1000"
+      @confirm="onAssetGroupConfirm"
+    />
+
+    <!-- 添加关键词（搜索快投） -->
+    <SearchKeywordDrawer
+      v-model="keywordVisible"
+      :initial="searchKeywords"
+      :limit="1000"
+      @confirm="onKeywordConfirm"
+    />
+
     <!-- 批量修改广告名称 / 项目名称（线上：预览区批量操作） -->
     <AdRenameDialog v-model="renameVisible" :rows="renameRows" :type="renameType" @confirm="onRenameConfirm" />
 
@@ -713,74 +730,89 @@
       </template>
     </el-drawer>
 
-    <!-- 随机选择 / 智能优选 / 一键测新（线上：三个入口共用同一个 800px 弹窗，标题随入口变化） -->
-    <el-dialog v-model="randomPickVisible" :title="randomPickTitle" width="800px" append-to-body class="rp-dialog">
-      <el-form label-position="left" label-width="110px" class="rp-form">
+    <!-- 随机选择 / 智能优选 / 一键测新（线上：三个入口共用同一张 500px 弹窗，标题随入口变化，标题右侧带 ⓘ） -->
+    <el-dialog v-model="randomPickVisible" width="500px" append-to-body class="rp-dialog">
+      <template #header>
+        <div class="rp-header">
+          <span class="rp-header__title">{{ randomPickTitle }}</span>
+          <el-tooltip
+            content="按素材历史表现自动筛选，并按您设置的规则自动分配到创意组进行测试"
+            placement="top"
+            :show-after="200"
+          >
+            <span class="rp-header__q">?</span>
+          </el-tooltip>
+        </div>
+      </template>
+      <el-form label-position="left" label-width="76px" class="rp-form">
         <el-form-item label="素材上传时间">
-          <el-date-picker v-model="randomPickForm.uploadTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" style="width: 100%" />
+          <el-date-picker
+            v-model="randomPickForm.uploadTime"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            style="width: 100%"
+          />
         </el-form-item>
-        <el-form-item label="智投项目">
-          <el-select v-model="randomPickForm.project" multiple clearable placeholder="请选择智投项目" style="width: 100%">
+        <el-form-item label="创意项目">
+          <el-select v-model="randomPickForm.project" multiple clearable placeholder="请选择创意项目" style="width: 100%">
             <el-option v-for="p in PROJECT_RULES" :key="p.value" :label="p.label" :value="p.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="素材目录">
-          <el-select v-model="randomPickForm.catalog" multiple clearable placeholder="请选择素材目录" style="width: 100%">
-            <el-option v-for="c in INVENTORY_CATALOGS" :key="c" :label="c" :value="c" />
-          </el-select>
-          <div class="ad-hint">暂不支持目录下的媒体同步素材</div>
+          <div class="rp-line">
+            <el-select v-model="randomPickForm.catalog" multiple clearable placeholder="全部" class="rp-catalog">
+              <el-option v-for="c in INVENTORY_CATALOGS" :key="c" :label="c" :value="c" />
+            </el-select>
+            <span class="rp-hint">暂不支持目录下的媒体同步素材</span>
+          </div>
         </el-form-item>
         <el-form-item label="素材类型">
-          <el-radio-group v-model="randomPickForm.materialType" size="small">
-            <el-radio-button value="ALL">不限</el-radio-button>
-            <el-radio-button value="IMAGE">图片</el-radio-button>
-            <el-radio-button value="VIDEO">视频</el-radio-button>
-          </el-radio-group>
+          <el-checkbox-group :model-value="randomPickForm.materialType" @change="(val) => onRpMulti('materialType', val)" size="small">
+            <el-checkbox-button value="ALL">不限</el-checkbox-button>
+            <el-checkbox-button value="IMAGE">图片</el-checkbox-button>
+            <el-checkbox-button value="VIDEO">视频</el-checkbox-button>
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="视频版式">
-          <el-radio-group v-model="randomPickForm.videoLayout" size="small">
-            <el-radio-button value="ALL">不限</el-radio-button>
-            <el-radio-button value="HORIZONTAL">横版视频</el-radio-button>
-            <el-radio-button value="VERTICAL">竖版视频</el-radio-button>
-          </el-radio-group>
+          <el-checkbox-group :model-value="randomPickForm.videoLayout" @change="(val) => onRpMulti('videoLayout', val)" size="small">
+            <el-checkbox-button value="ALL">不限</el-checkbox-button>
+            <el-checkbox-button value="HORIZONTAL">横版视频</el-checkbox-button>
+            <el-checkbox-button value="VERTICAL">竖版视频</el-checkbox-button>
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="图片版式">
-          <el-radio-group v-model="randomPickForm.imageLayout" size="small">
-            <el-radio-button value="ALL">不限</el-radio-button>
-            <el-radio-button value="HORIZONTAL">横版图片</el-radio-button>
-            <el-radio-button value="VERTICAL">竖版图片</el-radio-button>
-            <el-radio-button value="SMALL">小图</el-radio-button>
-          </el-radio-group>
+          <el-checkbox-group :model-value="randomPickForm.imageLayout" @change="(val) => onRpMulti('imageLayout', val)" size="small">
+            <el-checkbox-button value="ALL">不限</el-checkbox-button>
+            <el-checkbox-button value="HORIZONTAL">横版图片</el-checkbox-button>
+            <el-checkbox-button value="VERTICAL">竖版图片</el-checkbox-button>
+            <el-checkbox-button value="SMALL">小图</el-checkbox-button>
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="素材属性">
-          <el-radio-group v-model="randomPickForm.materialAttr" size="small">
-            <el-radio-button value="ALL">不限</el-radio-button>
-            <el-radio-button value="QUALITY">优质</el-radio-button>
-            <el-radio-button value="FIRST">首发</el-radio-button>
-          </el-radio-group>
+          <el-checkbox-group :model-value="randomPickForm.materialAttr" @change="(val) => onRpMulti('materialAttr', val)" size="small">
+            <el-checkbox-button value="ALL">不限</el-checkbox-button>
+            <el-checkbox-button value="QUALITY">优质</el-checkbox-button>
+            <el-checkbox-button value="FIRST">首发</el-checkbox-button>
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="素材使用情况">
-          <el-radio-group v-model="randomPickForm.useStatus" size="small">
-            <el-radio-button value="ALL">不限</el-radio-button>
-            <el-radio-button value="UNUSED">未使用</el-radio-button>
-            <el-radio-button value="NO_COST">无消耗</el-radio-button>
-            <el-radio-button value="COST">有消耗</el-radio-button>
-            <el-radio-button value="BOOM">爆量</el-radio-button>
-          </el-radio-group>
+          <el-checkbox-group :model-value="randomPickForm.useStatus" @change="(val) => onRpMulti('useStatus', val)" size="small">
+            <el-checkbox-button value="ALL">不限</el-checkbox-button>
+            <el-checkbox-button value="UNUSED">未使用</el-checkbox-button>
+            <el-checkbox-button value="NO_COST">无消耗</el-checkbox-button>
+            <el-checkbox-button value="COST">有消耗</el-checkbox-button>
+            <el-checkbox-button value="BOOM">爆量</el-checkbox-button>
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="素材过滤条件">
           <el-checkbox-group v-model="randomPickForm.filters" class="rp-filters">
             <el-checkbox v-for="f in MATERIAL_FILTERS" :key="f.value" :value="f.value">{{ f.label }}</el-checkbox>
           </el-checkbox-group>
-          <div class="rp-filter-cnt">
-            <span>建议次数</span>
-            <el-input-number v-model="randomPickForm.suggest_count" :min="0" :max="999" controls-position="right" size="small" />
-            <span>拒审次数</span>
-            <el-input-number v-model="randomPickForm.reject_count" :min="0" :max="999" controls-position="right" size="small" />
-          </div>
         </el-form-item>
         <el-form-item label="创意组数量">
-          <el-input-number v-model="randomPickForm.group_count" :min="1" :max="500" controls-position="right" size="small" />
+          <el-input-number v-model="randomPickForm.group_count" :min="1" :max="500" controls-position="right" size="small" class="rp-count" />
           <span class="rp-unit">组</span>
         </el-form-item>
       </el-form>
@@ -894,6 +926,17 @@
 
     <!-- 创意素材弹窗 -->
     <BatchMaterialDrawer v-model="matVisible" />
+
+    <!-- 升级版工作台「素材 → 视频管理」页（创意素材抽屉橙色提示「如图所示」打开） -->
+    <BatchEbpVideoManage v-model="ebpVideoVisible" />
+
+    <!-- 素材库选择（「添加素材」/「添加本地素材」打开，线上为 1240 宽素材库弹窗） -->
+    <MaterialPickerDialog
+      v-model="materialPickerVisible"
+      :selected-ids="materialPickerIds"
+      :initial-tab="materialPickerTab"
+      @submit="onMaterialPickerSubmit"
+    />
 
     <!-- 标题包抽屉（线上：手动选取标题 / 动态选取标题 两个 tab） -->
 
@@ -1242,9 +1285,12 @@ import {
 } from '@/mock/data';
 import { findStrategyGroup } from '@/mock/strategyGroups';
 import { existingProjects } from '@/mock/buildProjects';
+import { MATERIAL_LIBRARY } from '@/mock/materials';
 import StrategyGroupDialog from '@/views/media/components/StrategyGroupDialog.vue';
 import AdRenameDialog from './components/AdRenameDialog.vue';
 import PickerDrawer from './components/PickerDrawer.vue';
+import AssetGroupPickerDrawer from './components/AssetGroupPickerDrawer.vue';
+import SearchKeywordDrawer from './components/SearchKeywordDrawer.vue';
 import {
   OBJECTIVE_CONF, OBJECTIVE_CONTENT_OPTIONS, RELATED_PRODUCT_OPTIONS,
   DELIVERY_TYPE_OPTIONS, THIRD_PARTY_LINK_SOURCES,
@@ -1259,6 +1305,8 @@ import BatchTargetPackageDrawer from './components/batch/BatchTargetPackageDrawe
 import BatchDrawer from './components/batch/BatchDrawer.vue';
 import BatchAdDrawer from './components/batch/BatchAdDrawer.vue';
 import BatchMaterialDrawer from './components/batch/BatchMaterialDrawer.vue';
+import BatchEbpVideoManage from './components/batch/BatchEbpVideoManage.vue';
+import MaterialPickerDialog from './components/MaterialPickerDialog.vue';
 import BatchTitleDrawer from './components/batch/BatchTitleDrawer.vue';
 import BatchTitleShuffleDialog from './components/batch/BatchTitleShuffleDialog.vue';
 import BatchLandingDrawer from './components/batch/BatchLandingDrawer.vue';
@@ -1430,7 +1478,10 @@ function onAssetGroupChange(val) {
     if (val === 'ON') {
       form.project.name = '';
       if (form.project.asset_ids) form.project.asset_ids = [];
-      if (form.materials && form.materials.creative_groups) form.materials.creative_groups = [];
+      // 素材清空后仍保留 1 个空创意组（默认只有一组）
+      if (form.materials && form.materials.creative_groups) {
+        form.materials.creative_groups = [{ name: '创意组01', tab: 'video', videos: [], images: [], text_images: [] }];
+      }
       if (form.titles) form.titles = { ...form.titles, title_packs: [] };
       ElMessage.success('已清空相关配置');
     }
@@ -1490,6 +1541,21 @@ const relatedVisible = ref(false);
 const adBudgetVisible = ref(false);
 /* ---- 搜索快投（新建项目） ---- */
 const searchForm = reactive({ keyword: '', bid_coef: 'OFF', extend: 'OFF', service: false });
+/* 关键词选择（「添加关键词」抽屉） */
+const keywordVisible = ref(false);
+const searchKeywords = ref([]);
+function openKeywordEditor() { keywordVisible.value = true; }
+function clearKeyword() {
+  searchKeywords.value = [];
+  searchForm.keyword = '';
+}
+function onKeywordConfirm({ keywords }) {
+  searchKeywords.value = [...keywords];
+  searchForm.keyword = keywords.length
+    ? keywords.slice(0, 2).join('、') + (keywords.length > 2 ? ` 等${keywords.length}个` : '')
+    : '';
+  if (keywords.length) ElMessage.success(`已添加 ${keywords.length} 个关键词`);
+}
 /* 广告预算与出价汇总条（线上灰色条） */
 const adBudgetSummary = computed(() => ({
   bid_strategy: { STABLE: '稳定成本（常规版）', COST_CAP: '成本上限（常规版）', MAX_CONV: '最大转化', CONTROL_COST: '控成本投放' }[adBudget.bid_strategy] || '',
@@ -2007,7 +2073,7 @@ function addTitleDynRule() {
 }
 const lpVisible = ref(false);
 /* 落地页类型决定后续字段（线上：选择已有落地页的几种类型才需要挑页面；动态生成/手动填写才要填名称与监测链接） */
-const needsLandingPicker = computed(() => ['ORANGE', 'ORANGE_SITE', 'CL_TEMPLATE', 'THIRDPARTY', 'COMMODITY'].includes(form.landing.landing_page_type));
+const needsLandingPicker = computed(() => ['ORANGE', 'ORANGE_SITE', 'THIRDPARTY', 'COMMODITY'].includes(form.landing.landing_page_type));
 const needsLandingDetail = computed(() => ['DYNAMIC', 'MANUAL'].includes(form.landing.landing_page_type));
 const strategyVisible = ref(false);
 const taskVisible = ref(false);
@@ -2664,12 +2730,11 @@ function fillMockPlan(baseName) {
   form.project.group_bid = 39.5;
   form.project.app_name = '红果急漫跑剧';
   form.project.targeting_ids = ['t_1'];
-  /* 线上回显：已选创意组 5（4 个视频组 + 1 个图片组） */
+  /* 默认只回显 1 个创意组（首个视频组）；更多创意组由「添加创意组」按需新增，新增的板块可删除 */
   form.materials.creative_groups = [
-    ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [], text_images: [] })),
-    ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id], text_images: [] })),
+    { tab: 'video', videos: vids[0] ? [vids[0].id] : [], images: [], text_images: [] },
   ];
-  form.ad.video_ids = vids.map((v) => v.id);
+  form.ad.video_ids = vids[0] ? [vids[0].id] : [];
   form.ad.image_ids = [];
   form.ad.title_packs = tps.map((p) => p.id);
   form.ad.landing_page_id = lps[0] ? lps[0].id : '';
@@ -2968,8 +3033,20 @@ function confirmAccounts() {
 function addGroup() {
   const n = form.materials.creative_groups.length + 1;
   form.materials.creative_groups.push({ name: `创意组${String(n).padStart(2, '0')}`, tab: 'video', videos: [], images: [], text_images: [] });
+  syncMaterials();
 }
-function removeGroup(i) { form.materials.creative_groups.splice(i, 1); }
+/** 删除创意组：至少保留 1 组；删掉后把当前操作组索引归零，避免后续添加素材落到不存在的组 */
+function removeGroup(i) {
+  const gs = form.materials.creative_groups;
+  if (gs.length <= 1) {
+    ElMessage.warning('至少保留 1 个创意组');
+    return;
+  }
+  gs.splice(i, 1);
+  if (materialGroupIdx.value >= gs.length) materialGroupIdx.value = 0;
+  syncMaterials();
+  ElMessage.success(`已删除第 ${i + 1} 个创意组`);
+}
 function syncMaterials() {
   const vids = new Set(); const imgs = new Set();
   form.materials.creative_groups.forEach((g) => {
@@ -3235,17 +3312,13 @@ function pickQuickApp() {
     },
   });
 }
+const assetPickerVisible = ref(false);
 function pickAssetGroup() {
-  openPicker({
-    title: '选择资产组', columns: PICKER_COLUMNS.assetGroup, rows: PICKER_DATA.assetGroup,
-    accounts: selectedAccounts.value, onlyLinked: true, limit: 1000,
-    onConfirm: (rows) => {
-      if (!rows.length) return;
-      form.project.asset_group_ids = rows.map((r) => r.id);
-      form.project.asset_group_names = rows.map((r) => r.name);
-      ElMessage.success(`已选择 ${rows.length} 个资产组`);
-    },
-  });
+  assetPickerVisible.value = true;
+}function onAssetGroupConfirm(rows) {
+  form.project.asset_group_ids = rows.map((r) => r.id);
+  form.project.asset_group_names = rows.map((r) => r.name);
+  if (rows.length) ElMessage.success(`已选择 ${rows.length} 个资产组`);
 }
 /* 素材类：加入当前创意组 */
 const materialGroupIdx = ref(0);
@@ -3253,36 +3326,156 @@ function currentGroup(gi) {
   const idx = gi === undefined ? materialGroupIdx.value : gi;
   return form.materials.creative_groups[idx] || null;
 }
+/* 素材库选择弹窗（线上「添加素材 / 添加本地素材」打开 1240 宽素材库弹窗，四个页签） */
+const materialPickerVisible = ref(false);
+const materialPickerIds = ref([]);
+/** 素材库弹窗默认页签（「添加已有图文」→ text） */
+const materialPickerTab = ref('library');
+/** 图文素材选取模式：同一素材库弹窗，提交写入当前创意组的图文素材 */
+const textImagePickActive = ref(false);
+/** 非空时表示本次是「重新上传」——提交后用新素材替换该 id */
+const materialReplaceId = ref(null);
+/** 升级版工作台「素材 → 视频管理」页（橙色提示「如图所示」） */
+const ebpVideoVisible = ref(false);
+function openEbpVideo() { ebpVideoVisible.value = true; }
+
 function pickMaterial(gi) {
   if (gi !== undefined) materialGroupIdx.value = gi;
-  const rows = videoRows().concat(imageRows()).concat(PICKER_DATA.text);
-  openPicker({
-    title: '添加素材', columns: PICKER_COLUMNS.video, rows, limit: 500,
-    onConfirm: (sel) => {
-      const g = currentGroup();
-      if (!g || !sel.length) return;
-      sel.forEach((r) => {
-        if (r.type === '视频' && g.videos.indexOf(r.id) < 0) g.videos.push(r.id);
-        else if (r.type === '图片' && g.images.indexOf(r.id) < 0) g.images.push(r.id);
-        else if (r.type === '图文' && g.text_images.indexOf(r.id) < 0) g.text_images.push(r.id);
-      });
-      form.ad.video_ids = form.materials.creative_groups.flatMap((x) => x.videos);
-      form.ad.image_ids = form.materials.creative_groups.flatMap((x) => x.images);
-      ElMessage.success(`已添加 ${sel.length} 个素材到创意组${materialGroupIdx.value + 1}`);
-    },
+  // 素材库数据 id 与创意组内素材 id 不同源，不预选，避免「已选素材」计数错位
+  materialPickerIds.value = [];
+  materialPickerTab.value = 'library';
+  materialPickerVisible.value = true;
+}
+/** 弹窗关闭（取消）时复位各类选取模式，避免下次误判 */
+watch(materialPickerVisible, (val) => {
+  if (val) return;
+  guidePickActive.value = false;
+  coverPickScope.value = null;
+  coverTargetMaterial.value = null;
+  materialReplaceId.value = null;
+  textImagePickActive.value = false;
+  materialPickerTab.value = 'library';
+});
+
+function onMaterialPickerSubmit(list) {
+  const picked0 = list || [];
+
+  /* 添加已有图文：同一素材库弹窗（默认停在「图文」页签），选完写入当前创意组图文素材 */
+  if (textImagePickActive.value) {
+    textImagePickActive.value = false;
+    if (!picked0.length) return;
+    const g = currentGroup();
+    if (!g) return;
+    g.text_images = g.text_images || [];
+    let added = 0;
+    picked0.forEach((m) => {
+      if (g.text_images.indexOf(m.id) < 0) { g.text_images.push(m.id); added += 1; }
+    });
+    ElMessage.success(`已添加 ${added} 个图文素材`);
+    return;
+  }
+
+  /* 引导视频：同一弹窗，选中的视频只回填到「引导视频」，不进创意组 */
+  if (guidePickActive.value) {
+    guidePickActive.value = false;
+    if (!picked0.length) return;
+    form.materials.guide_video_id = picked0[0].id;
+    ElMessage.success(`已添加引导视频「${picked0[0].name || picked0[0].id}」`);
+    return;
+  }
+
+  const g = currentGroup();
+  if (!g) return;
+  const picked = list || [];
+
+  /* 智能封面：同一素材库弹窗，选中项只作为封面，不替换素材 */
+  if (coverTargetMaterial.value) {
+    const t = coverTargetMaterial.value;
+    coverTargetMaterial.value = null;
+    const g = form.materials.creative_groups[t.gi];
+    if (!picked0.length || !g) return;
+    const cover = picked0[0];
+    if (t.id) {
+      g.covers = g.covers || {};
+      g.covers[t.id] = cover.id;
+      ElMessage.success(`已为素材「${t.title}」设置封面`);
+    } else {
+      g.cover = cover.id;
+      ElMessage.success(`已为「${g.name || '创意组'}」设置封面`);
+    }
+    return;
+  }
+
+  /* 封面模式：批量添加封面 = 全部创意组；一键指定封面 = 当前创意组 */
+  const coverScope = coverPickScope.value;
+  if (coverScope) {
+    coverPickScope.value = null;
+    if (!picked.length) return;
+    const cover = picked[0];
+    const groups = form.materials.creative_groups || [];
+    if (coverScope === 'all') {
+      groups.forEach((x) => { x.cover = cover.id; });
+      ElMessage.success(`已为 ${groups.length} 个创意组设置封面「${cover.name || cover.id}」`);
+    } else {
+      g.cover = cover.id;
+      ElMessage.success(`已为「${g.name || '创意组'}」指定封面「${cover.name || cover.id}」`);
+    }
+    return;
+  }
+
+  const replaceId = materialReplaceId.value;
+  materialReplaceId.value = null;
+  if (!picked.length) return;
+
+  /* 重新上传：只做替换，不再追加，且替换后去重 */
+  if (replaceId) {
+    const nextId = picked[0].id;
+    const swap = (arr) => {
+      const i = arr.indexOf(replaceId);
+      if (i < 0) return false;
+      arr.splice(i, 1, nextId);
+      const dup = arr.lastIndexOf(nextId);
+      if (dup !== i) arr.splice(i, 1);
+      return true;
+    };
+    const replaced = swap(g.videos) || swap(g.images) || swap(g.text_images);
+    form.ad.video_ids = form.materials.creative_groups.flatMap((x) => x.videos);
+    form.ad.image_ids = form.materials.creative_groups.flatMap((x) => x.images);
+    if (replaced) ElMessage.success(`已替换素材「${picked[0].name || nextId}」`);
+    return;
+  }
+
+  let added = 0;
+  picked.forEach((m) => {
+    const id = m.id;
+    if (m.type === '视频') { if (g.videos.indexOf(id) < 0) { g.videos.push(id); added += 1; } }
+    else if (m.type === '图片') { if (g.images.indexOf(id) < 0) { g.images.push(id); added += 1; } }
+    else if (m.type === '图文') { if (g.text_images.indexOf(id) < 0) { g.text_images.push(id); added += 1; } }
   });
+
+  form.ad.video_ids = form.materials.creative_groups.flatMap((x) => x.videos);
+  form.ad.image_ids = form.materials.creative_groups.flatMap((x) => x.images);
+  ElMessage.success(`已添加 ${added} 个素材到创意组${materialGroupIdx.value + 1}`);
 }
 function addLocalMaterial() { pickMaterial(); }
+/** 创意组素材卡「重新上传」：二次确认 → 打开素材库重选 → 替换原素材 */
+function onReupload(m) {
+  const name = m.title || m.name || m.id;
+  ElMessageBox.confirm(`将重新上传素材「${name}」，重新选择后原素材会被替换，是否继续？`, '重新上传', {
+    type: 'warning',
+    confirmButtonText: '重新选择',
+    cancelButtonText: '取消',
+  }).then(() => {
+    materialReplaceId.value = m.id;
+    pickMaterial();
+  }).catch(() => {});
+}
 function pickTextImage() {
-  openPicker({
-    title: '添加已有图文', columns: PICKER_COLUMNS.text, rows: PICKER_DATA.text, limit: 100,
-    onConfirm: (sel) => {
-      const g = currentGroup();
-      if (!g || !sel.length) return;
-      sel.forEach((r) => { if (g.text_images.indexOf(r.id) < 0) g.text_images.push(r.id); });
-      ElMessage.success(`已添加 ${sel.length} 个图文素材`);
-    },
-  });
+  // 线上「添加已有图文」打开同一个「添加素材」弹窗（素材库），默认停在「图文」页签
+  textImagePickActive.value = true;
+  materialPickerIds.value = [];
+  materialPickerTab.value = 'text';
+  materialPickerVisible.value = true;
 }
 function autoCreateTextImage() {
   const g = currentGroup();
@@ -3298,24 +3491,31 @@ function addSurgeMaterial() {
   ElMessage.success('已添加冲量素材');
 }
 function pickGuideVideo() {
-  openPicker({
-    title: '添加引导视频', columns: PICKER_COLUMNS.guide, rows: PICKER_DATA.guide, limit: 10,
-    onConfirm: (sel) => {
-      if (!sel.length) return;
-      form.materials.guide_video_id = sel[0].id;
-      ElMessage.success('已添加引导视频');
-    },
-  });
+  // 线上「添加引导视频」同样走「添加素材」弹窗（素材库），选完回填引导视频
+  guidePickActive.value = true;
+  materialPickerIds.value = [];
+  materialPickerVisible.value = true;
 }
-function pickCover() {
-  openPicker({
-    title: '批量添加封面', columns: PICKER_COLUMNS.cover, rows: PICKER_DATA.cover, limit: 10,
-    onConfirm: (sel) => {
-      if (!sel.length) return;
-      form.materials.creative_groups.forEach((g) => { g.cover = sel[0].id; });
-      ElMessage.success('已设置封面');
-    },
-  });
+/** 封面选取：批量添加封面（全部创意组）/ 一键指定封面（当前创意组），均打开素材库弹窗（图 4） */
+const coverPickScope = ref(null);
+/** 引导视频选取：走同一个添加素材弹窗，提交时只回填引导视频，不写入创意组 */
+const guidePickActive = ref(false);
+function pickCover(scope) {
+  coverPickScope.value = scope || 'all';
+  materialPickerIds.value = [];
+  materialPickerVisible.value = true;
+}
+/** 创意组素材卡「智能封面」：同样走素材库弹窗（与「重新上传」同一个弹窗），选完只设封面；
+ *  空态时（没有具体素材）直接为当前创意组指定封面 */
+const coverTargetMaterial = ref(null);
+function pickSmartCover(gi, m) {
+  const g = form.materials.creative_groups[gi];
+  if (!g) return;
+  coverTargetMaterial.value = m && m.id
+    ? { gi, id: m.id, title: m.title || m.name || m.id }
+    : { gi, id: null };
+  materialPickerIds.value = [];
+  materialPickerVisible.value = true;
 }
 function addSellPoint() {
   const input = document.querySelector('.sell-input');
@@ -3592,7 +3792,7 @@ function confirmCtaSaveTpl() {
   ElMessage.success('模板已保存（原型模拟）');
   ctaSaveTplVisible.value = false;
 }
-/* 随机选择（线上：更多菜单 → 随机选择 → 抽屉 1016px） */
+/* 随机选择 / 智能优选 / 一键测新（线上：三个入口共用同一张 500px 弹窗，标题随入口变化） */
 const randomPickVisible = ref(false);
 const randomPickTitle = ref('随机选择');
 const MATERIAL_FILTERS = [
@@ -3604,22 +3804,37 @@ const MATERIAL_FILTERS = [
   { value: 'REPOST', label: '搬运打压' },
   { value: 'REJECTED', label: '预审拒绝素材' },
   { value: 'EXTREME_SIMILAR', label: '极端相似素材' },
-  { value: 'DARK_WATERMARK', label: '暗水印素材' },
+  { value: 'WATERMARK', label: '涉水印素材' },
+  { value: 'SUGGEST_COUNT', label: '建议次数' },
+  { value: 'REJECT_COUNT', label: '拒审次数' },
 ];
 const randomPickForm = reactive({
   uploadTime: [],
   project: [],
   catalog: [],
-  materialType: 'ALL',
-  videoLayout: 'ALL',
-  imageLayout: 'ALL',
-  materialAttr: 'ALL',
-  useStatus: 'ALL',
-  filters: [],
-  suggest_count: 0,
-  reject_count: 0,
+  materialType: ['ALL'],
+  videoLayout: ['ALL'],
+  imageLayout: ['ALL'],
+  materialAttr: ['ALL'],
+  useStatus: ['ALL'],
+  filters: ['USED_TODAY'],
   group_count: 1,
 });
+/** 多选 + 「不限」互斥：选不限清空其余，选其余取消不限 */
+function onRpMulti(field, val) {
+  const prev = randomPickForm[field] || [];
+  const next = Array.isArray(val) ? val.slice() : [];
+  const justAll = next.includes('ALL') && !prev.includes('ALL');
+  if (justAll) {
+    randomPickForm[field] = ['ALL'];
+    return;
+  }
+  if (next.includes('ALL') && next.length > 1) {
+    randomPickForm[field] = next.filter((x) => x !== 'ALL');
+    return;
+  }
+  randomPickForm[field] = next.length ? next : ['ALL'];
+}
 const randomPickRows = ref([
   { name: '扮傻藏锋+我婆婆是豪门傻白甜！+261123+K0M+解压06', type: '视频', project: '知乎小说', uploadTime: '2026-11-23 10:20' },
   { name: '智冠上兵-谁在深坑里-27-11-20-知乎-半涨价-06', type: '视频', project: '知乎小说', uploadTime: '2026-11-22 18:02' },
@@ -3628,19 +3843,69 @@ function randomPick() {
   randomPickTitle.value = '随机选择';
   randomPickVisible.value = true;
 }
+/** 按弹窗里选的素材类型取素材池 */
+function pickPoolByForm() {
+  let vids = videos.value || [];
+  let imgs = images.value || [];
+  const types = randomPickForm.materialType || [];
+  if (!types.includes('ALL')) {
+    if (!types.includes('VIDEO')) vids = [];
+    if (!types.includes('IMAGE')) imgs = [];
+  }
+  return { vids, imgs };
+}
+/** 三个入口共用的落地：按「每个创意组配置」的视频/图片数量，为每个创意组重新取一批素材 */
+function fillGroupsByPick() {
+  const { vids, imgs } = pickPoolByForm();
+  const groups = form.materials.creative_groups || [];
+  const vnRaw = Number(form.materials.group_video_count ?? 0) || 0;
+  const imnRaw = Number(form.materials.group_image_count ?? 0) || 0;
+  const vn = vnRaw > 0 ? vnRaw : (vids.length ? 1 : 0);
+  const imn = imnRaw;
+  let changed = 0;
+  const takeIds = (pool, count, seed) => {
+    const out = [];
+    for (let k = 0; k < Math.min(count, pool.length); k += 1) {
+      const id = pool[(seed + k) % pool.length].id;
+      if (!out.includes(id)) out.push(id);
+    }
+    return out;
+  };
+  groups.forEach((g, gi) => {
+    if (!g.videos) g.videos = [];
+    if (!g.images) g.images = [];
+    if (vids.length && vn > 0) {
+      const next = takeIds(vids, vn, gi * 3);
+      if (next.join(',') !== g.videos.join(',')) changed += 1;
+      g.videos = next;
+    }
+    if (imgs.length && imn > 0) {
+      const next = takeIds(imgs, imn, gi * 2);
+      if (next.join(',') !== g.images.join(',')) changed += 1;
+      g.images = next;
+    }
+  });
+  form.ad.video_ids = [...new Set(groups.flatMap((g) => g.videos || []))];
+  form.ad.image_ids = [...new Set(groups.flatMap((g) => g.images || []))];
+  return changed;
+}
 function confirmRandomPick() {
-  ElMessage.success(`已按条件随机选择 ${randomPickRows.value.length} 个素材（原型模拟）`);
+  const title = randomPickTitle.value;
+  const changed = fillGroupsByPick();
   randomPickVisible.value = false;
+  if (!changed) {
+    ElMessage.warning(`${title}：当前筛选条件下没有可用的素材`);
+    return;
+  }
+  ElMessage.success(`${title}：已按配置为 ${form.materials.creative_groups.length} 个创意组重新取素材`);
 }
 function smartPick() {
   randomPickTitle.value = '智能优选';
   randomPickVisible.value = true;
-  ElMessage.success('已按效果智能优选素材');
 }
 function refreshGroups() {
   randomPickTitle.value = '一键测新';
   randomPickVisible.value = true;
-  ElMessage.success('已一键刷新创意组');
 }
 function addDynRule() {
   form.materials.dynamic_rules.push({ material_type: 'VIDEO', count: 1 });
@@ -3660,6 +3925,11 @@ async function loadBase() {
   accounts.value = acc.data?.list || [];
   const all = assets.data?.list || [];
   videos.value = all.filter((a) => a.type === 'video');
+  // 视频池不足时用素材库补齐（线上智能优选/一键测新会从素材库里取，原型需要足够样本可选）
+  if (videos.value.length < 10) {
+    const have = new Set(videos.value.map((v) => v.id));
+    videos.value = [...videos.value, ...MATERIAL_LIBRARY.filter((m) => !have.has(m.id))];
+  }
   images.value = all.filter((a) => a.type === 'image');
   titlePacks.value = all.filter((a) => a.type === 'title_pack');
   landingPages.value = all.filter((a) => a.type === 'landing_page');
@@ -3721,13 +3991,12 @@ function applyStrategyGroup(id) {
     if (!target || typeof target !== 'object') return;
     Object.assign(target, payload[section]);
   });
-  /* 素材区保持「勾选任务」的丰满度：策略组素材少于 2 组时补到 5 组（4 视频 + 1 图片） */
+  /* 创意组默认只有 1 组；更多创意组由「添加创意组」按需新增（新增的板块可删除） */
   if (sectionHasThinMaterials()) {
-    const vids = (mockDb.videos || []).slice(0, 4);
-    const imgs = (mockDb.images || []).slice(0, 1);
+    /* 默认给 2 个竖版视频素材，便于体验素材卡「×」删除与 2/2 → 1/2 → 空态 */
+    const vids = (mockDb.videos || []).slice(0, 2);
     form.materials.creative_groups = [
-      ...vids.map((v) => ({ tab: 'video', videos: [v.id], images: [], text_images: [] })),
-      ...imgs.map((i) => ({ tab: 'image', videos: [], images: [i.id], text_images: [] })),
+      { tab: 'video', videos: vids.map((v) => v.id), images: [], text_images: [] },
     ];
     form.ad.video_ids = vids.map((v) => v.id);
   }
@@ -3883,6 +4152,9 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     relatedVisible,
     adBudgetVisible,
     searchForm,
+    openKeywordEditor,
+    clearKeyword,
+    searchKeywords,
     adBudgetSummary,
     extraComponentOptions,
     onLinkSourceChange,
@@ -4171,6 +4443,13 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
     currentGroup,
     pickMaterial,
     addLocalMaterial,
+    onMaterialPickerSubmit,
+    onReupload,
+    pickSmartCover,
+    materialPickerVisible,
+    materialPickerIds,
+    ebpVideoVisible,
+    openEbpVideo,
     pickTextImage,
     autoCreateTextImage,
     addSurgeMaterial,
@@ -4820,7 +5099,7 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .inline-row { display: flex; gap: 8px; align-items: center; width: 100%; }
 .inline-row .el-input { flex: 1; }
 /* 创意制作工具条 */
-.rp-filters { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.rp-filters { display: flex; flex-wrap: wrap; gap: 4px; }
 .rp-filter-cnt { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: #4e5969; }
 .rp-unit { margin-left: 6px; color: #86909c; }
 .group-head__name { font-size: 13px; font-weight: 600; color: #1d2129; }
@@ -4954,4 +5233,67 @@ onBeforeUnmount(() => document.removeEventListener('mouseup', onDocMouseUp));
 .related-dialog .el-dialog__header { padding: 18px 24px 8px; margin-right: 0; }
 .related-dialog .el-dialog__body { padding: 0 24px 10px; }
 .related-dialog .el-dialog__footer { padding: 10px 24px 20px; }
+
+/* 随机选择 / 智能优选 / 一键测新 弹窗（线上 500px，标题右侧带 ⓘ） */
+.rp-dialog { padding-bottom: 0; }
+.rp-dialog .el-dialog__header { padding: 16px 20px 8px; margin-right: 0; }
+.rp-dialog .el-dialog__body { padding: 6px 20px 0; }
+.rp-dialog .el-dialog__footer { padding: 12px 20px 18px; }
+.rp-header { display: flex; align-items: center; gap: 6px; }
+.rp-header__title { font-size: 16px; font-weight: 600; color: #1d2129; }
+.rp-header__q {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 11px;
+  line-height: 1;
+  color: #fff;
+  background: #c9cdd4;
+  border-radius: 50%;
+  cursor: default;
+}
+.rp-form .el-form-item { margin-bottom: 10px; }
+.rp-form .el-form-item__label { font-size: 12px; color: #4e5969; padding-right: 8px; line-height: 26px; white-space: nowrap; }
+.rp-form .el-form-item__content { line-height: 26px; }
+.rp-form .el-radio-button__inner { padding: 0 10px; height: 26px; line-height: 24px; font-size: 12px; }
+/* 素材类型/版式/属性/使用情况：多选按钮组（「不限」互斥），视觉与 radio-button 一致 */
+.rp-form .el-checkbox-button__inner {
+  padding: 0 10px;
+  height: 26px;
+  line-height: 24px;
+  font-size: 12px;
+  border-radius: 0;
+  box-shadow: none;
+  background: #fff;
+  border-color: #dcdfe6;
+  color: #4e5969;
+}
+.rp-form .el-checkbox-button:first-child .el-checkbox-button__inner { border-radius: 4px 0 0 4px; }
+.rp-form .el-checkbox-button:last-child .el-checkbox-button__inner { border-radius: 0 4px 4px 0; }
+.rp-form .el-checkbox-button.is-checked .el-checkbox-button__inner {
+  background: #197afb;
+  border-color: #197afb;
+  color: #fff;
+}
+.rp-form .el-input__wrapper,
+.rp-form .el-select__wrapper { min-height: 28px; }
+.rp-line { display: flex; align-items: center; gap: 10px; width: 100%; }
+.rp-catalog { width: 152px; flex: none; }
+.rp-hint { font-size: 12px; color: #86909c; }
+.rp-filters { display: flex; flex-wrap: wrap; gap: 4px; }
+.rp-filters .el-checkbox {
+  height: 26px;
+  margin-right: 0;
+  padding: 0 4px;
+  font-size: 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 3px;
+}
+.rp-filters .el-checkbox.is-checked { color: #197afb; background: #d6eaff; border-color: #197afb; }
+.rp-filters .el-checkbox__label { font-size: 10px; padding-left: 2px; }
+.rp-filters .el-checkbox__inner { width: 10px; height: 10px; }
+.rp-filters .el-checkbox__inner::after { top: -1px; left: 2px; }
+.rp-count { width: 66px; }
 </style>

@@ -92,6 +92,7 @@ export default {
     landing_page_type: 'MANUAL',
     landing_page_rule: 'ALL',
     landing_select_way: 'MANUAL',
+    loop_account: 'OFF',
     link_template: '',
   },
 
@@ -125,21 +126,15 @@ export default {
           options: [
             { value: 'ORANGE', label: '橙子落地页' },
             { value: 'ORANGE_SITE', label: '橙子建站模板' },
-            { value: 'CL_TEMPLATE', label: '智投落地页模板' },
             { value: 'THIRDPARTY', label: '第三方落地页' },
-            { value: 'DYNAMIC', label: '动态链接生成', disabled: true, disabledTip: '当前推广目的不支持选择该落地页来源' },
             { value: 'MANUAL', label: '手动填写' },
-            { value: 'COMMODITY', label: '商品库链接', disabled: true, disabledTip: '当前推广目的不支持选择该落地页来源' },
           ],
           /** 各类型下方的说明行（线上 .form-item-tips） */
           tip: {
             ORANGE: '选择已有橙子落地页时，请尽量保证落地页中的应用分包和项目中选择的分包一致。',
             ORANGE_SITE: '选择模板后，系统将基于模板自动创建橙子建站落地页并替换应用下载链接，确保您每条广告的下载链接与对应落地页中的下载链接一致。',
             THIRDPARTY: '第三方落地页需要先在本地导入',
-            DYNAMIC: '',
             MANUAL: '',
-            CL_TEMPLATE: '',
-            COMMODITY: '',
           },
           note: '线上默认「手动填写」；每个选项都带 el-popover__reference（tiny-popover）；'
             + '置灰项 color #c0c4cc / border #ebeef5',
@@ -215,7 +210,7 @@ export default {
           type: 'landingAssets',
           visibleWhen: {
             field: 'landing_page_type',
-            in: ['ORANGE', 'ORANGE_SITE', 'CL_TEMPLATE', 'THIRDPARTY'],
+            in: ['ORANGE', 'ORANGE_SITE', 'THIRDPARTY'],
           },
           note: '线上：资产类落地页右侧面板（快速选择 / 清空所有资产 + 搜索 + 列表 + 已选）',
         },
@@ -232,7 +227,7 @@ export default {
   typePanels: {
     ORANGE: {
       headTitle: '选择落地页',
-      head: ['多账户刷新', '获取共享建站', '清空所有资产'],
+      head: ['多账户刷新', '获取共享建站', '清空所有账户'],
       jump: '跳转橙子建站',
       panel: ['快速选择', '清空'],
       extraTip: '没找到已有落地页？去列表同步后再刷新',
@@ -244,26 +239,12 @@ export default {
       panel: ['快速选择', '清空'],
       extraTip: '没找到已有落地页？去列表同步后再刷新',
     },
-    CL_TEMPLATE: {
-      headTitle: '',
-      head: [],
-      jump: '跳转智投落地页模板',
-      panel: ['快速选择', '清空'],
-      extraTip: '',
-    },
     THIRDPARTY: {
       headTitle: '选择落地页',
       head: ['清空所有资产', '多账户快速选择'],
       jump: '跳转第三方落地页',
       panel: ['快速选择', '清空'],
       extraTip: '',
-    },
-    DYNAMIC: {
-      headTitle: '',
-      head: [],
-      jump: '',
-      panel: ['刷新', '新建'],
-      extraTip: '找不到资产？去新建',
     },
     MANUAL: { headTitle: '', head: [], jump: '', panel: [], extraTip: '' },
   },

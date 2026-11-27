@@ -1081,8 +1081,7 @@ export default {
     {
       key: 'search_fast',
       title: '搜索快投',
-      /* 实测：广告类型=搜索广告 或 投放模式=自动投放(UBMax) 时该分区消失 */
-      visibleWhen: { field: 'searchFast', truthy: true },
+      /* 线上：该分区常驻在「项目名称」之上（广告类型/投放模式切换时不再隐藏） */
       fields: [
         {
           key: 'keyword',
@@ -1104,6 +1103,13 @@ export default {
           tip: '不启用出价系数时默认出价系数为1（仅针对可设置出价系数的账户生效）',
         },
         {
+          key: 'bid_coef_value',
+          label: '',
+          type: 'custom',
+          kind: 'coefInput',
+          visibleWhen: { field: 'bid_coef', eq: 'ON' },
+        },
+        {
           key: 'extend',
           model: 'searchForm.extend',
           label: '定向拓展',
@@ -1113,6 +1119,7 @@ export default {
             { value: 'OFF', label: '不启用' },
             { value: 'ON', label: '启用' },
           ],
+          bubble: { text: '开启定向拓展后，系统会在关键词的基础上自动拓展相关搜索词，扩大投放覆盖范围。' },
         },
         {
           key: 'service',

@@ -50,10 +50,17 @@
             <div class="trd-row">
               <label class="trd-row__label"></label>
               <div class="trd-row__content">
-                <select v-model="rule.category_include.category_ids" class="trd-select trd-select--w360" multiple size="1">
-                  <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-                </select>
-                <span class="trd-hint">请选择定向标题分类</span>
+                <el-select
+                  v-model="rule.category_include.category_ids"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  :max-collapse-tags="1"
+                  class="trd-esel"
+                  placeholder="请选择定向标题分类"
+                >
+                  <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+                </el-select>
               </div>
             </div>
 
@@ -76,10 +83,17 @@
             <div class="trd-row">
               <label class="trd-row__label"></label>
               <div class="trd-row__content">
-                <select v-model="rule.category_exclude.category_ids" class="trd-select trd-select--w360" multiple size="1">
-                  <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-                </select>
-                <span class="trd-hint">请选择排除标题分类</span>
+                <el-select
+                  v-model="rule.category_exclude.category_ids"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  :max-collapse-tags="1"
+                  class="trd-esel"
+                  placeholder="请选择排除标题分类"
+                >
+                  <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+                </el-select>
               </div>
             </div>
 
@@ -335,6 +349,14 @@ watch(() => props.modelValue, (v) => {
   rule.category_include = { type: 1, category_ids: [], ...(props.init && props.init.category_include) };
   rule.category_exclude = { type: 1, category_ids: [], ...(props.init && props.init.category_exclude) };
   rule.title_data = { ...defaultRule().title_data, ...((props.init && props.init.title_data) || {}) };
+  /* 指定时间默认近 30 天（对齐线上回显） */
+  if (rule.time_type === 0 && !rule.start_time && !rule.end_time) {
+    const end = new Date();
+    const start = new Date(end.getTime() - 30 * 24 * 3600 * 1000);
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    rule.start_time = fmt(start);
+    rule.end_time = fmt(end);
+  }
   const where = (rule.title_data.quota_filter && rule.title_data.quota_filter.wheres || [])[0] || [];
   kpi.value = where[0] || '';
   kpiOp.value = where[1] || '>=';
@@ -378,7 +400,7 @@ function confirm() {
 .trd-mask { position: fixed; inset: 0; z-index: 2100; background: rgba(0, 0, 0, .5); }
 .trd-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 2101;
-  width: 1020px; display: flex; flex-direction: column;
+  width: 712px; display: flex; flex-direction: column;
   background: #fff; box-shadow: -8px 0 8px #0003;
   font-size: 14px; color: #606266;
 }
@@ -393,28 +415,30 @@ function confirm() {
   color: #909399; background: none; border: none; cursor: pointer;
 }
 .trd-header__close:hover { color: #197afb; }
-.trd-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; background: #f5f7fa; }
+.trd-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px; background: #fff; }
 .trd-footer {
   flex: none; display: flex; justify-content: flex-end; gap: 12px;
   padding: 12px 20px; background: #fff; border-top: 1px solid #e8eaec;
 }
 
 /* 面板（线上 .form-panel） */
-.trd-panel { background: #fff; border: 1px solid #e8eaec; border-radius: 3px; margin-bottom: 16px; }
+.trd-panel { background: #fff; border: 1px solid #ebeef5; border-radius: 2px; margin-bottom: 12px; }
 .trd-panel__header {
   display: flex; align-items: center; justify-content: space-between;
-  height: 40px; padding: 0 16px; background: #fafafa; border-bottom: 1px solid #e8eaec;
+  height: 40px; padding: 0 16px; background: #fff; border-bottom: 0;
 }
-.trd-panel__title { font-size: 14px; font-weight: 700; color: #333; }
-.trd-panel__body { padding: 16px 16px 4px; }
+.trd-panel__title { font-size: 13px; font-weight: 400; color: #1d2129; }
+.trd-panel__body { padding: 4px 16px 4px; }
+.trd-esel { width: 300px; }
+.trd-esel .el-select__wrapper { min-height: 32px; }
 
 /* 表单行（label 120px；标题选取方式面板 140px） */
 .trd-row { display: flex; align-items: flex-start; margin-bottom: 16px; }
 .trd-row__label {
-  flex: none; width: 120px; min-height: 32px; line-height: 32px; padding-right: 12px;
-  font-size: 14px; color: #606266; text-align: right;
+  flex: none; width: 96px; min-height: 32px; line-height: 32px; padding-right: 12px;
+  font-size: 13px; color: #4e5969; text-align: left;
 }
-.trd-row__label--w140 { width: 140px; }
+.trd-row__label--w140 { width: 110px; }
 .trd-row__label--req::before { content: '*'; margin-right: 4px; color: #f53f3f; }
 .trd-row__content { flex: 1; min-width: 0; }
 .trd-row--sub .trd-row__content { display: flex; align-items: center; gap: 8px; }

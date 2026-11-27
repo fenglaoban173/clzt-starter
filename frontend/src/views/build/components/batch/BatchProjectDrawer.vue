@@ -777,11 +777,21 @@
                       </div>
                     </div>
 
-                    <!-- 搜索快投 · 关键词 -->
-                    <div v-else-if="f.kind === 'keywordOps'" class="proj-inline">
-                      <span class="proj-keyword">{{ searchForm.keyword || '未添加关键词' }}</span>
-                      <el-button link type="primary" size="small" @click="onKeywordEdit">编辑</el-button>
-                      <el-button link type="primary" size="small" @click="searchForm.keyword = ''">清空</el-button>
+                    <!-- 搜索快投 · 关键词（线上：灰底框内文本 + 右端「编辑 / 清空」） -->
+                    <div v-else-if="f.kind === 'keywordOps'" class="proj-kwbox">
+                      <span class="proj-kwbox__txt">{{ searchForm.keyword || '未添加关键词' }}</span>
+                      <span class="proj-kwbox__act" @click="onKeywordEdit">编辑</span>
+                      <span class="proj-kwbox__act" @click="clearKeyword">清空</span>
+                    </div>
+
+                    <!-- 搜索快投 · 出价系数（启用后出现的输入框） -->
+                    <div v-else-if="f.kind === 'coefInput'" class="proj-inline">
+                      <el-input
+                        v-model="searchForm.bid_coef_value"
+                        size="small"
+                        class="proj-coef__input"
+                        placeholder="请输入出价系数"
+                      />
                     </div>
 
                     <!-- 竞价策略 / 优化目标 / 深度优化方式 / 付费方式 汇总 -->
@@ -970,6 +980,7 @@ const {
   onObjectiveChange, onAppPromoChange, onAdTypeChange, onMarketingGoalChange,
   onAssetGroupChange, onBudgetModeChange, onActionChange,
   pickAssetGroup, pickEventAsset, openMonitorGroup, removeLinkGroup, openTargetPackage, removeTargetPackage, appendWildcard,
+  openKeywordEditor, clearKeyword,
   onProjectConfirm, onProjectCancel,
 } = batch;
 
@@ -1226,7 +1237,7 @@ function onLink(f) {
   ElMessage.info('原型：' + f.link.text);
 }
 function onKeywordEdit() {
-  ElMessage.info('原型：打开关键词编辑弹窗');
+  openKeywordEditor();
 }
 function onPickStub(label) {
   ElMessage.info('原型：打开' + label + '弹窗');
@@ -1735,6 +1746,15 @@ function labelOfOption(key, fallback) {
 .proj-input--w160 { width: 160px; flex: none; }
 .proj-picked { font-size: 12px; color: #86909c; margin-left: 2px; }
 .proj-keyword { flex: 1; font-size: 14px; color: #1d2129; }
+/* 搜索快投 · 关键词灰底框（线上 286×48，文本 + 右端编辑/清空） */
+.proj-kwbox {
+  width: 286px; height: 48px; padding: 0 12px;
+  display: flex; align-items: center; gap: 12px;
+  background: #f7f8fa; border-radius: 2px; box-sizing: border-box;
+}
+.proj-kwbox__txt { flex: 1; min-width: 0; font-size: 14px; color: #1d2129; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-kwbox__act { font-size: 13px; color: #197afb; cursor: pointer; white-space: nowrap; }
+.proj-coef__input { width: 132px; }
 /* 线上提示两种变体：
    ① .interest-action-info（block）：12px / #999 / line-height 32px / 高 32px + ⚠ 12×12 图标
    ② inline：inline / margin-left 16px / 12px / ⚠ 14×14 图标（色 #ff9b48, margin-right 8px） */

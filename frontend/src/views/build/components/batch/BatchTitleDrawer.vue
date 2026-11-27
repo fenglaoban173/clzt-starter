@@ -213,6 +213,7 @@
               </div>
 
               <!-- 标题包表（线上 12 列：多选 + 10 列 + 操作） -->
+              <div class="tit-table-wrap">
               <table class="tit-table">
                 <thead>
                   <tr>
@@ -223,7 +224,12 @@
                 </thead>
                 <tbody>
                   <tr v-for="(row, ri) in packRows" :key="ri">
-                    <td v-for="c in tableColumns" :key="c.key" :class="{ 'is-center': c.align === 'center' }">
+                    <td
+                      v-for="c in tableColumns"
+                      :key="c.key"
+                      :class="{ 'is-center': c.align === 'center' }"
+                      :style="{ width: c.width + 'px', minWidth: c.width + 'px', maxWidth: c.width + 'px' }"
+                    >
                       <template v-if="c.key === '__selection'">
                         <input type="checkbox" :checked="picked.includes(row)" @change="togglePick(row)" />
                       </template>
@@ -235,7 +241,12 @@
                         <span v-else>--</span>
                       </template>
                       <template v-else-if="c.key === 'op'">
-                        <button class="tit-link">编辑</button>
+                        <button class="tit-link" @click="editRow(row)">编辑</button>
+                        <button
+                          v-if="v.title_source === 'TITLE_LIB'"
+                          class="tit-link tit-link--fixed"
+                          @click="addAsFixed(row)"
+                        >添加为固定标题</button>
                       </template>
                       <template v-else>{{ row[c.key] ?? '--' }}</template>
                     </td>
@@ -245,6 +256,7 @@
                   </tr>
                 </tbody>
               </table>
+              </div>
 
               <!-- 分页 -->
               <div class="tit-pager">
@@ -277,14 +289,23 @@
                     class="tit-rbtn"
                     :class="{ 'is-active': v.dyn_count_mode === o.value }"
                     @click="v.dyn_count_mode = o.value"
-                  >{{ o.label }}</button>
+                  >
+                    {{ o.label }}
+                    <el-tooltip
+                      :content="o.value === 'SAME' ? '每个账户都按该规则设置' : '每条规则单独设置每个广告标题数量'"
+                      placement="top"
+                      :show-after="200"
+                    >
+                      <ClIcon class="tit-qa" :d="icon('question2').d" :size="12" color="#999" />
+                    </el-tooltip>
+                  </button>
                 </div>
               </div>
             </div>
 
             <!-- 每个广告标题数量（数值） -->
             <div v-if="isVisible('dyn_count')" class="tit-row" :style="rowStyle('dyn_count')">
-              <div class="tit-row__label tit-row__label--req">{{ fieldOf('dyn_count').label }}</div>
+              <div class="tit-row__label">{{ fieldOf('dyn_count').label }}</div>
               <div class="tit-row__content">
                 <input v-model="v.dyn_count" class="tit-num tit-num--wide" type="text" />
               </div>
@@ -292,7 +313,7 @@
 
             <!-- 规则分配方式 -->
             <div class="tit-row" :style="rowStyle('dyn_rule_match')">
-              <div class="tit-row__label tit-row__label--req">{{ fieldOf('dyn_rule_match').label }}</div>
+              <div class="tit-row__label">{{ fieldOf('dyn_rule_match').label }}</div>
               <div class="tit-row__content">
                 <div class="tit-rgroup">
                   <button
@@ -309,12 +330,6 @@
                   </button>
                 </div>
                 <div class="tit-tip">{{ optionDescOf('dyn_rule_match', v.dyn_rule_match) }}</div>
-                <!-- 线上：分账户选择 时出现「复制到其他账户」（置灰） -->
-                <button
-                  v-if="isVisible('copy_to_other_account')"
-                  class="tit-btn tit-btn--copy"
-                  :disabled="isDisabled('copy_to_other_account') || dynRuleCount === 0"
-                >{{ fieldOf('copy_to_other_account').text }}</button>
               </div>
             </div>
 
@@ -345,65 +360,83 @@
             </div>
           </div>
 
-          <!-- 动态选取标题：分账户选择时的账户列表 -->
-          <div v-if="isVisible('account_panel')" class="tit-accounts tit-accounts--dyn">
-            <div
-              v-for="(a, i) in titleAccountRows"
-              :key="a.accountId || i"
-              class="tit-account"
-              :class="{ 'is-active': i === accountIndex }"
-              @click="accountIndex = i"
-            >
-              <span class="tit-account__name" :title="a.account">{{ a.account }}</span>
-              <ClIcon
-                class="tit-account__ico"
-                :d="icon('rightBig').d"
-                :size="14"
-                :color="i === accountIndex ? '#197afb' : '#333'"
-              />
-            </div>
-          </div>
-
-          <!-- 动态选取规则（线上 .dynamic-area） -->
-          <div class="tit-rules">
-            <div class="tit-rules__head">
-              <span class="tit-rules__title">动态选取规则</span>
-              <button
-                v-if="isVisible('copy_to_other_account')"
-                class="tit-btn tit-btn--ml8"
-                :disabled="isDisabled('copy_to_other_account') || dynRuleCount === 0"
-                @click="copyRulesToOtherAccounts"
-              >复制到其他账户</button>
-              <button
-                v-for="b in dynamicTab.toolbar"
-                :key="b"
-                class="tit-btn tit-btn--primary tit-rules__add"
-                :disabled="dynRuleCount >= (fieldOf('dyn_rules').maxRules || 2)"
-                @click="openRuleDrawer(-1)"
-              >{{ b }}</button>
+          <!-- 动态选取标题主体：分账户选择时左侧账户列 + 右侧规则卡片 -->
+          <div class="tit-dynbody">
+            <!-- 分账户选择时的账户列表（线上左侧账户列，行高 54） -->
+            <div v-if="isVisible('account_panel')" class="tit-accounts tit-accounts--dyn">
+              <div
+                v-for="(a, i) in titleAccountRows"
+                :key="a.accountId || i"
+                class="tit-account"
+                :class="{ 'is-active': i === accountIndex }"
+                @click="accountIndex = i"
+              >
+                <span class="tit-account__name" :title="a.account">{{ a.account }}</span>
+                <ClIcon
+                  class="tit-account__ico"
+                  :d="icon('rightBig').d"
+                  :size="14"
+                  :color="i === accountIndex ? '#197afb' : '#333'"
+                />
+              </div>
             </div>
 
-            <!-- 空态（线上：暂无动态选取规则， + el-link「点击添加」） -->
-            <div v-if="!dynRules.length" class="tit-emptybox">
-              <span class="tit-emptybox__text">{{ emptyDynRuleText }}</span>
-              <button
-                class="tit-link"
-                :disabled="dynRuleCount >= (fieldOf('dyn_rules').maxRules || 2)"
-                @click="openRuleDrawer(-1)"
-              >点击添加</button>
-            </div>
+            <!-- 动态选取规则卡片 -->
+            <div class="tit-rules">
+              <div class="tit-rules__head">
+                <span class="tit-rules__title">动态选取规则</span>
+                <button
+                  v-if="isVisible('copy_to_other_account')"
+                  class="tit-link tit-rules__copy"
+                  :disabled="!copyAccountRows.length"
+                  @click="copyRulesToOtherAccounts"
+                >{{ fieldOf('copy_to_other_account').text }}</button>
+                <button
+                  v-for="b in dynamicTab.toolbar"
+                  :key="b"
+                  class="tit-btn tit-btn--primary tit-rules__add"
+                  :disabled="dynRuleCount >= (fieldOf('dyn_rules').maxRules || 2)"
+                  @click="openRuleDrawer(-1)"
+                >
+                  <ClIcon class="tit-plus" :d="icon('plus').d" :size="12" color="#fff" />{{ b }}
+                </button>
+              </div>
 
-            <!-- 规则列表（线上 DynamicRuleItem：规则列 + 复制/编辑/删除） -->
-            <div v-for="(r, ri) in dynRules" :key="ri" class="tit-dynrule">
-              <span class="tit-dynrule__col">{{ ruleFetchLabel(r) }}</span>
-              <span class="tit-dynrule__col">{{ ruleFilterLabel(r) }}</span>
-              <span class="tit-dynrule__col">{{ ruleTimeLabel(r) }}</span>
-              <span v-if="isDynamicRuleCount" class="tit-dynrule__col">{{ r.count ?? '—' }}</span>
-              <span class="tit-dynrule__ops">
-                <button class="tit-link" @click="copyRule(ri)">复制</button>
-                <button class="tit-link" @click="openRuleDrawer(ri)">编辑</button>
-                <button class="tit-link tit-link--danger" @click="removeDynRule(ri)">删除</button>
-              </span>
+              <!-- 空态（线上：插画 + 「暂无动态选取规则，点击添加」） -->
+              <div v-if="!dynRules.length" class="tit-emptybox">
+                <svg class="tit-emptybox__pic" viewBox="0 0 160 140" aria-hidden="true">
+                  <rect x="30" y="18" width="96" height="104" rx="8" fill="#f2f7ff" stroke="#c7ddff" stroke-width="2" />
+                  <rect x="44" y="34" width="60" height="6" rx="3" fill="#dbe8ff" />
+                  <rect x="44" y="50" width="68" height="6" rx="3" fill="#dbe8ff" />
+                  <rect x="44" y="66" width="52" height="6" rx="3" fill="#dbe8ff" />
+                  <rect x="44" y="82" width="64" height="6" rx="3" fill="#dbe8ff" />
+                  <circle cx="112" cy="96" r="22" fill="#ffffff" stroke="#5b8ff9" stroke-width="3" />
+                  <path d="M102 96l7 8 13-15" fill="none" stroke="#5b8ff9" stroke-width="3" stroke-linecap="round" />
+                  <circle cx="126" cy="34" r="10" fill="#7f9cf5" opacity=".25" />
+                  <circle cx="36" cy="112" r="8" fill="#7f9cf5" opacity=".2" />
+                </svg>
+                <div class="tit-emptybox__text">
+                  <span>{{ emptyDynRuleText }}</span>
+                  <button
+                    class="tit-link"
+                    :disabled="dynRuleCount >= (fieldOf('dyn_rules').maxRules || 2)"
+                    @click="openRuleDrawer(-1)"
+                  >点击添加</button>
+                </div>
+              </div>
+
+              <!-- 规则列表（线上 DynamicRuleItem：规则列 + 复制/编辑/删除） -->
+              <div v-for="(r, ri) in dynRules" :key="ri" class="tit-dynrule">
+                <span class="tit-dynrule__col">{{ ruleFetchLabel(r) }}</span>
+                <span class="tit-dynrule__col">{{ ruleFilterLabel(r) }}</span>
+                <span class="tit-dynrule__col">{{ ruleTimeLabel(r) }}</span>
+                <span v-if="isDynamicRuleCount" class="tit-dynrule__col">{{ r.count ?? '—' }}</span>
+                <span class="tit-dynrule__ops">
+                  <button class="tit-link" @click="copyRule(ri)">复制</button>
+                  <button class="tit-link" @click="openRuleDrawer(ri)">编辑</button>
+                  <button class="tit-link tit-link--danger" @click="removeDynRule(ri)">删除</button>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -417,6 +450,12 @@
         :max-titles="maxTitleCount"
         @confirm="onPackageConfirm"
       />
+      <BatchTitleAddDialog
+        v-model="titleAddVisible"
+        :categories="titleCategories"
+        :init="titleAddInit"
+        @confirm="onTitleAddConfirm"
+      />
       <BatchTitleScreenDialog
         v-model="screenDialogVisible"
         :variant="screenVariant"
@@ -424,6 +463,11 @@
         :max-title-count="maxTitleCount"
         :fixed-title-count="Number(v.fixed_title_count || 0)"
         @confirm="onScreenConfirm"
+      />
+      <BatchCopyAccountDialog
+        v-model="copyAccountVisible"
+        :current-account="currentCopyAccount"
+        :rows="copyAccountRows"
       />
       <BatchTitleRuleDrawer
         v-model="ruleDrawerVisible"
@@ -443,6 +487,8 @@ import { Search } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import BatchDrawer from './BatchDrawer.vue';
 import BatchTitlePackageDialog from './BatchTitlePackageDialog.vue';
+import BatchTitleAddDialog from './BatchTitleAddDialog.vue';
+import BatchCopyAccountDialog from './BatchCopyAccountDialog.vue';
 import BatchTitleScreenDialog from './BatchTitleScreenDialog.vue';
 import BatchTitleRuleDrawer from './BatchTitleRuleDrawer.vue';
 import spec from './spec/title.spec.js';
@@ -631,6 +677,12 @@ const pkgDialogVisible = ref(false);
 const pkgDialogMode = ref('add');
 const pkgDialogInit = ref({});
 
+/* --- 添加标题弹窗（标题库来源下「+ 新建标题」，线上图3） --- */
+const titleAddVisible = ref(false);
+const titleAddInit = ref({});
+/** 当前正在编辑的标题行（null = 新建） */
+const editingTitleRow = ref(null);
+
 /* --- 随机选择 / 智能优选 / 一键测新 弹窗 --- */
 const screenDialogVisible = ref(false);
 const screenVariant = ref('random');
@@ -642,15 +694,68 @@ const ruleEditIndex = ref(-1);
 
 function onPrimary() {
   if (v.title_source === 'TITLE_LIB') {
-    // 线上：标题库模式下主按钮改名「新建标题」，仍打开同一个标题包弹窗
-    pkgDialogMode.value = 'add';
-    pkgDialogInit.value = {};
-    pkgDialogVisible.value = true;
+    // 线上：标题库模式下主按钮「新建标题」→ 打开「添加标题」弹窗（含插入动态词包）
+    editingTitleRow.value = null;
+    titleAddInit.value = {};
+    titleAddVisible.value = true;
     return;
   }
   pkgDialogMode.value = 'add';
   pkgDialogInit.value = {};
   pkgDialogVisible.value = true;
+}
+
+/** 列表「编辑」：把该行标题回填到「添加标题」弹窗 */
+function editRow(row) {
+  editingTitleRow.value = row;
+  titleAddInit.value = {
+    category: row.category && row.category !== '--' ? row.category : '',
+    text: (row.titles && row.titles.length ? row.titles : [row.name]).join('\n'),
+  };
+  titleAddVisible.value = true;
+}
+
+/** 列表「添加为固定标题」 */
+function addAsFixed(row) {
+  if (row.fixed) {
+    ElMessage.info('该标题已为固定标题');
+    return;
+  }
+  row.fixed = true;
+  v.fixed_title_count = String(Number(v.fixed_title_count || 0) + 1);
+  ElMessage.success('已添加为固定标题');
+}
+
+/** 添加标题确定：新建写入列表 / 编辑回写原行 */
+function onTitleAddConfirm({ category: cat, titles }) {
+  const editing = editingTitleRow.value;
+  const patch = {
+    name: titles[0],
+    title: titles[0],
+    titles,
+    category: cat || '--',
+    count: titles.length,
+  };
+  if (editing) {
+    Object.assign(editing, patch);
+    editingTitleRow.value = null;
+    ElMessage.success('修改成功');
+    return;
+  }
+  const row = {
+    ...patch,
+    reject: '--',
+    suggest: '--',
+    creator: '北京央广时代文化传播有限公司',
+    ctr3: '--',
+    cost3: '--',
+    ctr90: '--',
+    cost90: '--',
+    created: new Date().toISOString().slice(0, 10),
+  };
+  titlePackRows.value = [row, ...(titlePackRows.value || [])];
+  picked.value = [row];
+  ElMessage.success('新建成功');
 }
 
 /** 三个副按钮 → 共用弹窗，variant 决定标题/气泡/接口 */
@@ -733,9 +838,20 @@ function copyRule(index) {
   dynRules.value.splice(index + 1, 0, JSON.parse(JSON.stringify(src)));
 }
 
-/** 复制到其他账户（线上：成功提示「规则已复制到其他账户」） */
+/** 复制到其他账户：线上为「复用到其他账户」弹窗（勾选目标账户后确定） */
+const copyAccountVisible = ref(false);
+const currentCopyAccount = computed(() => {
+  const row = (titleAccountRows.value || [])[accountIndex.value];
+  return row ? row.account : '';
+});
+/** 目标账户 = 除当前在投账户外的其他账户 */
+const copyAccountRows = computed(() => (titleAccountRows.value || [])
+  .map((row, i) => ({ row, i }))
+  .filter((it) => it.i !== accountIndex.value)
+  .map((it) => ({ account: it.row.account, accountId: it.row.accountId })));
+
 function copyRulesToOtherAccounts() {
-  ElMessage.success('规则已复制到其他账户');
+  copyAccountVisible.value = true;
 }
 
 /* --- 规则列表的列文案（线上 dynamic-title-DGnKLaF3.js 的列 formatter） --- */
@@ -1049,10 +1165,12 @@ function onClose() {
 /* 主体布局 */
 .tit-flex { display: flex; align-items: flex-start; }
 .tit-accounts {
-  /* 线上 .account-panel 实测 x=937 w=148，右侧列表起点 x=1097（间隔 12px） */
-  flex: 0 0 160px;
-  width: 160px;
-  padding-right: 12px;
+  /* 线上 .account-panel：账户竖列 148 宽，行高 56，选中行浅蓝底 */
+  flex: 0 0 148px;
+  width: 148px;
+  margin-right: 12px;
+  border: 1px solid #ebedf0;
+  box-sizing: border-box;
 }
 .tit-accounts--dyn { margin-top: 12px; }
 .tit-account {
@@ -1060,15 +1178,19 @@ function onClose() {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  padding: 6px 8px;
-  font-size: 12px;
-  line-height: 18px;
+  height: 56px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 20px;
   color: #4e5969;
   cursor: pointer;
-  border-radius: 3px;
+  border-bottom: 1px solid #ebedf0;
   overflow: hidden;
 }
-.tit-account.is-active { color: #197afb; background: #f2f7ff; }
+.tit-account:last-child { border-bottom: 0; }
+.tit-account:hover { background: #f7f8fa; }
+.tit-account.is-active { color: #197afb; background: #eef4ff; }
 .tit-account__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tit-account__ico { flex: none; }
 .tit-main { flex: 1; min-width: 0; }
@@ -1134,9 +1256,10 @@ function onClose() {
 .tit-selected__num { color: #197afb; font-weight: 600; }
 
 /* 表格 */
-.tit-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+.tit-table-wrap { overflow-x: auto; }
+.tit-table { width: auto; min-width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
 .tit-table th, .tit-table td {
-  height: 32px;
+  height: 40px;
   padding: 0 12px;
   border: 1px solid #e5e6eb;
   color: #606266;
@@ -1146,11 +1269,22 @@ function onClose() {
   white-space: nowrap;
 }
 .tit-table th { background: #f8f8f9; color: #333; font-weight: 500; }
+/* 操作列贴右侧固定（线上 el-table fixed="right"） */
+.tit-table th:last-child,
+.tit-table td:last-child {
+  position: sticky; right: 0; z-index: 2;
+  background: #fff;
+  box-shadow: -4px 0 6px -6px rgba(0, 0, 0, .24);
+}
+.tit-table th:last-child { background: #f8f8f9; }
 .tit-table td.is-center, .tit-table th.is-center { text-align: center; }
 .tit-pop__ref { color: #197afb; cursor: pointer; }
 .tit-tag { display: inline-block; padding: 0 6px; line-height: 20px; border-radius: 3px; }
 .tit-tag--red { color: #f53f3f; background: #ffece8; }
 .tit-link { font-size: 12px; color: #197afb; background: none; border: none; padding: 0; cursor: pointer; }
+.tit-link + .tit-link { margin-left: 8px; }
+.tit-link--fixed { color: #197afb; }
+.tit-link:hover { text-decoration: underline; }
 .tit-link--danger { color: #f53f3f; }
 .tit-empty { text-align: center; color: #86909c; }
 
@@ -1171,13 +1305,31 @@ function onClose() {
 
 /* 动态选取规则 */
 /* 动态选取规则（线上 .dynamic-area：头部标题 + 右侧主按钮；规则行 = 规则列 + 操作列） */
-.tit-rules { margin-top: 24px; }
-.tit-rules__head { display: flex; align-items: center; margin-bottom: 12px; }
-.tit-rules__title { font-size: 14px; font-weight: 700; color: #333; }
+.tit-dynbody { display: flex; align-items: stretch; gap: 12px; margin-top: 24px; }
+.tit-accounts--dyn { margin-top: 0; margin-right: 0; flex: 0 0 148px; align-self: flex-start; }
+.tit-rules {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  min-height: 620px;
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 2px;
+}
+.tit-rules__head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px;
+}
+.tit-rules__title { font-size: 13px; color: #1d2129; }
+.tit-rules__copy { font-size: 12px; }
 .tit-rules__add { margin-left: auto; }
 .tit-btn--ml8 { margin-left: 8px; }
-.tit-emptybox { padding: 24px 0; text-align: center; }
-.tit-emptybox__text { font-size: 13px; color: #909399; }
+.tit-emptybox {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 0 80px;
+}
+.tit-emptybox__pic { width: 160px; height: 140px; }
+.tit-emptybox__text { margin-top: 8px; font-size: 13px; color: #86909c; }
 .tit-dynrule {
   display: flex; align-items: center; gap: 16px;
   padding: 8px 12px; margin-top: 8px;

@@ -54,7 +54,7 @@
             <template #prefix><span class="mp-pre">账户：</span></template>
             <el-option v-for="a in accounts" :key="a.id" :label="accountLabel(a)" :value="a.name" />
           </el-select>
-          <el-select v-else v-model="f.type" class="mp-f-select mp-f-short">
+          <el-select v-else-if="tab !== 'text'" v-model="f.type" class="mp-f-select mp-f-short">
             <template #prefix><span class="mp-pre">类型：</span></template>
             <el-option v-for="o in OPTS.type" :key="o" :label="o" :value="o" />
           </el-select>
@@ -118,13 +118,13 @@
                 <template #prefix><span class="mp-pre">使用情况：</span></template>
                 <el-option v-for="o in OPTS.useStatus" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.layout" class="mp-f-select mp-f-short" placeholder="全部" clearable>
+              <el-select v-if="tab !== 'text'" v-model="f.layout" class="mp-f-select mp-f-short" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">版式：</span></template>
                 <el-option v-for="o in OPTS.layout" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
             <div class="mp-frow">
-              <div class="mp-dur" :class="{ empty: durEmpty }">
+              <div v-if="tab !== 'text'" class="mp-dur" :class="{ empty: durEmpty }">
                 <span class="mp-pre mp-dur-label">视频时长：</span>
                 <div class="mp-dur-track">
                   <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
@@ -203,17 +203,18 @@
                   class="mp-f-date"
                 />
               </div>
-              <el-select v-model="f.type" class="mp-f-select mp-f-short">
+              <span v-if="tab === 'text'" class="mp-chip">类型：图文</span>
+              <el-select v-else-if="tab !== 'text'" v-model="f.type" class="mp-f-select mp-f-short">
                 <template #prefix><span class="mp-pre">类型：</span></template>
                 <el-option v-for="o in OPTS.type" :key="o" :label="o" :value="o" />
               </el-select>
-              <el-select v-model="f.layout" class="mp-f-select mp-f-short" placeholder="全部" clearable>
+              <el-select v-if="tab !== 'text'" v-model="f.layout" class="mp-f-select mp-f-short" placeholder="全部" clearable>
                 <template #prefix><span class="mp-pre">版式：</span></template>
                 <el-option v-for="o in OPTS.layout" :key="o" :label="o" :value="o" />
               </el-select>
             </div>
             <div class="mp-frow">
-              <div class="mp-dur" :class="{ empty: durEmpty }">
+              <div v-if="tab !== 'text'" class="mp-dur" :class="{ empty: durEmpty }">
                 <span class="mp-pre mp-dur-label">视频时长：</span>
                 <div class="mp-dur-track">
                   <el-slider v-model="f.duration" range :min="0" :max="600" :show-tooltip="false" />
@@ -290,10 +291,11 @@
                   @change="(v) => toggle(m.id, v)"
                 />
                 <div class="mp-cover" :class="'tone-' + m.tone">
-                  <el-icon class="mp-play"><VideoPlay /></el-icon>
+                  <el-icon class="mp-play"><VideoPlay v-if="m.type !== '图文'" /><Document v-else /></el-icon>
                 </div>
-                <div class="mp-res">{{ m.resolution }}</div>
-                <div class="mp-dur-badge">{{ m.duration }}</div>
+                <div v-if="m.type !== '图文'" class="mp-res">{{ m.resolution }}</div>
+                <div v-if="m.type !== '图文'" class="mp-dur-badge">{{ m.duration }}</div>
+                <div v-else class="mp-tibadge">图文</div>
                 <el-icon class="mp-more"><MoreFilled /></el-icon>
               </div>
               <div class="mp-info">
@@ -378,7 +380,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-  CircleClose, Grid, Menu, MoreFilled, QuestionFilled, Search, VideoPlay, WarningFilled,
+  CircleClose, Document, Grid, Menu, MoreFilled, QuestionFilled, Search, VideoPlay, WarningFilled,
 } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import { mediaApi } from '@/api/media';
@@ -392,16 +394,34 @@ import {
 const props = defineProps({
   modelValue: Boolean,
   selectedIds: { type: Array, default: () => [] },
+  /** 打开时默认选中的页签（如「添加已有图文」→ text） */
+  initialTab: { type: String, default: 'library' },
 });
 const emit = defineEmits(['update:modelValue', 'submit']);
 
-// 页签：素材库 / 媒体素材（线上另有「魔剪 / 收藏夹」，按需求移除）
-// R78：按线上移除「鹰剪」「收藏夹」两个页签
+/** 图文素材（线上素材库「图文」页签；本地 mock 6 条） */
+const TEXT_IMAGE_LIB = Array.from({ length: 6 }).map((_, i) => ({
+  id: `ti_${i + 1}`,
+  name: `图文-短剧通用-0${i + 1}`,
+  size: '--',
+  mid: '--',
+  upload_time: `2026-11-2${i} 10:0${i}:00`,
+  ad_count: i % 3,
+  today_ad_count: i % 2,
+  status: i % 3 ? '使用中' : '未使用',
+  duration: '--',
+  resolution: '720*1280',
+  type: '图文',
+  tone: i % 5,
+}));
+
+// 页签：素材库 / 媒体素材 / 组织素材 / 组织素材-实时 / 图文
 const TABS = [
   { key: 'library', label: '素材库', data: MATERIAL_LIBRARY },
   { key: 'media', label: '媒体素材', data: MATERIAL_MEDIA },
   { key: 'org', label: '组织素材', data: MATERIAL_ORG },
   { key: 'orgLive', label: '组织素材-实时', data: MATERIAL_ORG_LIVE },
+  { key: 'text', label: '图文', data: TEXT_IMAGE_LIB },
 ];
 
 // 级联面板参数：素材目录（单选 · 悬停展开）、素材标签（多选 · 勾选）
@@ -491,6 +511,7 @@ watch(() => props.modelValue, (v) => {
 async function init() {
   selected.value = [...props.selectedIds];
   page.value = 1;
+  if (props.initialTab) tab.value = props.initialTab;
   if (!accounts.value.length) {
     const res = await mediaApi.accounts();
     accounts.value = res.data?.list || [];
@@ -547,7 +568,14 @@ function onDetail(m) { ElMessage.info(`原型：查看素材「${m.name}」详�
 function close() { emit('update:modelValue', false); }
 
 function submit() {
-  const picked = currentData.value.filter((m) => selected.value.includes(m.id));
+  // 跨页签多选：从全部页签数据里取已选项，避免只提交当前页签
+  const pools = TABS.map((t) => t.data || []);
+  const picked = [];
+  pools.forEach((pool) => {
+    pool.forEach((m) => {
+      if (selected.value.includes(m.id) && !picked.some((x) => x.id === m.id)) picked.push(m);
+    });
+  });
   emit('submit', picked);
   emit('update:modelValue', false);
 }
@@ -768,6 +796,10 @@ function submit() {
 }
 .mp-res { left: 8px; }
 .mp-dur-badge { right: 8px; }
+.mp-tibadge {
+  position: absolute; right: 8px; bottom: 6px; padding: 1px 6px;
+  background: rgba(29, 33, 41, .6); color: #fff; font-size: 12px; border-radius: 2px;
+}
 .mp-more { position: absolute; right: 8px; top: 8px; color: #86909c; }
 .mp-info { padding: 10px 12px 12px; }
 .mp-title { display: flex; align-items: baseline; gap: 8px; }

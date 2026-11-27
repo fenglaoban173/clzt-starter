@@ -61,28 +61,6 @@
             </div>
           </div>
 
-          <!-- 落地页分配方式（选项随类型增减） -->
-          <div class="lp-row" :style="rowStyle('landing_page_rule')">
-            <div class="lp-row__label lp-row__label--req">{{ fieldOf('landing_page_rule').label }}</div>
-            <div class="lp-row__content">
-              <div class="lp-rgroup">
-                <button
-                  v-for="o in visibleRuleOptions"
-                  :key="o.value"
-                  class="lp-rbtn"
-                  :class="{ 'is-active': v.landing_page_rule === o.value }"
-                  @click="v.landing_page_rule = o.value"
-                >{{ o.label }}</button>
-              </div>
-              <!-- 线上：分配方式 = 按账户分配 时出现「复制到其他账户」 -->
-              <button
-                v-if="isVisible('copy_to_other_account')"
-                class="lp-btn lp-btn--copy"
-                :disabled="isDisabled('copy_to_other_account')"
-              >{{ fieldOf('copy_to_other_account').text }}</button>
-            </div>
-          </div>
-
           <!-- 落地页选择方式（仅第三方落地页） -->
           <div v-if="isVisible('landing_select_way')" class="lp-row" :style="rowStyle('landing_select_way')">
             <div class="lp-row__label">{{ fieldOf('landing_select_way').label }}</div>
@@ -95,6 +73,68 @@
                   :class="{ 'is-active': v.landing_select_way === o.value }"
                   @click="v.landing_select_way = o.value"
                 >{{ o.label }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 第三方落地页 · 自动选择：匹配方式 -->
+          <div v-if="isAutoSelect" class="lp-row lp-tpauto">
+            <div class="lp-row__label">匹配方式</div>
+            <div class="lp-row__content">
+              <div class="lp-rgroup">
+                <button class="lp-rbtn is-active">素材备注</button>
+              </div>
+              <div class="lp-tpauto__desc">
+                取广告创意组首个素材备注,匹配与之同名的落地页。若监测活动与自动直达链接（多直达）同时开启关联第方落地页,还会校验资产中是否有对应的链接
+              </div>
+              <label class="tp-check tp-check--auto" :class="{ 'is-on': tpAllowUnlinked }">
+                <input v-model="tpAllowUnlinked" type="checkbox" class="tp-check__box" />
+                <span>允许匹配未关联账户的资产</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 落地页分配方式（选项随类型增减；自动选择时整行隐藏） -->
+          <div v-if="!isAutoSelect" class="lp-row" :style="rowStyle('landing_page_rule')">
+            <div class="lp-row__label lp-row__label--req">{{ fieldOf('landing_page_rule').label }}</div>
+            <div class="lp-row__content">
+              <div class="lp-rulerow">
+              <div class="lp-rgroup">
+                <button
+                  v-for="o in visibleRuleOptions"
+                  :key="o.value"
+                  class="lp-rbtn"
+                  :class="{ 'is-active': v.landing_page_rule === o.value }"
+                  @click="v.landing_page_rule = o.value"
+                >{{ o.label }}</button>
+              </div>
+              <!-- 线上：分配方式 = 按账户分配 时出现「复制到其他账户」 -->
+              <button
+                v-if="!isOrange && !isThirdParty && isVisible('copy_to_other_account')"
+                class="lp-btn lp-btn--copy"
+                :disabled="isDisabled('copy_to_other_account')"
+                @click="openCopyAccounts"
+              >{{ fieldOf('copy_to_other_account').text }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 循环使用账户 / 循环使用资产（按项目分配、按广告分配 时出现） -->
+          <div v-if="showLoopRow" class="lp-row lp-looprow">
+            <div class="lp-row__label">{{ loopLabel }}</div>
+            <div class="lp-row__content">
+              <div class="lp-rgroup">
+                <button
+                  v-for="o in LOOP_OPTIONS"
+                  :key="o.value"
+                  class="lp-rbtn"
+                  :class="{ 'is-active': v.loop_account === o.value }"
+                  @click="v.loop_account = o.value"
+                >{{ o.label }}</button>
+              </div>
+              <div v-if="v.loop_account === 'ON'" class="lp-loop-tip">
+                <span class="lp-loop-tip__ico">!</span>
+                未选满时系统将自动根据匹配方式循环使用落地页，请预览后核实每个广告分配的落地页
               </div>
             </div>
           </div>
@@ -119,24 +159,347 @@
           </div>
         </div>
 
-        <!-- 手动填写：输入落地页 -->
+        <!-- 手动填写：输入落地页（线上图：按账户分配时左侧账户列 + 右侧逐账户链接） -->
         <div v-if="isVisible('manual_url')" class="lp-manual">
-          <div v-for="(u, i) in manualUrls" :key="i" class="lp-row" :style="rowStyle('manual_url')">
-            <div class="lp-row__label">{{ fieldOf('manual_url').label }}</div>
-            <div class="lp-row__content">
-              <input
-                class="lp-input lp-input--wide"
-                type="text"
-                :placeholder="fieldOf('manual_url').placeholder"
-                :value="u"
-                @input="onManualUrl(i, $event.target.value)"
-              />
+          <div class="lp-manual__inner" :class="{ 'is-accs': v.landing_page_rule === 'PER_ACCOUNT' }">
+            <div v-if="v.landing_page_rule === 'PER_ACCOUNT'" class="lp-manual__accs">
+              <div
+                v-for="(a, i) in orangeAccounts"
+                :key="a.id"
+                class="lp-manual__acc"
+                :class="{ 'is-active': i === accIndex }"
+                @click="accIndex = i"
+              >
+                <span class="lp-manual__accname" :title="a.name">{{ a.name }}</span>
+                <span class="lp-manual__accid">{{ a.displayId }}</span>
+                <span class="lp-manual__ok">
+                  <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="7" fill="#00b42a" /><path d="M3.6 7.1l2.2 2.2 4.6-4.7" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </span>
+              </div>
+            </div>
+            <div class="lp-manual__main">
+              <div v-if="v.landing_page_rule === 'PER_ACCOUNT'" class="lp-manual__row" :style="rowStyle('manual_url')">
+                <div class="lp-manual__label">{{ fieldOf('manual_url').label }}</div>
+                <input
+                  class="lp-manual__input"
+                  type="text"
+                  :placeholder="fieldOf('manual_url').placeholder"
+                  :value="manualCur"
+                  @input="onManualInput($event.target.value)"
+                />
+              </div>
+              <div v-for="(u, i) in manualUrls" v-else :key="i" class="lp-manual__row" :style="rowStyle('manual_url')">
+                <div class="lp-manual__label">{{ fieldOf('manual_url').label }}</div>
+                <input
+                  class="lp-manual__input"
+                  type="text"
+                  :placeholder="fieldOf('manual_url').placeholder"
+                  :value="u"
+                  @input="onManualUrl(i, $event.target.value)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 橙子建站模板：分项目/分广告 时，整宽橙色提示（无「循环使用账户」行） -->
+        <div v-if="isOSite && showOSiteLoopTip" class="lp-loop-tip lp-loop-tip--wide">
+          <span class="lp-loop-tip__ico">!</span>
+          未选满时系统将自动根据匹配方式循环使用落地页，请预览后核实每个广告分配的落地页
+        </div>
+
+        <!-- 橙子落地页 / 橙子建站模板（线上 2026-11-27） -->
+        <div v-if="isOrange" class="lp-orange">
+          <!-- 左侧账户面板（分账户 / 分项目 / 分广告 时出现） -->
+          <div v-if="v.landing_page_rule !== 'ALL'" class="lp-orange__accs">
+            <div
+              v-for="(a, i) in orangeAccounts"
+              :key="a.id"
+              class="lp-orange__acc"
+              :class="{ 'is-active': i === accIndex }"
+              @click="accIndex = i"
+            >
+              <span class="lp-orange__accname" :title="a.name">{{ a.name }}</span>
+              <span class="lp-orange__accid">{{ a.displayId }}</span>
+              <span v-if="isOSite" class="lp-oradio" :class="{ 'is-on': i === accIndex }">
+                <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1"/><path v-if="i === accIndex" d="M3.6 7.2l2.3 2.3 4.5-4.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="lp-orange__main">
+            <div class="lp-ocard" :class="{ 'lp-ocard--plain': isOSite }">
+              <div v-if="!isOSite" class="lp-ocard__head">
+                <span class="lp-ocard__title">选择落地页</span>
+                <div class="lp-ocard__ops">
+                  <button class="lp-btn lp-btn--primary lp-btn--sm" @click="onOrangeRefresh">多账户刷新</button>
+                  <button class="lp-btn lp-btn--border lp-btn--sm" @click="sharedVisible = true">获取共享建站</button>
+                  <button class="lp-btn lp-btn--border lp-btn--sm" @click="clearAllAccounts">清空所有账户</button>
+                  <button
+                    v-if="v.landing_page_rule !== 'ALL'"
+                    class="lp-btn lp-btn--primary lp-btn--sm"
+                    @click="quickSelectAll"
+                  >多账户快速选择</button>
+                </div>
+              </div>
+
+              <!-- 全部相同：账户下拉 -->
+              <div v-if="v.landing_page_rule === 'ALL'" class="lp-ocard__acctrow">
+                <select v-model="allAccount" class="lp-select lp-select--acctwide">
+                  <option v-for="a in orangeAccounts" :key="a.id" :value="a.id">{{ a.name }}-在投({{ a.displayId }})</option>
+                </select>
+                <button class="lp-link lp-ocard__refresh" @click="onOrangeRefresh">刷新</button>
+              </div>
+
+              <!-- 搜索行 -->
+              <div class="lp-ocard__search">
+                <select v-model="lpField" class="lp-select lp-select--name">
+                  <option value="name">名称</option>
+                  <option value="remark">备注</option>
+                </select>
+                <input v-model="lpKeyword" class="lp-search lp-search--grow" type="text" placeholder="请输入关键词" />
+                <button class="lp-iconbtn" aria-label="查询" @click="onSearch">
+                  <el-icon><Search /></el-icon>
+                </button>
+                <button class="lp-iconbtn" aria-label="更多" @click="onSearch">
+                  <el-icon><Filter /></el-icon>
+                </button>
+                <span v-if="v.landing_page_rule === 'ALL' || isOSite" class="lp-ocard__jump" @click="openOrangeSite">
+                  <el-icon><Link /></el-icon>{{ isOSite ? '跳转橙子建站模板' : '跳转橙子建站' }}
+                </span>
+              </div>
+
+              <!-- 项目数 / 广告数 + 快速选择 -->
+              <div class="lp-ocard__sum">
+                <span>项目数：{{ projectCount }}</span>
+                <span>广告数：{{ adCount }}</span>
+                <button class="lp-btn lp-btn--quickselect lp-btn--sm" @click="quickSelect">
+                  <ClIcon :d="icon('quickselect').d" :size="12" color="#606266" />快速选择
+                </button>
+              </div>
+
+              <!-- 表格 -->
+              <div class="lp-otable">
+                <div class="lp-otable__head">
+                  <template v-if="isOSite">
+                    <span class="lp-otable__c1">落地页模板名称
+                      <el-icon><Sort /></el-icon>
+                    </span>
+                    <span class="lp-otable__c2 lp-otable__c2--sorting">关联广告数
+                      <el-icon><Sort /></el-icon>
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span class="lp-otable__c1">落地页名称
+                      <el-icon><Sort /></el-icon>
+                    </span>
+                    <span class="lp-otable__c2">关联广告数
+                      <el-icon><Sort /></el-icon>
+                    </span>
+                    <span class="lp-otable__c3">备注</span>
+                  </template>
+                </div>
+                <div class="lp-otable__body">
+                  <div
+                    v-for="lp in filteredPages"
+                    :key="lp.id"
+                    class="lp-otable__row"
+                    :class="{ 'is-checked': currentChecked.includes(lp.id) }"
+                    @click="toggleChecked(lp.id)"
+                  >
+                    <span class="lp-otable__c1" :title="lp.title">{{ lp.title }}</span>
+                    <span class="lp-otable__c2">{{ lp.ad_count ?? '--' }}</span>
+                    <span v-if="!isOSite" class="lp-otable__c3">{{ lp.remark || '--' }}</span>
+                  </div>
+                  <div v-if="!filteredPages.length" class="lp-oempty">
+                    <svg width="88" height="76" viewBox="0 0 88 76">
+                      <rect x="32" y="6" width="24" height="34" rx="1" fill="#fff" stroke="#e5e6eb" />
+                      <path d="M37 15h14M37 21h14M37 27h9" stroke="#f0f1f3" stroke-width="2" />
+                      <path d="M18 44h52l6 12H12z" fill="#fff" stroke="#e5e6eb" />
+                      <path d="M12 56h64" stroke="#f0f1f3" />
+                      <path d="M25 8l-3-3M63 8l3-3M44 2v-3" stroke="#e5e6eb" />
+                    </svg>
+                    <div class="lp-oempty__txt">暂无数据</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lp-ocard__pager">
+                <span class="lp-pager__ico">&lt;</span>
+                <span class="lp-pager__page">1</span>
+                <span class="lp-pager__ico">&gt;</span>
+              </div>
+
+              <div class="lp-ocard__hint">
+                没找到已有落地页？<a class="lp-link" @click="openOrangeSite">去列表同步</a>后再刷新
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧已选 -->
+          <div class="lp-opicked">
+            <div class="lp-opicked__head">
+              <span>已选 <b>{{ currentChecked.length }}/{{ maxCount }}</b></span>
+              <a class="lp-link" @click="clearAll">清空
+                <ClIcon :d="icon('refreshRight').d" :size="10" color="#197afb" />
+              </a>
+            </div>
+            <div class="lp-opicked__body">
+              <div v-for="id in currentChecked" :key="id" class="lp-opicked__row">
+                <span class="lp-opicked__name" :title="pageById(id)?.title">{{ pageById(id)?.title }}</span>
+                <el-icon class="lp-picked__x" @click.stop="removePicked(id)"><Close /></el-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第三方落地页 · 手动选择（线上图：卡头 + 项目下拉 + 搜索 + 筛选 + 四列表格） -->
+        <div v-else-if="isThirdParty && !isAutoSelect" class="lp-orange lp-tp">
+          <div v-if="v.landing_page_rule !== 'ALL'" class="lp-orange__accs">
+            <div
+              v-for="(a, i) in orangeAccounts"
+              :key="a.id"
+              class="lp-orange__acc"
+              :class="{ 'is-active': i === accIndex }"
+              @click="accIndex = i"
+            >
+              <span class="lp-orange__accname" :title="a.name">{{ a.name }}</span>
+              <span class="lp-orange__accid">{{ a.displayId }}</span>
+              <span class="lp-oradio" :class="{ 'is-on': i === accIndex }">
+                <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1"/><path v-if="i === accIndex" d="M3.6 7.2l2.3 2.3 4.5-4.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="lp-orange__main">
+            <div class="lp-ocard lp-tpcard">
+              <div class="lp-tpcard__head">
+                <span class="lp-tpcard__title">选择落地页</span>
+                <div class="lp-ocard__ops">
+                  <button class="lp-btn lp-btn--border lp-btn--sm" @click="clearAllAccounts">清空所有资产</button>
+                  <button
+                    v-if="v.landing_page_rule !== 'ALL'"
+                    class="lp-btn lp-btn--primary lp-btn--sm"
+                    @click="quickSelectAll"
+                  >多账户快速选择</button>
+                </div>
+              </div>
+
+              <div class="lp-tpcard__row">
+                <select v-model="tpProject" class="lp-select lp-select--full">
+                  <option value="">请选择智投项目</option>
+                  <option v-for="p in TP_PROJECTS" :key="p" :value="p">{{ p }}</option>
+                </select>
+              </div>
+
+              <div class="lp-tpcard__row lp-tpcard__search">
+                <select v-model="lpField" class="lp-select lp-select--name">
+                  <option value="name">名称</option>
+                  <option value="remark">备注</option>
+                </select>
+                <div class="lp-searchgroup">
+                  <input v-model="lpKeyword" class="lp-search lp-search--grow" type="text" placeholder="请输入关键词" />
+                  <button class="lp-iconbtn lp-iconbtn--joined" aria-label="更多">
+                    <el-icon><Filter /></el-icon>
+                  </button>
+                  <button class="lp-iconbtn lp-iconbtn--joined" aria-label="查询">
+                    <el-icon><Search /></el-icon>
+                  </button>
+                </div>
+                <span class="lp-ocard__jump" @click="openThirdPartySite">跳转第三方落地页</span>
+              </div>
+
+              <div class="lp-tpcard__row lp-tpcard__sum">
+                <span>项目数：{{ projectCount }}</span>
+                <span>广告数：{{ adCount }}</span>
+                <button class="lp-btn lp-btn--quickselect lp-btn--sm" @click="quickSelect">
+                  <ClIcon :d="icon('quickselect').d" :size="12" color="#606266" />快速选择
+                </button>
+              </div>
+
+              <div class="lp-tpcard__row lp-tpcard__filters">
+                <label class="tp-check">
+                  <input v-model="tpOnlyUnlinked" type="checkbox" class="tp-check__box" />
+                  <span class="tp-check__blue">仅看未绑定账户数据</span>
+                  <span class="tp-check__info">?</span>
+                </label>
+                <label class="tp-check">
+                  <input v-model="tpOnlyZero" type="checkbox" class="tp-check__box" />
+                  <span>仅看关联数为0</span>
+                </label>
+                <label class="tp-check">
+                  <input v-model="tpOnlyUnused" type="checkbox" class="tp-check__box" />
+                  <span>仅看未使用</span>
+                </label>
+              </div>
+
+              <div class="lp-tptable">
+                <div class="lp-tptable__head">
+                  <span class="lp-tpc lp-tpc--check"></span>
+                  <span class="lp-tpc lp-tpc--name">落地页名称
+                    <el-icon><Sort /></el-icon>
+                  </span>
+                  <span class="lp-tpc lp-tpc--remark">落地页备注</span>
+                  <span class="lp-tpc lp-tpc--status">使用状态</span>
+                  <span class="lp-tpc lp-tpc--ad lp-otable__c2--sorting">关联广告数
+                    <el-icon><Sort /></el-icon>
+                  </span>
+                </div>
+                <div class="lp-tptable__body">
+                  <div
+                    v-for="p in tpRows"
+                    :key="p.id"
+                    class="lp-tptable__row"
+                    :class="{ 'is-checked': currentChecked.includes(p.id) }"
+                    @click="toggleChecked(p.id)"
+                  >
+                    <span class="lp-tpc lp-tpc--check">
+                      <span class="tp-box" :class="{ 'is-on': currentChecked.includes(p.id) }">
+                        <svg v-if="currentChecked.includes(p.id)" width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.2l2.2 2.2L8.5 2.6" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>
+                      </span>
+                    </span>
+                    <span class="lp-tpc lp-tpc--name" :title="p.title">{{ p.title }}</span>
+                    <span class="lp-tpc lp-tpc--remark">{{ p.remark || '--' }}</span>
+                    <span class="lp-tpc lp-tpc--status">
+                      <span class="tp-dot" :class="p.used ? 'is-used' : 'is-idle'"></span>{{ p.used ? '已使用' : '未使用' }}
+                    </span>
+                    <span class="lp-tpc lp-tpc--ad">
+                      <span class="tp-adnum">{{ p.adCount }}</span>
+                      <a class="lp-link tp-preview" @click.stop>预览</a>
+                    </span>
+                  </div>
+                  <div v-if="!tpRows.length" class="lp-oempty">
+                    <div class="lp-oempty__txt">暂无数据</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lp-tpcard__pager">
+                <span class="lp-pager__ico">&lt;</span>
+                <span class="lp-pager__page">1</span>
+                <span class="lp-pager__ico">&gt;</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lp-opicked">
+            <div class="lp-opicked__head">
+              <span>已选<b>{{ currentChecked.length }}/{{ maxCount }}</b></span>
+              <a class="lp-link" @click="clearAll">清空
+                <ClIcon :d="icon('refreshRight').d" :size="10" color="#197afb" />
+              </a>
+            </div>
+            <div class="lp-opicked__body">
+              <div v-for="id in currentChecked" :key="id" class="lp-opicked__row">
+                <span class="lp-opicked__name" :title="tpPageById(id)?.title">{{ tpPageById(id)?.title }}</span>
+                <el-icon class="lp-picked__x" @click.stop="removePicked(id)"><Close /></el-icon>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- 资产类落地页面板 -->
-        <div v-if="isVisible('asset_panel')" class="lp-asset">
+        <div v-else-if="isVisible('asset_panel') && !isThirdParty" class="lp-asset">
           <div class="lp-asset__head">
             <!-- 线上：只有橙子落地页 / 第三方落地页 有 .head-title，且与抽屉标题同名 -->
             <span v-if="typePanel.headTitle" class="lp-asset__title">{{ typePanel.headTitle }}</span>
@@ -214,6 +577,36 @@
 
           <div v-if="typePanel.extraTip" class="lp-extra">{{ typePanel.extraTip }}</div>
         </div>
+
+        <!-- 获取共享建站（线上图5：444 宽，输入关键词后确定） -->
+        <div v-if="sharedVisible" class="lp-shared-mask" @click="sharedVisible = false"></div>
+        <div v-if="sharedVisible" class="lp-shared" role="dialog" aria-modal="true" aria-label="获取共享建站">
+          <div class="lp-shared__head">
+            <span>获取共享建站</span>
+            <button class="lp-shared__close" @click="sharedVisible = false">✕</button>
+          </div>
+          <div class="lp-shared__body">
+            由于媒体接口不支持长时间拉取，若账户内资产数量极大<br />
+            会导致同步十分缓慢，建议您输入关键词进行同步，减少<br />
+            同步等待时间。
+            <input v-model="sharedKeyword" class="lp-shared__input" type="text" />
+          </div>
+          <div class="lp-shared__foot">
+            <button class="lp-btn lp-btn--plain" @click="sharedVisible = false">取 消</button>
+            <button class="lp-btn lp-btn--primary" @click="onSharedConfirm">确 定</button>
+          </div>
+        </div>
+
+        <!-- 复制到其他账户（手动填写 · 按账户分配） -->
+        <BatchCopyAccountDialog
+          v-model="copyVisible"
+          :current-account="copyCurrentName"
+          :tip="copyTip"
+          :rows="copyRows"
+          :width="512"
+          success-text="落地页已覆盖至选中的账户"
+          @confirm="onCopyConfirm"
+        />
       </div>
     </template>
   </BatchDrawer>
@@ -221,8 +614,9 @@
 
 <script setup>
 import { computed, h, inject, reactive, ref, watch } from 'vue';
-import { Close } from '@element-plus/icons-vue';
+import { Close, Filter, Link, Search, Sort } from '@element-plus/icons-vue';
 import BatchDrawer from './BatchDrawer.vue';
+import BatchCopyAccountDialog from './BatchCopyAccountDialog.vue';
 import spec from './spec/landing.spec.js';
 import {
   isVisible as specVisible,
@@ -282,7 +676,128 @@ const v = reactive(Object.assign({}, spec.values));
 
 const filter = reactive({ account: '', keyword: '' });
 const checkedIds = ref([]);
-const manualUrls = ref([]);
+const MANUAL_DEFAULT_URL = 'https://www.chengjizhanchan.com/tetris/page/7676317811270926362/';
+const manualUrls = ref([MANUAL_DEFAULT_URL]);
+
+/* ---- 橙子落地页（2026-11-27 线上图①②③④） ---- */
+const LOOP_OPTIONS = [
+  { value: 'OFF', label: '不开启' },
+  { value: 'ON', label: '开启' },
+];
+/** 橙子落地页 / 橙子建站模板共用同一套「账户列 + 卡片 + 已选」骨架 */
+const isOrange = computed(() => v.landing_page_type === 'ORANGE' || v.landing_page_type === 'ORANGE_SITE');
+const isOSite = computed(() => v.landing_page_type === 'ORANGE_SITE');
+/** 橙子建站模板：分项目 / 分广告 时整宽显示循环使用提示 */
+const showOSiteLoopTip = computed(() => isOSite.value
+  && (v.landing_page_rule === 'PER_PROJECT' || v.landing_page_rule === 'PER_AD'));
+/** 循环使用账户 / 资产：橙子落地页、第三方落地页 + 按项目分配 / 按广告分配 */
+const showLoopRow = computed(() => (v.landing_page_type === 'ORANGE' || v.landing_page_type === 'THIRDPARTY')
+  && (v.landing_page_rule === 'PER_PROJECT' || v.landing_page_rule === 'PER_AD'));
+const isThirdParty = computed(() => v.landing_page_type === 'THIRDPARTY');
+const isAutoSelect = computed(() => isThirdParty.value && v.landing_select_way === 'AUTO');
+const loopLabel = computed(() => (isThirdParty.value ? '循环使用资产' : '循环使用账户'));
+/** 橙子落地页的账户列（线上：名称 + 账户ID 两行） */
+const orangeAccounts = computed(() => (selectedAccounts.value || []).map((a, i) => ({
+  id: a.id,
+  name: a.name,
+  displayId: String(a.accountId || (187375864950680 + i * 100000)),
+})));
+const accIndex = ref(0);
+/** 手动填写：逐账户的落地页链接 */
+const manualMap = reactive({});
+watch(() => (selectedAccounts.value || []).map((a) => a.id), (ids) => {
+  ids.forEach((id) => {
+    if (manualMap[id] === undefined) manualMap[id] = MANUAL_DEFAULT_URL;
+  });
+}, { immediate: true });
+const manualCur = computed(() => manualMap[orangeAccounts.value[accIndex.value]?.id] || '');
+function onManualInput(val) {
+  const id = orangeAccounts.value[accIndex.value]?.id;
+  if (id) manualMap[id] = val;
+}
+/* 复制到其他账户（手动填写 · 按账户分配） */
+const copyVisible = ref(false);
+const copyCurrentName = computed(() => orangeAccounts.value[accIndex.value]?.name || '');
+const copyRows = computed(() => orangeAccounts.value
+  .filter((a, i) => i !== accIndex.value)
+  .map((a) => ({ account: a.name, accountId: a.displayId })));
+const copyTip = computed(() => `此操作将会把当前账户「${copyCurrentName.value}」在投的落地页覆盖至指定账户。`);
+function openCopyAccounts() {
+  copyVisible.value = true;
+}
+function onCopyConfirm(ids) {
+  copyVisible.value = false;
+  const val = manualCur.value;
+  (ids || []).forEach((id) => { manualMap[id] = val; });
+}
+const allAccount = ref('');
+const lpField = ref('name');
+const lpKeyword = ref('');
+/** 每个账户各自的已选（全部相同时共用一个 key） */
+const checkedMap = reactive({});
+const curKey = computed(() => (v.landing_page_rule === 'ALL'
+  ? '__all'
+  : (orangeAccounts.value[accIndex.value]?.id || '__all')));
+const currentChecked = computed(() => checkedMap[curKey.value] || []);
+watch(curKey, (k) => {
+  if (!checkedMap[k]) checkedMap[k] = [];
+}, { immediate: true });
+/** 线上：项目数 / 广告数（按当前账户在投） */
+const projectCount = computed(() => 1);
+const adCount = computed(() => 1);
+/** 切到橙子落地页时给账户下拉补默认值 */
+watch([() => v.landing_page_type, () => selectedAccounts.value.length], () => {
+  if (!allAccount.value && selectedAccounts.value && selectedAccounts.value[0]) {
+    allAccount.value = selectedAccounts.value[0].id;
+  }
+}, { immediate: true });
+const sharedVisible = ref(false);
+const sharedKeyword = ref('');
+function onSharedConfirm() {
+  sharedVisible.value = false;
+  ElMessage.success('已提交共享建站同步');
+}
+
+/* ---- 第三方落地页（2026-11-27 线上图：手动选择 / 自动选择） ---- */
+const TP_PROJECTS = ['智投-美妆项目', '智投-漫剧项目', '智投-游戏项目'];
+const TP_PAGES = [
+  { id: 'tp1', title: '硬币见人心', remark: '', used: false, adCount: 0 },
+  { id: 'tp2', title: 'hzb-dy8', remark: '', used: false, adCount: 0 },
+  { id: 'tp3', title: '凤凰拐了战神爹', remark: '', used: true, adCount: 1 },
+  { id: 'tp4', title: '秀域轰脂', remark: '', used: true, adCount: 4 },
+  { id: 'tp5', title: '御赐的良缘', remark: '', used: true, adCount: 6 },
+  { id: 'tp6', title: '奔旧等新', remark: '', used: true, adCount: 6 },
+  { id: 'tp7', title: '振图zch10dy7', remark: '', used: true, adCount: 7 },
+  { id: 'tp8', title: 'zch-dy8', remark: '', used: true, adCount: 11 },
+  { id: 'tp9', title: 'zch-dy9', remark: '', used: true, adCount: 11 },
+  { id: 'tp10', title: '青川辞', remark: '', used: true, adCount: 80 },
+  { id: 'tp11', title: '晚风拂柳', remark: '', used: true, adCount: 3 },
+];
+const tpProject = ref('');
+const tpAllowUnlinked = ref(true);
+const tpOnlyUnlinked = ref(true);
+const tpOnlyZero = ref(false);
+const tpOnlyUnused = ref(false);
+const tpRows = computed(() => {
+  const kw = String(lpKeyword.value || '').trim().toLowerCase();
+  return TP_PAGES.filter((p) => {
+    if (tpOnlyZero.value && p.adCount !== 0) return false;
+    if (tpOnlyUnused.value && p.used) return false;
+    if (kw) {
+      const t = String(lpField.value === 'remark' ? p.remark : p.title).toLowerCase();
+      if (!t.includes(kw)) return false;
+    }
+    return true;
+  });
+});
+function tpPageById(id) {
+  return TP_PAGES.find((p) => p.id === id);
+}
+/** 跳转第三方落地页（本地 mock：与橙子同为巨量登录页） */
+function openThirdPartySite() {
+  window.open(ORANGE_LOGIN_URL, '_blank', 'noopener');
+}
+
 
 /** 当前 spec 字段表 */
 const fieldMap = computed(() => {
@@ -359,12 +874,19 @@ const typePanel = computed(() => (spec.typePanels || {})[v.landing_page_type]
 const linkCount = computed(() => Math.max(1, Number(v.per_ad_count) || 1));
 
 /** 最多可选数量 */
-const maxCount = computed(() => linkCount.value * Math.max(1, (selectedAccounts.value || []).length || 1));
+const maxCount = computed(() => linkCount.value);
 
 /** 落地页资产列表 */
 const filteredPages = computed(() => {
-  const kw = String(filter.keyword || '').trim().toLowerCase();
   const rows = landingPages.value || [];
+  // 橙子建站模板：线上拉取的是「模板」资产，当前账户无模板 → 空态
+  if (isOSite.value) return [];
+  if (isOrange.value) {
+    const kw = String(lpKeyword.value || '').trim().toLowerCase();
+    if (!kw) return rows;
+    return rows.filter((p) => String(lpField.value === 'remark' ? (p.remark || '') : (p.title || '')).toLowerCase().includes(kw));
+  }
+  const kw = String(filter.keyword || '').trim().toLowerCase();
   if (!kw) return rows;
   return rows.filter((p) => `${p.title || ''} ${p.url || ''}`.toLowerCase().includes(kw));
 });
@@ -401,16 +923,61 @@ function clearFilter() {
   filter.account = '';
   filter.keyword = '';
 }
+function currentList() {
+  const k = curKey.value;
+  if (!checkedMap[k]) checkedMap[k] = [];
+  return checkedMap[k];
+}
 function toggleChecked(id) {
+  if (isOrange.value || isThirdParty.value) {
+    const list = currentList();
+    const i = list.indexOf(id);
+    if (i >= 0) list.splice(i, 1);
+    else list.push(id);
+    return;
+  }
   const i = checkedIds.value.indexOf(id);
   if (i >= 0) checkedIds.value.splice(i, 1);
   else checkedIds.value.push(id);
 }
 function removePicked(id) {
+  if (isOrange.value || isThirdParty.value) {
+    const list = currentList();
+    const i = list.indexOf(id);
+    if (i >= 0) list.splice(i, 1);
+    return;
+  }
   checkedIds.value = checkedIds.value.filter((x) => x !== id);
 }
 function clearAll() {
+  if (isOrange.value || isThirdParty.value) {
+    checkedMap[curKey.value] = [];
+    return;
+  }
   checkedIds.value = [];
+}
+function clearAllAccounts() {
+  Object.keys(checkedMap).forEach((k) => { checkedMap[k] = []; });
+}
+/** 卡内「快速选择」：选中当前账户列表里的落地页（受上限约束） */
+function quickSelect() {
+  const list = isThirdParty.value ? tpRows.value : filteredPages.value;
+  const ids = list.map((p) => p.id).slice(0, maxCount.value);
+  checkedMap[curKey.value] = ids;
+}
+/** 「多账户快速选择」：每个账户都按上限快速选 */
+function quickSelectAll() {
+  (orangeAccounts.value || []).forEach((a) => {
+    checkedMap[a.id] = (isThirdParty.value ? tpRows.value : filteredPages.value).map((p) => p.id).slice(0, maxCount.value);
+  });
+}
+function onOrangeRefresh() {
+  ElMessage.success('已刷新');
+}
+/** 跳转橙子建站 */
+const ORANGE_LOGIN_URL = 'https://ad.oceanengine.com/pages/login/index.html';
+function openOrangeSite() {
+  window.open(ORANGE_LOGIN_URL, '_blank', 'noopener');
 }
 
 /** 线上按钮的视觉分类（线上 .operate-button 内 el-button 变体） */
@@ -454,7 +1021,9 @@ function onConfirm() {
   l.landing_page_type = v.landing_page_type;
   l.landing_page_rule = v.landing_page_rule;
   if (v.landing_page_type === 'MANUAL') {
-    const url = (manualUrls.value || []).find((u) => String(u || '').trim()) || '';
+    const url = v.landing_page_rule === 'PER_ACCOUNT'
+      ? (manualCur.value || '').trim()
+      : ((manualUrls.value || []).find((u) => String(u || '').trim()) || '');
     l.landing_page_url = url;
     l.landing_page_name = url ? '手动填写落地页' : '';
     if (url) {
@@ -469,6 +1038,16 @@ function onConfirm() {
     }
   } else if (v.landing_page_type === 'DYNAMIC') {
     l.landing_page_id = null;
+  } else if (isOrange.value) {
+    const first = Object.keys(checkedMap).reduce((acc, k) => acc || (checkedMap[k] || [])[0], null);
+    l.landing_page_id = first || null;
+    l.loop_account = v.loop_account;
+    if (first) onLandingSelect(first);
+  } else if (isThirdParty.value) {
+    const cur = checkedMap[curKey.value] || [];
+    const first = cur[0] || Object.keys(checkedMap).reduce((acc, k) => acc || (checkedMap[k] || [])[0], null);
+    l.landing_page_id = first || null;
+    l.loop_account = v.loop_account;
   } else {
     const id = checkedIds.value[0] || null;
     l.landing_page_id = id;
@@ -704,6 +1283,291 @@ function onClose() {
 .lp-picked__x { cursor: pointer; color: #86909c; }
 
 .lp-extra { margin-top: 12px; font-size: 12px; color: #999; }
+
+/* ===== 橙子落地页（2026-11-27 线上图①②③④） ===== */
+.lp-orange { display: flex; align-items: stretch; gap: 8px; }
+.lp-orange__accs {
+  flex: 0 0 148px;
+  width: 148px;
+  border: 1px solid #e5e6eb;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #fff;
+}
+.lp-orange__acc {
+  height: 56px;
+  padding: 8px 8px;
+  border-bottom: 1px solid #e5e6eb;
+  cursor: pointer;
+}
+.lp-orange__acc:last-child { border-bottom: none; }
+.lp-orange__acc.is-active { background: #eef4ff; }
+.lp-orange__accname {
+  display: block;
+  font-size: 13px;
+  color: #1d2129;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lp-orange__acc.is-active .lp-orange__accname { color: #197afb; }
+.lp-orange__accid { display: block; margin-top: 4px; font-size: 12px; color: #86909c; }
+.lp-orange__main { flex: 1; min-width: 0; }
+
+.lp-ocard { border: 1px solid #e5e6eb; border-radius: 3px; background: #fff; }
+.lp-ocard__head {
+  height: 44px; padding: 0 12px;
+  display: flex; align-items: center;
+}
+.lp-ocard__title { font-size: 13px; color: #1d2129; }
+.lp-ocard__ops { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.lp-ocard__acctrow { padding: 0 12px 10px; display: flex; align-items: center; gap: 10px; }
+.lp-select--acctwide { width: 100%; max-width: 420px; height: 32px; }
+.lp-ocard__refresh { font-size: 13px; }
+.lp-ocard__search { padding: 0 12px 10px; display: flex; align-items: center; gap: 8px; }
+.lp-select--name { width: 96px; height: 32px; flex: none; }
+.lp-search--grow { flex: 1; min-width: 0; width: auto; height: 32px; }
+.lp-iconbtn {
+  width: 32px; height: 32px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #dcdfe6; border-radius: 2px; background: #fff; cursor: pointer;
+}
+.lp-iconbtn:hover { border-color: #197afb; }
+.lp-ocard__jump {
+  margin-left: auto; flex: none;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; color: #197afb; cursor: pointer;
+}
+.lp-ocard__sum {
+  padding: 0 12px 10px;
+  display: flex; align-items: center; gap: 16px;
+  font-size: 12px; color: #4e5969;
+}
+.lp-ocard__sum .lp-btn--quickselect { margin-left: auto; }
+
+.lp-otable { border-top: 1px solid #e5e6eb; }
+.lp-otable__head {
+  height: 40px; padding: 0 12px;
+  display: flex; align-items: center;
+  font-size: 12px; color: #4e5969;
+  border-bottom: 1px solid #e5e6eb;
+}
+.lp-otable__head .el-icon, .lp-otable__head .cl-ico { margin-left: 2px; color: #c9cdd4; }
+.lp-otable__body { min-height: 348px; max-height: 420px; overflow-y: auto; }
+.lp-otable__row {
+  height: 44px; padding: 0 12px;
+  display: flex; align-items: center;
+  font-size: 13px; color: #1d2129;
+  border-bottom: 1px solid #f2f3f5;
+  cursor: pointer;
+}
+.lp-otable__row:hover { background: #f7f8fa; }
+.lp-otable__row.is-checked { background: #eef4ff; }
+.lp-otable__c1 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-otable__c2 { width: 108px; flex: none; color: #4e5969; }
+.lp-otable__c3 { width: 96px; flex: none; color: #4e5969; }
+.lp-oempty { padding: 96px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.lp-oempty__txt { font-size: 12px; color: #86909c; }
+
+.lp-ocard__pager {
+  height: 40px; display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  padding: 0 12px; font-size: 12px; color: #86909c;
+}
+.lp-pager__ico { color: #c9cdd4; cursor: pointer; }
+.lp-pager__page {
+  min-width: 24px; height: 24px; line-height: 22px; text-align: center;
+  border: 1px solid #e5e6eb; border-radius: 2px; color: #1d2129;
+}
+.lp-ocard__hint { padding: 0 12px 12px; font-size: 12px; color: #86909c; }
+
+.lp-opicked {
+  flex: 0 0 200px; width: 200px;
+  border: 1px solid #e5e6eb; border-radius: 3px; background: #fff;
+  display: flex; flex-direction: column;
+}
+.lp-opicked__head {
+  height: 40px; padding: 0 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: #4e5969;
+  border-bottom: 1px solid #f2f3f5;
+}
+.lp-opicked__head b { color: #1d2129; font-weight: 500; }
+.lp-opicked__body { flex: 1; min-height: 260px; overflow-y: auto; padding: 8px 10px; }
+.lp-opicked__row { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 0; font-size: 12px; color: #1d2129; }
+.lp-opicked__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 循环使用账户 */
+.lp-looprow { margin-bottom: 20px; }
+.lp-loop-tip {
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: #fff8e8;
+  border: 1px solid #ffe4b5;
+  border-radius: 2px;
+  font-size: 12px; line-height: 18px; color: #ff7d00;
+}
+.lp-loop-tip__ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; margin-right: 4px; border-radius: 50%;
+  background: #ff7d00; color: #fff; font-size: 10px; vertical-align: 1px;
+}
+
+.lp-loop-tip--wide {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+}
+/* 橙子建站模板：账户项右侧单选圈 */
+.lp-orange__acc { position: relative; }
+.lp-oradio {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; color: #c9cdd4;
+}
+.lp-oradio.is-on { color: #197afb; }
+.lp-orange__acc .lp-orange__accname { padding-right: 18px; }
+/* 橙子建站模板：卡片无卡头，搜索行贴顶 */
+.lp-ocard--plain .lp-ocard__search { padding-top: 12px; }
+.lp-otable__c2--sorting .el-icon { color: #197afb; }
+
+/* ===== 第三方落地页（2026-11-27 线上图） ===== */
+.lp-searchgroup { flex: 1; min-width: 0; display: flex; }
+.lp-searchgroup .lp-search--grow { border-right: none; border-radius: 2px 0 0 2px; }
+.lp-iconbtn--joined { border-left: none; border-radius: 0; }
+.lp-iconbtn--joined:last-child { border-radius: 0 2px 2px 0; }
+.lp-tpcard__head {
+  height: 44px; padding: 0 12px;
+  display: flex; align-items: center;
+  border-bottom: 1px solid #e5e6eb;
+}
+.lp-tpcard__title { font-size: 13px; color: #1d2129; }
+.lp-tpcard__row {
+  padding: 7px 12px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #f2f3f5;
+}
+.lp-select--full { width: 100%; height: 32px; }
+.lp-tpcard__sum { font-size: 12px; color: #4e5969; gap: 16px; }
+.lp-tpcard__sum .lp-btn--quickselect { margin-left: auto; }
+.lp-tpcard__filters { gap: 24px; font-size: 12px; color: #4e5969; }
+.tp-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.tp-check__box { width: 14px; height: 14px; accent-color: #197afb; }
+.tp-check__blue { color: #197afb; }
+.tp-check__info {
+  width: 14px; height: 14px; border: 1px solid #c9cdd4; border-radius: 50%;
+  color: #86909c; font-size: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.tp-check--auto { margin-top: 22px; font-size: 12px; color: #1d2129; }
+.tp-check--auto .tp-check__box { width: 15px; height: 15px; margin: 0; accent-color: #546ef7; }
+.tp-check--auto.is-on span { color: #546ef7; }
+.lp-tpauto__desc {
+  margin-top: 6px; font-size: 12px; line-height: 20px; color: #1d2129;
+  white-space: nowrap;
+}
+.lp-tptable { border-top: 1px solid #e5e6eb; }
+.lp-tptable__head {
+  height: 40px; padding: 0 12px;
+  display: flex; align-items: center;
+  font-size: 12px; color: #4e5969;
+  border-bottom: 1px solid #e5e6eb;
+}
+.lp-tptable__head .el-icon { margin-left: 2px; color: #c9cdd4; }
+.lp-tptable__body { min-height: 264px; max-height: 300px; overflow-y: auto; }
+.lp-tptable__row {
+  height: 34px; padding: 0 12px;
+  display: flex; align-items: center;
+  font-size: 12px; color: #1d2129;
+  border-bottom: 1px solid #f7f8fa;
+  cursor: pointer;
+}
+.lp-tptable__row:hover { background: #f7f8fa; }
+.lp-tptable__row.is-checked { background: #eef4ff; }
+.lp-tpc { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.lp-tpc--check { width: 28px; flex: none; }
+.lp-tpc--name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-tpc--remark { width: 120px; flex: none; color: #86909c; }
+.lp-tpc--status { width: 88px; flex: none; color: #4e5969; }
+.lp-tpc--ad { width: 96px; flex: none; }
+.tp-box {
+  width: 14px; height: 14px; border: 1px solid #dcdfe6; border-radius: 2px;
+  background: #fff; display: inline-flex; align-items: center; justify-content: center;
+}
+.tp-box.is-on { background: #197afb; border-color: #197afb; }
+.tp-dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+.tp-dot.is-idle { background: #00b42a; }
+.tp-dot.is-used { background: #f53f3f; }
+.tp-adnum { margin-right: 8px; }
+.tp-preview { font-size: 12px; }
+.lp-tpcard__pager {
+  height: 40px; padding: 0 12px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: #197afb;
+}
+.lp-tpcard__pager .lp-pager__ico { color: #197afb; }
+.lp-tpcard__pager .lp-pager__page { border: none; color: #197afb; }
+
+/* ===== 手动填写（2026-11-27 线上图） ===== */
+.lp-btn--copy { margin-left: auto; }
+.lp-rulerow { display: flex; align-items: center; width: 100%; }
+.lp-manual__inner { display: flex; align-items: stretch; }
+.lp-manual__inner.is-accs .lp-manual__main { padding-left: 24px; }
+.lp-manual__inner.is-accs .lp-manual__label { width: 120px; }
+.lp-manual__accs {
+  flex: 0 0 148px; width: 148px;
+  background: #f7f8fa;
+  min-height: 470px;
+}
+.lp-manual__acc {
+  position: relative;
+  height: 56px; padding: 8px 8px;
+  border-bottom: 1px solid #fff;
+  cursor: pointer;
+}
+.lp-manual__accname {
+  display: block; padding-right: 18px;
+  font-size: 13px; color: #1d2129;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lp-manual__acc.is-active .lp-manual__accname { color: #197afb; }
+.lp-manual__accid { display: block; margin-top: 4px; font-size: 12px; color: #86909c; }
+.lp-manual__ok {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; line-height: 0;
+}
+.lp-manual__main { flex: 1; min-width: 0; }
+.lp-manual__row { display: flex; align-items: flex-start; }
+.lp-manual__label { width: 140px; flex: none; font-size: 14px; color: #666; line-height: 32px; }
+.lp-manual__input {
+  width: 470px; max-width: 100%; height: 32px; padding: 0 10px;
+  border: 1px solid #dcdfe6; border-radius: 2px;
+  font-size: 13px; color: #1d2129; outline: none;
+}
+.lp-manual__input:focus { border-color: #197afb; }
+
+/* 获取共享建站 */
+.lp-shared-mask { position: fixed; inset: 0; z-index: 2300; background: rgba(0, 0, 0, .5); }
+.lp-shared {
+  position: fixed; left: 50%; top: 50%; z-index: 2301;
+  width: 444px; transform: translate(-50%, -50%);
+  background: #fff; border-radius: 4px;
+  box-shadow: 0 12px 32px 4px rgba(0, 0, 0, .36);
+  font-size: 13px; color: #4e5969;
+}
+.lp-shared__head {
+  position: relative; height: 44px; padding: 0 16px;
+  display: flex; align-items: center;
+  border-bottom: 1px solid #ebedf0;
+  font-size: 14px; color: #1d2129;
+}
+.lp-shared__close {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; font-size: 14px; color: #86909c; cursor: pointer;
+}
+.lp-shared__body { padding: 16px; font-size: 13px; line-height: 22px; }
+.lp-shared__input {
+  width: 100%; height: 32px; margin-top: 12px; padding: 0 10px;
+  border: 1px solid #197afb; border-radius: 2px; outline: none;
+}
+.lp-shared__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 16px; }
 
 /* 页脚（线上 .dialog-footer：按钮右对齐 88×32，间距 16） */
 .lp-footer { display: flex; justify-content: flex-end; gap: 16px; width: 100%; }
