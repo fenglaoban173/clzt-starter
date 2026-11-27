@@ -147,9 +147,10 @@
           </template>
         </div>
 
-        <!-- 查询：靠右、垂直居中（与线上一致） -->
+        <!-- 查询 / 清空：靠右、垂直居中（与线上一致） -->
         <div class="filter-actions">
           <el-button type="primary" @click="onSearch">查询</el-button>
+          <el-button class="clear-btn" @click="onClearAll">清空</el-button>
         </div>
       </div>
     </el-card>
@@ -524,6 +525,19 @@ function clearFilter(def) {
     materialIds.value = [];
     materialNames.value = [];
   } else filters[def.key] = '';
+}
+
+/* 清空：把全部筛选条件恢复默认（名称类型回「广告名称」，其余回空） */
+function onClearAll() {
+  AD_FILTER_DEFS.forEach((def) => clearFilter(def));
+  filters.nameType = 'name';
+  filters.keyword = '';
+  accountIds.value = [];
+  accountNames.value = [];
+  materialIds.value = [];
+  materialNames.value = [];
+  page.value = 1;
+  load();
 }
 
 // ---------- 筛选 ----------

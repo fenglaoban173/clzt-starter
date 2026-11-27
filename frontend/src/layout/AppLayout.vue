@@ -14,6 +14,7 @@
           :key="m.key"
           class="nav-item"
           :class="{ active: topActive === m.key }"
+          :title="m.external ? '在新窗口打开素材系统' : ''"
           @mouseenter="onHover(m)"
           @mouseleave="openPanel = ''"
           @click="onTopSelect(m.key)"
@@ -154,7 +155,7 @@ const topMenus = [
   { key: 'home', title: '首页', mod: 'home' },
   { key: 'promo', title: '推广', mod: 'promo' },
   { key: 'report', title: '报表', mod: 'report' },
-  { key: 'material', title: '素材', mod: 'material' },
+  { key: 'material', title: '素材', mod: 'material', external: 'https://fenglaoban173.github.io/material-system/#/dashboard' },
   { key: 'asset', title: '资产', mod: 'asset', mega: true },
   { key: 'task', title: '任务', mod: 'task' },
   { key: 'tool', title: '工具', mod: 'tool' },
@@ -383,6 +384,11 @@ function onTopSelect(key) {
   const m = topMenus.find((x) => x.key === key);
   if (!m) return;
   openPanel.value = '';
+  // 顶部「素材」指向独立的素材系统站点，新窗口打开，不走站内路由
+  if (m.external) {
+    window.open(m.external, '_blank', 'noopener');
+    return;
+  }
   if (m.placeholder) { ElMessage.info('原型暂未开放该功能'); return; }
   // R108：取该模块下**第一个可跳转**的菜单项（跳过标注「待开发」/置灰的项）
   const groups = sideMenuConfig[m.mod] || [];
